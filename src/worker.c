@@ -13,6 +13,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <sched.h>
+#include <fcntl.h>
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -81,9 +82,16 @@ static int create_reuseport_socket_on_port(int port)
     struct sockaddr_in6 addr;
 
     /* Create IPv6 socket (accepts IPv4 via dual-stack) */
-    fd = socket(AF_INET6, SOCK_STREAM | SOCK_NONBLOCK, 0);
+    fd = socket(AF_INET6, SOCK_STREAM, 0);
     if (fd < 0) {
         log_error("socket() failed: %s", strerror(errno));
+        return -1;
+    }
+
+    /* Set non-blocking mode (portable - works on Linux and macOS) */
+    if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0) {
+        log_error("fcntl(O_NONBLOCK) failed: %s", strerror(errno));
+        close(fd);
         return -1;
     }
 
