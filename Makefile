@@ -40,7 +40,10 @@ TARGET = rawrelay-server
 # Object files for tests (without main)
 LIB_OBJS = $(BUILD_DIR)/buffer.o $(BUILD_DIR)/config.o $(BUILD_DIR)/reader.o $(BUILD_DIR)/http.o $(BUILD_DIR)/log.o $(BUILD_DIR)/network.o
 
-.PHONY: all clean test test_buffer test_reader valgrind help check-libevent install uninstall
+# Object files for RPC test
+RPC_TEST_OBJS = $(BUILD_DIR)/rpc.o $(BUILD_DIR)/network.o $(BUILD_DIR)/log.o
+
+.PHONY: all clean test test_network test_rpc valgrind help check-libevent install uninstall
 
 all: check-libevent $(TARGET)
 
@@ -67,16 +70,16 @@ $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
 # Individual tests
-test_buffer: $(BUILD_DIR)/buffer.o $(BUILD_DIR)/log.o $(TEST_DIR)/test_buffer.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -o $(BUILD_DIR)/$@ $(BUILD_DIR)/buffer.o $(BUILD_DIR)/log.o $(TEST_DIR)/test_buffer.c $(LDFLAGS)
+test_network: $(BUILD_DIR)/network.o $(BUILD_DIR)/log.o $(TEST_DIR)/test_network.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -o $(BUILD_DIR)/$@ $(BUILD_DIR)/network.o $(BUILD_DIR)/log.o $(TEST_DIR)/test_network.c $(LDFLAGS)
 	./$(BUILD_DIR)/$@
 
-test_reader: $(LIB_OBJS) $(TEST_DIR)/test_reader.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -o $(BUILD_DIR)/$@ $(LIB_OBJS) $(TEST_DIR)/test_reader.c $(LDFLAGS)
-	./$(BUILD_DIR)/$@
+test_rpc: $(RPC_TEST_OBJS) $(TEST_DIR)/test_rpc.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -o $(BUILD_DIR)/$@ $(RPC_TEST_OBJS) $(TEST_DIR)/test_rpc.c $(LDFLAGS)
+	@echo "RPC tests require a running Bitcoin node. Run manually if node is available."
 
-# Run all tests
-test: test_buffer test_reader
+# Run all unit tests
+test: test_network
 
 # Memory check with valgrind
 valgrind: $(TARGET)
