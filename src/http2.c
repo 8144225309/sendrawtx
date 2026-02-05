@@ -484,7 +484,7 @@ int h2_connection_init(Connection *conn)
     conn->h2 = h2;
     conn->protocol = PROTO_HTTP_2;
 
-    log_debug("HTTP/2 session initialized for %s", conn->client_ip);
+    log_debug("HTTP/2 session initialized for %s", log_format_ip(conn->client_ip));
 
     return 0;
 }

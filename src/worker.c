@@ -470,7 +470,7 @@ static void tls_accept_cb(struct evconnlistener *listener, evutil_socket_t fd,
     }
     worker->connections = conn;
 
-    log_debug("TLS connection from %s:%d", conn->client_ip, conn->client_port);
+    log_debug("TLS connection from %s:%d", log_format_ip(conn->client_ip), conn->client_port);
 }
 
 /*
@@ -552,7 +552,7 @@ void worker_main(int worker_id, Config *config)
     snprintf(identity, sizeof(identity), "worker[%d]", worker_id);
     log_set_identity(identity);
     log_set_json_mode(config->json_logging);
-    log_set_access_enabled(config->access_logging);
+    log_set_verbose(config->verbose);
 
     worker.worker_id = worker_id;
     worker.config = config;

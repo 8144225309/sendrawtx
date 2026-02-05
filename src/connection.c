@@ -109,7 +109,7 @@ static int validate_path_early(Connection *conn, const unsigned char *data, size
 
         if (!is_valid_hex_char(*p)) {
             log_warn("Invalid character in path from %s: '%c' (0x%02x) at position %zu",
-                     conn->client_ip, *p, (unsigned char)*p, (size_t)(p - path_start));
+                     log_format_ip(conn->client_ip), *p, (unsigned char)*p, (size_t)(p - path_start));
             conn->validation_failed = true;
             return -1;
         }
@@ -139,12 +139,12 @@ static int try_promote_tier(Connection *conn, size_t new_size)
     /* Try to promote */
     if (!slot_manager_promote(&worker->slots, conn->current_tier, required_tier)) {
         log_warn("Cannot promote %s from %s to %s tier - no slots available",
-                 conn->client_ip, tier_name(conn->current_tier), tier_name(required_tier));
+                 log_format_ip(conn->client_ip), tier_name(conn->current_tier), tier_name(required_tier));
         return -1;
     }
 
     log_info("Promoted %s from %s to %s tier (size %zu)",
-             conn->client_ip, tier_name(conn->current_tier), tier_name(required_tier), new_size);
+             log_format_ip(conn->client_ip), tier_name(conn->current_tier), tier_name(required_tier), new_size);
     conn->current_tier = required_tier;
     return 0;
 }
@@ -169,7 +169,7 @@ static void downgrade_tier_to_normal(Connection *conn)
     /* Acquire normal slot for response phase */
     if (slot_manager_acquire(&worker->slots, TIER_NORMAL)) {
         log_debug("Downgraded %s from %s to normal tier (request complete)",
-                  conn->client_ip, tier_name(conn->current_tier));
+                  log_format_ip(conn->client_ip), tier_name(conn->current_tier));
         conn->current_tier = TIER_NORMAL;
     } else {
         /* Can't get normal slot - keep the expensive one for now */
@@ -351,7 +351,7 @@ static int parse_request_headers(Connection *conn, const unsigned char *headers,
 
     method_len = space1 - headers;
     if (method_len >= sizeof(conn->method)) {
-        log_warn("HTTP method too long (%zu bytes) from %s", method_len, conn->client_ip);
+        log_warn("HTTP method too long (%zu bytes) from %s", method_len, log_format_ip(conn->client_ip));
         return -1;
     }
     memcpy(conn->method, headers, method_len);
@@ -1025,11 +1025,11 @@ static void conn_read_cb(struct bufferevent *bev, void *ctx)
 
             /* Check ALPN result */
             if (tls_is_http2(ssl)) {
-                log_debug("HTTP/2 negotiated via ALPN for %s", conn->client_ip);
+                log_debug("HTTP/2 negotiated via ALPN for %s", log_format_ip(conn->client_ip));
 
                 /* Initialize HTTP/2 session */
                 if (h2_connection_init(conn) < 0) {
-                    log_error("Failed to initialize HTTP/2 for %s", conn->client_ip);
+                    log_error("Failed to initialize HTTP/2 for %s", log_format_ip(conn->client_ip));
                     connection_free(conn);
                     return;
                 }
@@ -1052,7 +1052,7 @@ static void conn_read_cb(struct bufferevent *bev, void *ctx)
                            (now.tv_usec - conn->start_time.tv_usec) / 1000000.0;
     if (total_elapsed > MAX_REQUEST_TIME_SEC) {
         log_warn("Slowloris: Connection exceeded max time (%.1fs) from %s [%s]",
-                 total_elapsed, conn->client_ip,
+                 total_elapsed, log_format_ip(conn->client_ip),
                  conn->protocol == PROTO_HTTP_2 ? "HTTP/2" : "HTTP/1.1");
         connection_free(conn);
         return;
@@ -1066,7 +1066,7 @@ static void conn_read_cb(struct bufferevent *bev, void *ctx)
         if (available < conn->bytes_at_last_check ||
             bytes_this_period < MIN_BYTES_PER_CHECK) {
             log_warn("Slowloris: Throughput too low (%zu bytes in %.1fs) from %s [%s]",
-                     bytes_this_period, check_elapsed, conn->client_ip,
+                     bytes_this_period, check_elapsed, log_format_ip(conn->client_ip),
                      conn->protocol == PROTO_HTTP_2 ? "HTTP/2" : "HTTP/1.1");
             connection_free(conn);
             return;
@@ -1100,7 +1100,7 @@ static void conn_read_cb(struct bufferevent *bev, void *ctx)
         /* Check against configured max buffer size */
         if (available > cfg->max_buffer_size) {
             log_warn("Request exceeds max buffer size (%zu bytes) from %s",
-                     cfg->max_buffer_size, conn->client_ip);
+                     cfg->max_buffer_size, log_format_ip(conn->client_ip));
             connection_send_error(conn, 413, "Request Entity Too Large");
             return;
         }
@@ -1186,7 +1186,7 @@ static void conn_read_cb(struct bufferevent *bev, void *ctx)
                 /* Note: HTTP pipelining not supported - extra data is discarded.
                  * This could be a pipelined request or trailing garbage. */
                 log_debug("Discarding %zu bytes after request from %s (pipelining unsupported)",
-                          remaining, conn->client_ip);
+                          remaining, log_format_ip(conn->client_ip));
                 evbuffer_drain(input, remaining);
             }
             /* Release large/huge slot ASAP - only needed for receiving */
@@ -1401,13 +1401,13 @@ static void conn_event_cb(struct bufferevent *bev, short events, void *ctx)
     }
 
     if (events & BEV_EVENT_TIMEOUT) {
-        log_warn("Connection timeout from %s", conn->client_ip);
+        log_warn("Connection timeout from %s", log_format_ip(conn->client_ip));
         worker->errors_timeout++;
     } else if (events & BEV_EVENT_ERROR) {
         int err = EVUTIL_SOCKET_ERROR();
         if (err != 0) {
             log_warn("Connection error from %s: %s",
-                     conn->client_ip, evutil_socket_error_to_string(err));
+                     log_format_ip(conn->client_ip), evutil_socket_error_to_string(err));
         }
         /* Log SSL errors if this is a TLS connection */
         if (conn->ssl) {

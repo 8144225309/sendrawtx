@@ -86,10 +86,10 @@ http2_enabled = 1
 # Enable JSON format logging (0 = text, 1 = JSON)
 json = 0
 
-# Enable access logging (0 = disabled, 1 = enabled)
-# Privacy: disabled by default - logs client IPs for every request
-# Only enable for debugging or if you have explicit user consent
-access = 0
+# Verbose mode - enables full logging including client IPs
+# Default: 0 (minimal logging, IPs hidden in error/warning logs)
+# Set to 1 for debugging (logs access entries and shows full IPs)
+verbose = 0
 
 [security]
 # IP-based access control

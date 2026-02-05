@@ -41,7 +41,7 @@ typedef struct {
 
     /* Logging settings (Phase 5) */
     int json_logging;              /* Default: 0 (text format), 1 = JSON format */
-    int access_logging;            /* Default: 1 (enabled) */
+    int verbose;                   /* Default: 0 (minimal), 1 = full logging with IPs */
 
     /* Security settings (Phase 6) */
     char blocklist_file[256];      /* Path to IP blocklist file, empty = disabled */

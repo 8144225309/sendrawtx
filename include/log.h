@@ -5,7 +5,8 @@
 
 /*
  * Simple logging utilities.
- * PRIVACY: Never log IP addresses.
+ * Default mode: minimal logging with IPs hidden.
+ * Verbose mode: full logging with IPs shown (for debugging).
  */
 
 typedef enum {
@@ -63,9 +64,24 @@ void log_access(const char *client_ip, const char *method, const char *path,
                 const char *request_id);
 
 /*
- * Set access logging mode.
- * enabled: 1 = log access entries, 0 = don't log
+ * Set verbose mode.
+ * When verbose=1: access logging enabled, log level DEBUG, full IPs shown.
+ * When verbose=0: access logging disabled, log level INFO, IPs anonymized.
  */
-void log_set_access_enabled(int enabled);
+void log_set_verbose(int verbose);
+
+/*
+ * Check if verbose mode is enabled.
+ * Returns: 1 if verbose, 0 if minimal
+ */
+int log_is_verbose(void);
+
+/*
+ * Format an IP address for logging.
+ * In verbose mode: returns full IP.
+ * In minimal mode: returns anonymized IP (e.g., "192.x.x.x").
+ * Note: Returns pointer to static buffer - not thread-safe across calls.
+ */
+const char *log_format_ip(const char *ip);
 
 #endif /* LOG_H */

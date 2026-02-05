@@ -28,7 +28,7 @@
 #define DEFAULT_TLS_KEY_FILE          ""
 #define DEFAULT_HTTP2_ENABLED         1                 /* HTTP/2 enabled when TLS enabled */
 #define DEFAULT_JSON_LOGGING          0                 /* Text format by default */
-#define DEFAULT_ACCESS_LOGGING        0                 /* Privacy: access logging disabled by default */
+#define DEFAULT_VERBOSE               0                 /* Minimal logging by default */
 
 static char *trim(char *str)
 {
@@ -151,7 +151,7 @@ Config *config_default(void)
 
     /* Logging settings */
     c->json_logging = DEFAULT_JSON_LOGGING;
-    c->access_logging = DEFAULT_ACCESS_LOGGING;
+    c->verbose = DEFAULT_VERBOSE;
 
     /* Security settings (Phase 6) */
     c->blocklist_file[0] = '\0';
@@ -271,8 +271,8 @@ Config *config_load(const char *path)
         } else if (strcmp(section, "logging") == 0) {
             if (strcmp(key, "json") == 0) {
                 c->json_logging = parse_int(value, DEFAULT_JSON_LOGGING);
-            } else if (strcmp(key, "access") == 0) {
-                c->access_logging = parse_int(value, DEFAULT_ACCESS_LOGGING);
+            } else if (strcmp(key, "verbose") == 0) {
+                c->verbose = parse_int(value, DEFAULT_VERBOSE);
             }
         } else if (strcmp(section, "security") == 0) {
             if (strcmp(key, "blocklist_file") == 0) {
@@ -348,7 +348,7 @@ void config_print(const Config *c)
     }
     printf("  Logging:\n");
     printf("    json_format:      %s\n", c->json_logging ? "ENABLED" : "DISABLED");
-    printf("    access_log:       %s\n", c->access_logging ? "ENABLED" : "DISABLED");
+    printf("    verbose:          %s\n", c->verbose ? "ENABLED (full IPs)" : "DISABLED (IPs hidden)");
     printf("  Security:\n");
     printf("    blocklist_file:   %s\n", c->blocklist_file[0] ? c->blocklist_file : "(disabled)");
     printf("    allowlist_file:   %s\n", c->allowlist_file[0] ? c->allowlist_file : "(disabled)");

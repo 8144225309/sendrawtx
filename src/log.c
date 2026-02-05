@@ -6,11 +6,12 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <arpa/inet.h>  /* for INET6_ADDRSTRLEN */
 
 static LogLevel g_log_level = LOG_INFO;
 static char g_identity[32] = "main";
 static int g_json_mode = 0;
-static int g_access_enabled = 0;  /* Privacy: disabled by default */
+static int g_verbose = 0;  /* Default: minimal logging, IPs hidden */
 
 static const char *level_names[] = {
     "DEBUG",
@@ -157,16 +158,75 @@ void log_error(const char *fmt, ...)
     va_end(args);
 }
 
-void log_set_access_enabled(int enabled)
+void log_set_verbose(int verbose)
 {
-    g_access_enabled = enabled;
+    g_verbose = verbose;
+    /* Verbose mode enables DEBUG level and access logging */
+    if (verbose) {
+        g_log_level = LOG_DEBUG;
+    } else {
+        g_log_level = LOG_INFO;
+    }
+}
+
+int log_is_verbose(void)
+{
+    return g_verbose;
+}
+
+/*
+ * Format an IP address for logging.
+ * In verbose mode: returns full IP.
+ * In minimal mode: returns anonymized IP.
+ */
+const char *log_format_ip(const char *ip)
+{
+    static char buf[INET6_ADDRSTRLEN + 16];
+
+    if (!ip || !ip[0]) {
+        return "unknown";
+    }
+
+    /* Verbose mode: return full IP */
+    if (g_verbose) {
+        return ip;
+    }
+
+    /* Minimal mode: anonymize IP */
+    /* IPv6: show first segment only (e.g., "2001:x:x:x...") */
+    if (strchr(ip, ':')) {
+        const char *colon = strchr(ip, ':');
+        size_t prefix_len = colon - ip;
+        if (prefix_len > 0 && prefix_len < sizeof(buf) - 10) {
+            memcpy(buf, ip, prefix_len);
+            buf[prefix_len] = '\0';
+            strncat(buf, ":x:x:x...", sizeof(buf) - prefix_len - 1);
+            return buf;
+        }
+        return "ipv6:x:x:x...";
+    }
+
+    /* IPv4: show first octet only (e.g., "192.x.x.x") */
+    const char *dot = strchr(ip, '.');
+    if (dot) {
+        size_t prefix_len = dot - ip;
+        if (prefix_len > 0 && prefix_len < sizeof(buf) - 8) {
+            memcpy(buf, ip, prefix_len);
+            buf[prefix_len] = '\0';
+            strncat(buf, ".x.x.x", sizeof(buf) - prefix_len - 1);
+            return buf;
+        }
+    }
+
+    return "x.x.x.x";
 }
 
 void log_access(const char *client_ip, const char *method, const char *path,
                 int status, size_t bytes_sent, double duration_ms,
                 const char *request_id)
 {
-    if (!g_access_enabled) {
+    /* Access logging only enabled in verbose mode */
+    if (!g_verbose) {
         return;
     }
 
