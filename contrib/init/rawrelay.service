@@ -1,0 +1,32 @@
+[Unit]
+Description=RawRelay Bitcoin Transaction Relay Server
+After=network.target
+
+[Service]
+Type=simple
+User=rawrelay
+Group=rawrelay
+WorkingDirectory=/opt/rawrelay
+ExecStart=/opt/rawrelay/rawrelay-server /opt/rawrelay/config.ini
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=2
+
+# Logging (goes to journald)
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rawrelay
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/rawrelay/.well-known
+ReadWritePaths=/opt/rawrelay/data
+
+# Resource limits
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

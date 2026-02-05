@@ -38,7 +38,7 @@ TARGET = rawrelay-server
 # Object files for tests (without main)
 LIB_OBJS = $(BUILD_DIR)/buffer.o $(BUILD_DIR)/config.o $(BUILD_DIR)/reader.o $(BUILD_DIR)/http.o $(BUILD_DIR)/log.o
 
-.PHONY: all clean test test_buffer test_reader valgrind help check-libevent
+.PHONY: all clean test test_buffer test_reader valgrind help check-libevent install uninstall
 
 all: check-libevent $(TARGET)
 
@@ -100,30 +100,44 @@ deps:
 	sudo apt update
 	sudo apt install -y build-essential libevent-dev libssl-dev libnghttp2-dev pkg-config valgrind curl
 
+# Install (requires root)
+install: $(TARGET)
+	@echo "Installing RawRelay..."
+	@chmod +x contrib/install.sh
+	@sudo contrib/install.sh
+
+# Uninstall (requires root)
+uninstall:
+	@echo "Uninstalling RawRelay..."
+	@chmod +x contrib/uninstall.sh
+	@sudo contrib/uninstall.sh
+
 # Help
 help:
 	@echo "RawRelay Server v6 - Multi-Process Build System"
 	@echo ""
 	@echo "Targets:"
 	@echo "  all              Build the server (default)"
+	@echo "  install          Install to /opt/rawrelay (requires sudo)"
+	@echo "  uninstall        Remove installation (requires sudo)"
 	@echo "  run              Run server with auto-detected workers"
 	@echo "  run1             Run server with 1 worker (for debugging)"
 	@echo "  test             Run all unit tests"
-	@echo "  test_buffer      Run buffer module tests"
-	@echo "  test_reader      Run reader module tests"
 	@echo "  valgrind         Run config test with valgrind"
-	@echo "  valgrind_run     Run server with valgrind (1 worker)"
 	@echo "  deps             Install build dependencies (apt)"
 	@echo "  clean            Remove build artifacts"
 	@echo "  help             Show this help message"
 	@echo ""
-	@echo "Usage:"
-	@echo "  make              # Build the server"
-	@echo "  make run          # Run with auto workers"
-	@echo "  make run1         # Run with 1 worker"
-	@echo "  ./rawrelay-server -h   # Show server help"
+	@echo "Quick Start:"
+	@echo "  make deps         # Install dependencies"
+	@echo "  make              # Build"
+	@echo "  make install      # Install as service"
+	@echo "  sudo systemctl start rawrelay"
 	@echo ""
-	@echo "Testing:"
-	@echo "  curl http://localhost:8080/test   # Test connection"
-	@echo "  kill -HUP <pid>                   # Graceful reload"
-	@echo "  kill -TERM <pid>                  # Graceful shutdown"
+	@echo "Manual Run:"
+	@echo "  ./rawrelay-server config.ini"
+	@echo ""
+	@echo "Signals:"
+	@echo "  kill -HUP <pid>   # Graceful reload"
+	@echo "  kill -TERM <pid>  # Graceful shutdown"
+	@echo "  kill -USR2 <pid>  # Reload TLS certificates"
