@@ -10,7 +10,7 @@
 static LogLevel g_log_level = LOG_INFO;
 static char g_identity[32] = "main";
 static int g_json_mode = 0;
-static int g_access_enabled = 1;
+static int g_access_enabled = 0;  /* Privacy: disabled by default */
 
 static const char *level_names[] = {
     "DEBUG",

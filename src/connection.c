@@ -710,6 +710,11 @@ static void serve_metrics(Connection *conn)
         "# TYPE rawrelay_connections_rejected_total counter\n"
         "rawrelay_connections_rejected_total{worker=\"%d\",reason=\"rate_limit\"} %lu\n"
         "rawrelay_connections_rejected_total{worker=\"%d\",reason=\"slot_limit\"} %lu\n"
+        "rawrelay_connections_rejected_total{worker=\"%d\",reason=\"blocked\"} %lu\n"
+        "\n"
+        "# HELP rawrelay_connections_allowlisted_total Connections that bypassed rate limiting\n"
+        "# TYPE rawrelay_connections_allowlisted_total counter\n"
+        "rawrelay_connections_allowlisted_total{worker=\"%d\"} %lu\n"
         "\n"
         "# HELP rawrelay_active_connections Current active connections\n"
         "# TYPE rawrelay_active_connections gauge\n"
@@ -719,6 +724,8 @@ static void serve_metrics(Connection *conn)
         worker->worker_id, (unsigned long)worker->connections_accepted,
         worker->worker_id, (unsigned long)worker->connections_rejected_rate,
         worker->worker_id, (unsigned long)worker->connections_rejected_slot,
+        worker->worker_id, (unsigned long)worker->connections_rejected_blocked,
+        worker->worker_id, (unsigned long)worker->connections_allowlisted,
         worker->worker_id, worker->active_connections);
     offset += n; remaining -= n;
 

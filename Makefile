@@ -25,6 +25,7 @@ SRCS = $(SRC_DIR)/main.c \
        $(SRC_DIR)/static_files.c \
        $(SRC_DIR)/slot_manager.c \
        $(SRC_DIR)/rate_limiter.c \
+       $(SRC_DIR)/ip_acl.c \
        $(SRC_DIR)/tls.c \
        $(SRC_DIR)/http2.c
 

@@ -5,6 +5,7 @@
 #include "static_files.h"
 #include "slot_manager.h"
 #include "rate_limiter.h"
+#include "ip_acl.h"
 #include "tls.h"
 #include <stdint.h>
 #include <stdbool.h>
@@ -46,6 +47,9 @@ typedef struct WorkerProcess {
     /* Rate limiter (per-worker, per-IP limits) */
     RateLimiter rate_limiter;
 
+    /* IP ACL (blocklist/allowlist per-worker) */
+    IpACLContext ip_acl;
+
     /* TLS context (per-worker, used for TLS connections) */
     TLSContext tls;
 
@@ -57,6 +61,8 @@ typedef struct WorkerProcess {
     uint64_t connections_accepted;
     uint64_t connections_rejected_rate;
     uint64_t connections_rejected_slot;
+    uint64_t connections_rejected_blocked;   /* Blocked by IP blocklist */
+    uint64_t connections_allowlisted;        /* Bypassed rate limiting via allowlist */
     uint64_t requests_processed;
     int active_connections;
 

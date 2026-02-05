@@ -81,3 +81,31 @@ key_file = /path/to/key.pem
 
 # Enable HTTP/2 via ALPN (0 = HTTP/1.1 only, 1 = prefer HTTP/2)
 http2_enabled = 1
+
+[logging]
+# Enable JSON format logging (0 = text, 1 = JSON)
+json = 0
+
+# Enable access logging (0 = disabled, 1 = enabled)
+# Privacy: disabled by default - logs client IPs for every request
+# Only enable for debugging or if you have explicit user consent
+access = 0
+
+[security]
+# IP-based access control
+# Blocklist: IPs in this file are rejected with 403 Forbidden
+# Allowlist: IPs in this file bypass rate limiting
+#
+# File format: one IP or CIDR per line, # for comments
+# Examples:
+#   192.168.1.100
+#   10.0.0.0/8
+#   2001:db8::/32
+#
+# Hot-reload: kill -HUP <pid> to reload workers with new ACL files
+
+# IP blocklist file (empty = disabled)
+blocklist_file =
+
+# IP allowlist file (empty = disabled)
+allowlist_file =

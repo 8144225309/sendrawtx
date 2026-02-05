@@ -37,6 +37,7 @@ static void tls_accept_cb(struct evconnlistener *listener, evutil_socket_t fd,
 static void accept_error_cb(struct evconnlistener *listener, void *ctx);
 static void signal_cb(evutil_socket_t sig, short events, void *ctx);
 static void cleanup_timer_cb(evutil_socket_t fd, short events, void *ctx);
+static void send_403_response(int fd);
 static void send_503_response(int fd);
 static void send_429_response(int fd);
 static int create_tls_reuseport_socket(Config *config);
@@ -219,6 +220,23 @@ static void send_429_response(int fd)
 }
 
 /*
+ * Send 403 Forbidden response.
+ * Used when IP is blocked by ACL.
+ */
+static void send_403_response(int fd)
+{
+    const char *response =
+        "HTTP/1.1 403 Forbidden\r\n"
+        "Content-Type: text/plain\r\n"
+        "Content-Length: 10\r\n"
+        "Connection: close\r\n"
+        "\r\n"
+        "Forbidden\n";
+    /* Best-effort send - ignore result since we're closing anyway */
+    ssize_t n __attribute__((unused)) = write(fd, response, strlen(response));
+}
+
+/*
  * Periodic cleanup timer callback.
  * Cleans up expired rate limiter entries.
  */
@@ -268,15 +286,29 @@ static void accept_cb(struct evconnlistener *listener, evutil_socket_t fd,
         return;
     }
 
-    /* Extract client IP for rate limiting */
+    /* Extract client IP for ACL and rate limiting */
     get_ip_string(addr, client_ip, sizeof(client_ip));
 
-    /* Check rate limit FIRST (before consuming a slot) */
-    if (!rate_limiter_allow(&worker->rate_limiter, client_ip)) {
-        send_429_response(fd);
+    /* Check IP ACL first (before rate limiting) */
+    IpACLResult acl_result = ip_acl_check(&worker->ip_acl, client_ip);
+
+    if (acl_result == IP_ACL_BLOCK) {
+        send_403_response(fd);
         close(fd);
-        worker->connections_rejected_rate++;
+        worker->connections_rejected_blocked++;
         return;
+    }
+
+    /* Check rate limit - skip if allowlisted */
+    if (acl_result != IP_ACL_ALLOW) {
+        if (!rate_limiter_allow(&worker->rate_limiter, client_ip)) {
+            send_429_response(fd);
+            close(fd);
+            worker->connections_rejected_rate++;
+            return;
+        }
+    } else {
+        worker->connections_allowlisted++;
     }
 
     /* Check slot availability */
@@ -324,15 +356,29 @@ static void tls_accept_cb(struct evconnlistener *listener, evutil_socket_t fd,
         return;
     }
 
-    /* Extract client IP for rate limiting */
+    /* Extract client IP for ACL and rate limiting */
     get_ip_string(addr, client_ip, sizeof(client_ip));
 
-    /* Check rate limit FIRST (before consuming a slot) */
-    if (!rate_limiter_allow(&worker->rate_limiter, client_ip)) {
-        send_429_response(fd);
+    /* Check IP ACL first (before rate limiting) */
+    IpACLResult acl_result = ip_acl_check(&worker->ip_acl, client_ip);
+
+    if (acl_result == IP_ACL_BLOCK) {
+        send_403_response(fd);
         close(fd);
-        worker->connections_rejected_rate++;
+        worker->connections_rejected_blocked++;
         return;
+    }
+
+    /* Check rate limit - skip if allowlisted */
+    if (acl_result != IP_ACL_ALLOW) {
+        if (!rate_limiter_allow(&worker->rate_limiter, client_ip)) {
+            send_429_response(fd);
+            close(fd);
+            worker->connections_rejected_rate++;
+            return;
+        }
+    } else {
+        worker->connections_allowlisted++;
     }
 
     /* Check slot availability */
@@ -487,6 +533,9 @@ static void worker_cleanup(WorkerProcess *worker)
     /* Free rate limiter */
     rate_limiter_free(&worker->rate_limiter);
 
+    /* Free IP ACL context */
+    ip_acl_context_free(&worker->ip_acl);
+
     log_info("Worker cleanup complete");
 }
 
@@ -529,6 +578,26 @@ void worker_main(int worker_id, Config *config)
                           config->rate_limit_burst) < 0) {
         log_error("Failed to initialize rate limiter");
         exit(1);
+    }
+
+    /* Initialize IP ACL context */
+    if (ip_acl_context_init(&worker.ip_acl) < 0) {
+        log_error("Failed to initialize IP ACL context");
+        exit(1);
+    }
+
+    /* Load blocklist if configured */
+    if (config->blocklist_file[0]) {
+        if (ip_acl_load_file(&worker.ip_acl.blocklist, config->blocklist_file) < 0) {
+            log_warn("Failed to load blocklist from %s", config->blocklist_file);
+        }
+    }
+
+    /* Load allowlist if configured */
+    if (config->allowlist_file[0]) {
+        if (ip_acl_load_file(&worker.ip_acl.allowlist, config->allowlist_file) < 0) {
+            log_warn("Failed to load allowlist from %s", config->allowlist_file);
+        }
     }
 
     /* Load static files from configured directory */
