@@ -636,9 +636,24 @@ void worker_main(int worker_id, Config *config)
     }
 
     /* Load static files from configured directory */
-    if (static_files_load(&worker.static_files, config->static_dir) < 0) {
+    if (static_files_load(&worker.static_files, config->static_dir, config) < 0) {
         log_error("Failed to load static files from %s", config->static_dir);
         exit(1);
+    }
+
+    /* Initialize RPC manager for Bitcoin node connections */
+    if (rpc_manager_init(&worker.rpc,
+                         &config->rpc_mainnet,
+                         &config->rpc_testnet,
+                         &config->rpc_signet,
+                         &config->rpc_regtest) < 0) {
+        log_warn("RPC manager initialization failed - broadcasting disabled");
+    } else {
+        /* Test connections and log status */
+        if (config->chain == CHAIN_MIXED) {
+            log_info("Mixed mode: testing all enabled RPC connections");
+        }
+        rpc_manager_log_status(&worker.rpc);
     }
 
     /* Create event base */

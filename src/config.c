@@ -1,4 +1,5 @@
 #include "config.h"
+#include "network.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,6 +7,9 @@
 #include <errno.h>
 #include <stdint.h>
 #include <limits.h>
+
+/* Special value indicating chain not set - MUST be configured */
+#define CHAIN_NOT_SET (-1)
 
 /* Default values */
 #define DEFAULT_INITIAL_BUFFER_SIZE   4096
@@ -30,6 +34,28 @@
 #define DEFAULT_JSON_LOGGING          0                 /* Text format by default */
 #define DEFAULT_VERBOSE               0                 /* Minimal logging by default */
 #define DEFAULT_ACME_CHALLENGE_DIR    ".well-known/acme-challenge"
+
+/* RPC defaults */
+#define DEFAULT_RPC_HOST              "127.0.0.1"
+#define DEFAULT_RPC_TIMEOUT_SEC       30
+
+/* Default RPC ports per chain */
+#define DEFAULT_RPC_PORT_MAINNET      8332
+#define DEFAULT_RPC_PORT_TESTNET      18332
+#define DEFAULT_RPC_PORT_SIGNET       38332
+#define DEFAULT_RPC_PORT_REGTEST      18443
+
+/*
+ * Initialize an RPCConfig struct to defaults.
+ */
+static void rpc_config_default(RPCConfig *rpc, int default_port)
+{
+    memset(rpc, 0, sizeof(RPCConfig));
+    rpc->enabled = 0;
+    strncpy(rpc->host, DEFAULT_RPC_HOST, sizeof(rpc->host) - 1);
+    rpc->port = default_port;
+    rpc->timeout_sec = DEFAULT_RPC_TIMEOUT_SEC;
+}
 
 static char *trim(char *str)
 {
@@ -127,6 +153,9 @@ Config *config_default(void)
         return NULL;
     }
 
+    /* Network chain - MUST be set in config file */
+    c->chain = (BitcoinChain)CHAIN_NOT_SET;
+
     c->initial_buffer_size = DEFAULT_INITIAL_BUFFER_SIZE;
     c->max_buffer_size = DEFAULT_MAX_BUFFER_SIZE;
     c->tier_large_threshold = DEFAULT_TIER_LARGE_THRESHOLD;
@@ -162,6 +191,12 @@ Config *config_default(void)
     c->blocklist_file[0] = '\0';
     c->allowlist_file[0] = '\0';
     c->seccomp_enabled = 0;  /* Disabled by default, needs tuning */
+
+    /* RPC settings - all disabled by default */
+    rpc_config_default(&c->rpc_mainnet, DEFAULT_RPC_PORT_MAINNET);
+    rpc_config_default(&c->rpc_testnet, DEFAULT_RPC_PORT_TESTNET);
+    rpc_config_default(&c->rpc_signet, DEFAULT_RPC_PORT_SIGNET);
+    rpc_config_default(&c->rpc_regtest, DEFAULT_RPC_PORT_REGTEST);
 
     return c;
 }
@@ -295,10 +330,159 @@ Config *config_load(const char *path)
             } else if (strcmp(key, "seccomp") == 0) {
                 c->seccomp_enabled = parse_int(value, 0);
             }
+        } else if (strcmp(section, "network") == 0) {
+            if (strcmp(key, "chain") == 0) {
+                int chain = network_chain_from_string(value);
+                if (chain < 0) {
+                    fprintf(stderr, "ERROR: Invalid chain '%s'. Must be: mainnet, testnet, signet, regtest, or mixed\n", value);
+                } else {
+                    c->chain = (BitcoinChain)chain;
+                }
+            }
+        } else if (strcmp(section, "rpc.mainnet") == 0) {
+            RPCConfig *rpc = &c->rpc_mainnet;
+            if (strcmp(key, "enabled") == 0) {
+                rpc->enabled = parse_int(value, 0);
+            } else if (strcmp(key, "host") == 0) {
+                strncpy(rpc->host, value, sizeof(rpc->host) - 1);
+            } else if (strcmp(key, "port") == 0) {
+                rpc->port = parse_int(value, DEFAULT_RPC_PORT_MAINNET);
+            } else if (strcmp(key, "user") == 0) {
+                strncpy(rpc->user, value, sizeof(rpc->user) - 1);
+            } else if (strcmp(key, "password") == 0) {
+                strncpy(rpc->password, value, sizeof(rpc->password) - 1);
+            } else if (strcmp(key, "cookie_file") == 0) {
+                strncpy(rpc->cookie_file, value, sizeof(rpc->cookie_file) - 1);
+            } else if (strcmp(key, "datadir") == 0) {
+                strncpy(rpc->datadir, value, sizeof(rpc->datadir) - 1);
+            } else if (strcmp(key, "timeout") == 0) {
+                rpc->timeout_sec = parse_int(value, DEFAULT_RPC_TIMEOUT_SEC);
+            } else if (strcmp(key, "wallet") == 0) {
+                strncpy(rpc->wallet, value, sizeof(rpc->wallet) - 1);
+            }
+        } else if (strcmp(section, "rpc.testnet") == 0) {
+            RPCConfig *rpc = &c->rpc_testnet;
+            if (strcmp(key, "enabled") == 0) {
+                rpc->enabled = parse_int(value, 0);
+            } else if (strcmp(key, "host") == 0) {
+                strncpy(rpc->host, value, sizeof(rpc->host) - 1);
+            } else if (strcmp(key, "port") == 0) {
+                rpc->port = parse_int(value, DEFAULT_RPC_PORT_TESTNET);
+            } else if (strcmp(key, "user") == 0) {
+                strncpy(rpc->user, value, sizeof(rpc->user) - 1);
+            } else if (strcmp(key, "password") == 0) {
+                strncpy(rpc->password, value, sizeof(rpc->password) - 1);
+            } else if (strcmp(key, "cookie_file") == 0) {
+                strncpy(rpc->cookie_file, value, sizeof(rpc->cookie_file) - 1);
+            } else if (strcmp(key, "datadir") == 0) {
+                strncpy(rpc->datadir, value, sizeof(rpc->datadir) - 1);
+            } else if (strcmp(key, "timeout") == 0) {
+                rpc->timeout_sec = parse_int(value, DEFAULT_RPC_TIMEOUT_SEC);
+            } else if (strcmp(key, "wallet") == 0) {
+                strncpy(rpc->wallet, value, sizeof(rpc->wallet) - 1);
+            }
+        } else if (strcmp(section, "rpc.signet") == 0) {
+            RPCConfig *rpc = &c->rpc_signet;
+            if (strcmp(key, "enabled") == 0) {
+                rpc->enabled = parse_int(value, 0);
+            } else if (strcmp(key, "host") == 0) {
+                strncpy(rpc->host, value, sizeof(rpc->host) - 1);
+            } else if (strcmp(key, "port") == 0) {
+                rpc->port = parse_int(value, DEFAULT_RPC_PORT_SIGNET);
+            } else if (strcmp(key, "user") == 0) {
+                strncpy(rpc->user, value, sizeof(rpc->user) - 1);
+            } else if (strcmp(key, "password") == 0) {
+                strncpy(rpc->password, value, sizeof(rpc->password) - 1);
+            } else if (strcmp(key, "cookie_file") == 0) {
+                strncpy(rpc->cookie_file, value, sizeof(rpc->cookie_file) - 1);
+            } else if (strcmp(key, "datadir") == 0) {
+                strncpy(rpc->datadir, value, sizeof(rpc->datadir) - 1);
+            } else if (strcmp(key, "timeout") == 0) {
+                rpc->timeout_sec = parse_int(value, DEFAULT_RPC_TIMEOUT_SEC);
+            } else if (strcmp(key, "wallet") == 0) {
+                strncpy(rpc->wallet, value, sizeof(rpc->wallet) - 1);
+            }
+        } else if (strcmp(section, "rpc.regtest") == 0) {
+            RPCConfig *rpc = &c->rpc_regtest;
+            if (strcmp(key, "enabled") == 0) {
+                rpc->enabled = parse_int(value, 0);
+            } else if (strcmp(key, "host") == 0) {
+                strncpy(rpc->host, value, sizeof(rpc->host) - 1);
+            } else if (strcmp(key, "port") == 0) {
+                rpc->port = parse_int(value, DEFAULT_RPC_PORT_REGTEST);
+            } else if (strcmp(key, "user") == 0) {
+                strncpy(rpc->user, value, sizeof(rpc->user) - 1);
+            } else if (strcmp(key, "password") == 0) {
+                strncpy(rpc->password, value, sizeof(rpc->password) - 1);
+            } else if (strcmp(key, "cookie_file") == 0) {
+                strncpy(rpc->cookie_file, value, sizeof(rpc->cookie_file) - 1);
+            } else if (strcmp(key, "datadir") == 0) {
+                strncpy(rpc->datadir, value, sizeof(rpc->datadir) - 1);
+            } else if (strcmp(key, "timeout") == 0) {
+                rpc->timeout_sec = parse_int(value, DEFAULT_RPC_TIMEOUT_SEC);
+            } else if (strcmp(key, "wallet") == 0) {
+                strncpy(rpc->wallet, value, sizeof(rpc->wallet) - 1);
+            }
         }
     }
 
     fclose(f);
+
+    /* Validate chain is set - REQUIRED */
+    if ((int)c->chain == CHAIN_NOT_SET) {
+        fprintf(stderr, "\n");
+        fprintf(stderr, "===========================================================\n");
+        fprintf(stderr, "ERROR: [network] chain= is REQUIRED in config file\n");
+        fprintf(stderr, "===========================================================\n");
+        fprintf(stderr, "\n");
+        fprintf(stderr, "Add one of the following to your config file:\n");
+        fprintf(stderr, "\n");
+        fprintf(stderr, "  [network]\n");
+        fprintf(stderr, "  chain=mainnet     # Production Bitcoin network\n");
+        fprintf(stderr, "\n");
+        fprintf(stderr, "  [network]\n");
+        fprintf(stderr, "  chain=testnet     # Public test network\n");
+        fprintf(stderr, "\n");
+        fprintf(stderr, "  [network]\n");
+        fprintf(stderr, "  chain=signet      # Signed test network\n");
+        fprintf(stderr, "\n");
+        fprintf(stderr, "  [network]\n");
+        fprintf(stderr, "  chain=regtest     # Local regression test\n");
+        fprintf(stderr, "\n");
+        fprintf(stderr, "  [network]\n");
+        fprintf(stderr, "  chain=mixed       # Multi-chain mode (routes by address)\n");
+        fprintf(stderr, "\n");
+        fprintf(stderr, "This prevents accidentally mixing transactions between networks.\n");
+        fprintf(stderr, "===========================================================\n");
+        config_free(c);
+        return NULL;
+    }
+
+    /* Mixed mode requires at least one RPC connection enabled */
+    if (c->chain == CHAIN_MIXED) {
+        int any_enabled = c->rpc_mainnet.enabled || c->rpc_testnet.enabled ||
+                          c->rpc_signet.enabled || c->rpc_regtest.enabled;
+        if (!any_enabled) {
+            fprintf(stderr, "\n");
+            fprintf(stderr, "===========================================================\n");
+            fprintf(stderr, "ERROR: Mixed mode requires at least one [rpc.*] enabled\n");
+            fprintf(stderr, "===========================================================\n");
+            fprintf(stderr, "\n");
+            fprintf(stderr, "When using chain=mixed, you must configure at least one RPC\n");
+            fprintf(stderr, "connection. Example:\n");
+            fprintf(stderr, "\n");
+            fprintf(stderr, "  [rpc.mainnet]\n");
+            fprintf(stderr, "  enabled = 1\n");
+            fprintf(stderr, "  host = 127.0.0.1\n");
+            fprintf(stderr, "  port = 8332\n");
+            fprintf(stderr, "  user = rpcuser\n");
+            fprintf(stderr, "  password = rpcpassword\n");
+            fprintf(stderr, "\n");
+            fprintf(stderr, "===========================================================\n");
+            config_free(c);
+            return NULL;
+        }
+    }
 
     /* Validate tier ordering */
     if (c->tier_large_threshold >= c->tier_huge_threshold) {
@@ -322,6 +506,15 @@ void config_print(const Config *c)
     }
 
     printf("Configuration:\n");
+
+    /* Network/Chain - show prominently at top */
+    printf("  Network:\n");
+    printf("    chain:            %s", network_chain_to_string(c->chain));
+    if (network_is_test_network(c->chain)) {
+        printf(" [TEST NETWORK - coins have no value]");
+    }
+    printf("\n");
+
     printf("  Buffer:\n");
     printf("    initial_size:     %zu bytes\n", c->initial_buffer_size);
     printf("    max_size:         %zu bytes (%.1f MB)\n",

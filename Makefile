@@ -28,7 +28,9 @@ SRCS = $(SRC_DIR)/main.c \
        $(SRC_DIR)/ip_acl.c \
        $(SRC_DIR)/tls.c \
        $(SRC_DIR)/http2.c \
-       $(SRC_DIR)/security.c
+       $(SRC_DIR)/security.c \
+       $(SRC_DIR)/network.c \
+       $(SRC_DIR)/rpc.c
 
 OBJS = $(SRCS:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 
@@ -36,7 +38,7 @@ OBJS = $(SRCS:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 TARGET = rawrelay-server
 
 # Object files for tests (without main)
-LIB_OBJS = $(BUILD_DIR)/buffer.o $(BUILD_DIR)/config.o $(BUILD_DIR)/reader.o $(BUILD_DIR)/http.o $(BUILD_DIR)/log.o
+LIB_OBJS = $(BUILD_DIR)/buffer.o $(BUILD_DIR)/config.o $(BUILD_DIR)/reader.o $(BUILD_DIR)/http.o $(BUILD_DIR)/log.o $(BUILD_DIR)/network.o
 
 .PHONY: all clean test test_buffer test_reader valgrind help check-libevent install uninstall
 

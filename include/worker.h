@@ -7,6 +7,7 @@
 #include "rate_limiter.h"
 #include "ip_acl.h"
 #include "tls.h"
+#include "rpc.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <event2/event.h>
@@ -52,6 +53,9 @@ typedef struct WorkerProcess {
 
     /* TLS context (per-worker, used for TLS connections) */
     TLSContext tls;
+
+    /* RPC manager for Bitcoin node connections (Phase 13c) */
+    RPCManager rpc;
 
     /* State flags */
     volatile bool draining;

@@ -2,6 +2,7 @@
 #define STATIC_FILES_H
 
 #include <stddef.h>
+#include "config.h"
 
 /*
  * Static file loaded into memory.
@@ -27,11 +28,14 @@ typedef struct StaticFiles {
  * Load all static files from a directory.
  * Files must exist: broadcast.html, result.html, error.html
  *
- * @param files Pointer to StaticFiles struct to populate
- * @param dir   Directory path (e.g., "./static")
+ * For non-mainnet chains, injects a network banner into HTML files.
+ *
+ * @param files  Pointer to StaticFiles struct to populate
+ * @param dir    Directory path (e.g., "./static")
+ * @param config Config with chain setting for banner injection
  * @return 0 on success, -1 on error
  */
-int static_files_load(StaticFiles *files, const char *dir);
+int static_files_load(StaticFiles *files, const char *dir, const Config *config);
 
 /*
  * Free all loaded static files.

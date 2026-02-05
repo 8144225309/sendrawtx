@@ -2,8 +2,13 @@
 #define CONFIG_H
 
 #include <stddef.h>
+#include "network.h"
+#include "rpc.h"
 
 typedef struct {
+    /* Network/Chain mode (Phase 13) - REQUIRED */
+    BitcoinChain chain;            /* Must be explicitly set in config */
+
     /* Buffer settings */
     size_t initial_buffer_size;    /* Default: 4096 */
     size_t max_buffer_size;        /* Default: 16MB */
@@ -50,6 +55,12 @@ typedef struct {
     char blocklist_file[256];      /* Path to IP blocklist file, empty = disabled */
     char allowlist_file[256];      /* Path to IP allowlist file, empty = disabled */
     int seccomp_enabled;           /* Default: 0 (disabled), 1 = enable seccomp filter */
+
+    /* RPC settings (Phase 13) - one config per chain */
+    RPCConfig rpc_mainnet;         /* Mainnet Bitcoin Core RPC */
+    RPCConfig rpc_testnet;         /* Testnet Bitcoin Core RPC */
+    RPCConfig rpc_signet;          /* Signet Bitcoin Core RPC */
+    RPCConfig rpc_regtest;         /* Regtest Bitcoin Core RPC */
 } Config;
 
 /*
