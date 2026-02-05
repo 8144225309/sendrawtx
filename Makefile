@@ -1,9 +1,25 @@
 # RawRelay Server v6 - Multi-Process Architecture with TLS/HTTP2
 # Makefile for building and testing
+# Supports Linux and macOS (Homebrew)
 
 CC = gcc
-CFLAGS = -Wall -Wextra -Werror -g -O2 -I./include -D_GNU_SOURCE
-LDFLAGS = -levent -levent_pthreads -levent_openssl -lssl -lcrypto -lnghttp2 -lm
+
+# Use pkg-config for portable include/library paths (works on Linux + macOS Homebrew)
+PKG_CFLAGS := $(shell pkg-config --cflags libevent openssl libnghttp2 2>/dev/null)
+PKG_LIBS := $(shell pkg-config --libs libevent libevent_openssl openssl libnghttp2 2>/dev/null)
+
+# Base flags + pkg-config paths
+CFLAGS = -Wall -Wextra -Werror -g -O2 -I./include $(PKG_CFLAGS)
+LDFLAGS = $(PKG_LIBS) -levent_pthreads -lm
+
+# macOS doesn't have _GNU_SOURCE, use _DARWIN_C_SOURCE instead
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+    CFLAGS += -D_GNU_SOURCE
+endif
+ifeq ($(UNAME_S),Darwin)
+    CFLAGS += -D_DARWIN_C_SOURCE
+endif
 
 SRC_DIR = src
 BUILD_DIR = build
@@ -49,9 +65,15 @@ all: check-libevent $(TARGET)
 
 # Check for dependencies
 check-libevent:
+ifeq ($(UNAME_S),Darwin)
+	@pkg-config --exists libevent 2>/dev/null || (echo "ERROR: libevent not found. Install with: brew install libevent" && exit 1)
+	@pkg-config --exists openssl 2>/dev/null || (echo "ERROR: OpenSSL not found. Install with: brew install openssl" && exit 1)
+	@pkg-config --exists libnghttp2 2>/dev/null || (echo "ERROR: nghttp2 not found. Install with: brew install nghttp2" && exit 1)
+else
 	@pkg-config --exists libevent 2>/dev/null || (echo "ERROR: libevent not found. Install with: sudo apt install libevent-dev" && exit 1)
 	@pkg-config --exists openssl 2>/dev/null || (echo "ERROR: OpenSSL not found. Install with: sudo apt install libssl-dev" && exit 1)
 	@pkg-config --exists libnghttp2 2>/dev/null || (echo "ERROR: nghttp2 not found. Install with: sudo apt install libnghttp2-dev" && exit 1)
+endif
 
 # Main server executable
 $(TARGET): $(OBJS) | $(BUILD_DIR)
@@ -100,10 +122,16 @@ run: $(TARGET)
 clean:
 	rm -rf $(BUILD_DIR) $(TARGET)
 
-# Install dependencies (Ubuntu/Debian)
+# Install dependencies
 deps:
+ifeq ($(UNAME_S),Darwin)
+	@echo "Installing dependencies via Homebrew..."
+	brew install libevent openssl nghttp2 pkg-config
+else
+	@echo "Installing dependencies via apt..."
 	sudo apt update
 	sudo apt install -y build-essential libevent-dev libssl-dev libnghttp2-dev pkg-config valgrind curl
+endif
 
 # Install (requires root)
 install: $(TARGET)
