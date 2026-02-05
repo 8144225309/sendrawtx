@@ -46,3 +46,6 @@ massif.out.*
 tests/
 test_*.sh
 test_*.c
+
+# Internal planning docs (not for public repo)
+ROADMAP.md
