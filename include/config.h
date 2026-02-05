@@ -49,6 +49,7 @@ typedef struct {
     /* Security settings (Phase 6) */
     char blocklist_file[256];      /* Path to IP blocklist file, empty = disabled */
     char allowlist_file[256];      /* Path to IP allowlist file, empty = disabled */
+    int seccomp_enabled;           /* Default: 0 (disabled), 1 = enable seccomp filter */
 } Config;
 
 /*

@@ -22,6 +22,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
+#include <limits.h>
 
 static void print_banner(void)
 {
@@ -81,7 +83,17 @@ int main(int argc, char **argv)
             continue;
         }
         if ((strcmp(argv[i], "-w") == 0 || strcmp(argv[i], "--workers") == 0) && i + 1 < argc) {
-            override_workers = atoi(argv[++i]);
+            /* Security: use strtol with proper error checking instead of atoi */
+            char *endptr = NULL;
+            const char *arg = argv[++i];
+            errno = 0;
+            long val = strtol(arg, &endptr, 10);
+            if (errno == ERANGE || endptr == arg || *endptr != '\0' ||
+                val <= 0 || val > 64) {
+                fprintf(stderr, "Invalid worker count: %s (must be 1-64)\n", arg);
+                return 1;
+            }
+            override_workers = (int)val;
             continue;
         }
         /* Assume it's the config path */

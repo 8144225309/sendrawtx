@@ -161,6 +161,7 @@ Config *config_default(void)
     /* Security settings (Phase 6) */
     c->blocklist_file[0] = '\0';
     c->allowlist_file[0] = '\0';
+    c->seccomp_enabled = 0;  /* Disabled by default, needs tuning */
 
     return c;
 }
@@ -291,6 +292,8 @@ Config *config_load(const char *path)
             } else if (strcmp(key, "allowlist_file") == 0) {
                 strncpy(c->allowlist_file, value, sizeof(c->allowlist_file) - 1);
                 c->allowlist_file[sizeof(c->allowlist_file) - 1] = '\0';
+            } else if (strcmp(key, "seccomp") == 0) {
+                c->seccomp_enabled = parse_int(value, 0);
             }
         }
     }
@@ -364,4 +367,5 @@ void config_print(const Config *c)
     printf("  Security:\n");
     printf("    blocklist_file:   %s\n", c->blocklist_file[0] ? c->blocklist_file : "(disabled)");
     printf("    allowlist_file:   %s\n", c->allowlist_file[0] ? c->allowlist_file : "(disabled)");
+    printf("    seccomp:          %s\n", c->seccomp_enabled ? "ENABLED" : "DISABLED");
 }

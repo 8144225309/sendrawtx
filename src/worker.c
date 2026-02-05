@@ -3,6 +3,7 @@
 #include "tcp_opts.h"
 #include "static_files.h"
 #include "tls.h"
+#include "security.h"
 #include "log.h"
 
 #include <stdio.h>
@@ -720,6 +721,11 @@ void worker_main(int worker_id, Config *config)
     }
 
     log_info("Started on port %d (SO_REUSEPORT)", config->listen_port);
+
+    /* Apply security restrictions (seccomp) if enabled */
+    if (config->seccomp_enabled) {
+        security_apply_worker_restrictions();
+    }
 
     /* Run event loop */
     event_base_dispatch(worker.base);

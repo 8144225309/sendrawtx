@@ -1,5 +1,6 @@
 #include "master.h"
 #include "worker.h"
+#include "security.h"
 #include "log.h"
 
 #include <stdio.h>
@@ -10,9 +11,67 @@
 #include <errno.h>
 #include <sys/wait.h>
 #include <sys/types.h>
+#include <sys/resource.h>
 
 /* Global master pointer for signal handlers */
 static MasterProcess *g_master = NULL;
+
+/*
+ * Check and adjust file descriptor limits.
+ * Returns 0 on success, -1 if limits are critically low.
+ */
+static int check_fd_limits(int num_workers, int slots_per_worker)
+{
+    struct rlimit rlim;
+
+    if (getrlimit(RLIMIT_NOFILE, &rlim) < 0) {
+        log_warn("getrlimit(RLIMIT_NOFILE) failed: %s", strerror(errno));
+        return 0;  /* Continue anyway - non-fatal */
+    }
+
+    /* Calculate required FDs per worker:
+     * - 2 listen sockets (HTTP + TLS)
+     * - slots for connections
+     * - ~15 for events, logging, TLS, etc.
+     */
+    rlim_t per_worker = (rlim_t)slots_per_worker + 15;
+    rlim_t required = (rlim_t)num_workers * per_worker + 50;
+    rlim_t minimum = (rlim_t)num_workers * 20 + 20;
+
+    log_info("FD limits: soft=%lu, hard=%lu, required~=%lu",
+             (unsigned long)rlim.rlim_cur,
+             (unsigned long)rlim.rlim_max,
+             (unsigned long)required);
+
+    if (rlim.rlim_cur < required) {
+        /* Try to raise soft limit */
+        rlim_t new_limit = required < rlim.rlim_max ? required : rlim.rlim_max;
+        struct rlimit new_rlim = { new_limit, rlim.rlim_max };
+
+        if (setrlimit(RLIMIT_NOFILE, &new_rlim) < 0) {
+            log_warn("Could not raise FD limit to %lu: %s",
+                     (unsigned long)new_limit, strerror(errno));
+            getrlimit(RLIMIT_NOFILE, &rlim);
+        } else {
+            log_info("Raised FD soft limit to %lu", (unsigned long)new_limit);
+            rlim.rlim_cur = new_limit;
+        }
+    }
+
+    if (rlim.rlim_cur < minimum) {
+        log_error("FATAL: FD limit %lu is below minimum %lu for %d workers",
+                  (unsigned long)rlim.rlim_cur, (unsigned long)minimum, num_workers);
+        log_error("Increase limit with: ulimit -n %lu", (unsigned long)required);
+        return -1;
+    }
+
+    if (rlim.rlim_cur < required) {
+        log_warn("FD limit %lu is below recommended %lu - may reject connections under load",
+                 (unsigned long)rlim.rlim_cur, (unsigned long)required);
+    }
+
+    return 0;
+}
 
 /*
  * Signal handlers - just set flags, don't do work in handler.
@@ -97,6 +156,16 @@ int master_init(MasterProcess *master, const char *config_path)
     }
     if (master->num_workers > 64) {
         master->num_workers = 64;
+    }
+
+    /* Check and adjust FD limits */
+    int total_slots = master->config->slots_normal_max +
+                      master->config->slots_large_max +
+                      master->config->slots_huge_max;
+    if (check_fd_limits(master->num_workers, total_slots) < 0) {
+        log_error("Insufficient file descriptor limits - cannot start");
+        config_free(master->config);
+        return -1;
     }
 
     /* Allocate worker PID array */
@@ -336,6 +405,9 @@ int master_run(MasterProcess *master)
 {
     /* Set up signals */
     setup_master_signals(master);
+
+    /* Log security status */
+    security_log_status();
 
     /* Start workers */
     if (start_workers(master) < 0) {

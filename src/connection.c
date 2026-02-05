@@ -74,14 +74,24 @@ static int validate_path_early(Connection *conn, const unsigned char *data, size
     }
     path_start++;  /* Skip space */
 
+    /* Security: bounds check after increment */
+    const unsigned char *data_end = data + len;
+    if (path_start >= data_end) {
+        return 0;  /* Not enough data yet */
+    }
+
     /* Skip the leading slash */
     if (*path_start == '/') {
         path_start++;
+        /* Security: bounds check after increment */
+        if (path_start >= data_end) {
+            return 0;  /* Not enough data yet */
+        }
     }
 
     /* Find end of path (space before HTTP version or \r\n) */
     const unsigned char *path_end = NULL;
-    for (const unsigned char *p = path_start; p < data + len; p++) {
+    for (const unsigned char *p = path_start; p < data_end; p++) {
         if (*p == ' ' || *p == '\r' || *p == '\n') {
             path_end = p;
             break;
@@ -90,7 +100,7 @@ static int validate_path_early(Connection *conn, const unsigned char *data, size
 
     if (!path_end) {
         /* Path not complete yet - validate what we have */
-        path_end = data + len;
+        path_end = data_end;
     }
 
     /* For paths that look like transaction hex (long paths), validate characters */
@@ -400,7 +410,26 @@ static int parse_request_headers(Connection *conn, const unsigned char *headers,
             found++;
         }
         if (found < headers_end) {
-            conn->content_length = (size_t)strtoul((const char *)found, NULL, 10);
+            /* Security: reject negative numbers - strtoul("-1") silently
+             * converts to ULONG_MAX without setting errno */
+            if (*found == '-' || *found == '+') {
+                log_warn("Invalid Content-Length (sign prefix) from %s",
+                         log_format_ip(conn->client_ip));
+                conn->content_length = 0;
+            } else {
+                /* Security: proper strtoul() with error checking */
+                char *endptr = NULL;
+                errno = 0;
+                unsigned long val = strtoul((const char *)found, &endptr, 10);
+
+                if (errno == ERANGE || endptr == (const char *)found) {
+                    log_warn("Invalid Content-Length header from %s",
+                             log_format_ip(conn->client_ip));
+                    conn->content_length = 0;
+                } else {
+                    conn->content_length = (size_t)val;
+                }
+            }
         } else {
             conn->content_length = 0;
         }
@@ -1304,6 +1333,15 @@ static void conn_read_cb(struct bufferevent *bev, void *ctx)
         if (parse_request_headers(conn, headers, headers_len) < 0) {
             worker->errors_parse++;
             connection_send_error(conn, 400, "Bad Request");
+            return;
+        }
+
+        /* Security: Check Content-Length against max_buffer_size */
+        if (conn->content_length > cfg->max_buffer_size) {
+            log_warn("Content-Length %zu exceeds max_buffer_size %zu from %s",
+                     conn->content_length, cfg->max_buffer_size,
+                     log_format_ip(conn->client_ip));
+            connection_send_error(conn, 413, "Payload Too Large");
             return;
         }
 
