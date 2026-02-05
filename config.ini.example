@@ -1,0 +1,83 @@
+# RawRelay Server Configuration
+# Copy this file to config.ini and adjust settings as needed
+
+[buffer]
+# Initial buffer size for new connections
+initial_size = 4096
+
+# Maximum buffer size (16MB)
+max_size = 16777216
+
+[tiers]
+# Threshold for LARGE tier (64KB)
+large_threshold = 65536
+
+# Threshold for HUGE tier (1MB)
+huge_threshold = 1048576
+
+[server]
+# TCP port to listen on
+port = 8080
+
+# Maximum concurrent connections
+max_connections = 100
+
+# Read timeout in seconds
+read_timeout = 30
+
+[static]
+# Directory containing HTML files (broadcast.html, result.html, error.html)
+dir = ./static
+
+# Cache-Control max-age in seconds (0 = no caching)
+# Browsers/CDNs will cache responses for this duration
+# Recommended: 3600 (1 hour) for production, 0 for development
+cache_max_age = 3600
+
+[slots]
+# Per-worker connection slot limits
+# Total system capacity = num_workers × slots_per_worker
+# When slots are exhausted, returns 503 Service Unavailable
+
+# Normal connections (default tier for all requests)
+normal_max = 100
+
+# Large connections (for requests > 64KB)
+large_max = 20
+
+# Huge connections (for requests > 1MB)
+huge_max = 5
+
+[ratelimit]
+# Per-IP rate limiting (per worker)
+# Uses token bucket algorithm: tokens replenish at 'rps' per second
+# Set rps = 0 to disable rate limiting
+#
+# Total rate per IP = num_workers × rps (since each worker tracks independently)
+# With 4 workers and rps=100, effective limit is 400 req/sec per IP
+
+# Requests per second allowed per IP (per worker)
+rps = 100
+
+# Burst size (max tokens) - allows temporary spikes
+burst = 200
+
+[tls]
+# TLS/HTTPS support
+# Enable to serve HTTPS on a separate port with automatic HTTP/2 via ALPN
+
+# Enable TLS (0 = disabled, 1 = enabled)
+enabled = 0
+
+# TLS port (HTTPS)
+port = 8443
+
+# Certificate file (PEM format)
+# Generate test cert: openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -nodes -subj "/CN=localhost"
+cert_file = /path/to/cert.pem
+
+# Private key file (PEM format)
+key_file = /path/to/key.pem
+
+# Enable HTTP/2 via ALPN (0 = HTTP/1.1 only, 1 = prefer HTTP/2)
+http2_enabled = 1

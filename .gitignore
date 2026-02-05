@@ -1,0 +1,40 @@
+# Compiled binaries
+rawrelay-server
+build/
+*.o
+*.a
+*.so
+
+# Test binaries (compiled from .c files)
+tests/libevent_test/test_client
+tests/libevent_test/test_concurrent
+tests/libevent_test/test_concurrent_server
+tests/libevent_test/test_concurrent_simple
+tests/libevent_test/test_large_url
+
+# Log files
+*.log
+tests/libevent_test/*.log
+
+# TLS certificates (SECRETS - never commit!)
+*.pem
+cert.pem
+key.pem
+
+# Local configuration (use config.ini.example as template)
+config.ini
+
+# Editor/IDE
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Valgrind output
+vgcore.*
+massif.out.*

@@ -1,0 +1,629 @@
+#include "worker.h"
+#include "connection.h"
+#include "tcp_opts.h"
+#include "static_files.h"
+#include "tls.h"
+#include "log.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <signal.h>
+#include <errno.h>
+#include <sched.h>
+
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#include <event2/event.h>
+#include <event2/listener.h>
+#include <event2/bufferevent.h>
+#include <event2/buffer.h>
+#include <event2/bufferevent_ssl.h>
+
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+
+/* Global worker pointer for signal handler */
+static WorkerProcess *g_worker = NULL;
+
+/* Forward declarations */
+static void accept_cb(struct evconnlistener *listener, evutil_socket_t fd,
+                      struct sockaddr *addr, int socklen, void *ctx);
+static void tls_accept_cb(struct evconnlistener *listener, evutil_socket_t fd,
+                          struct sockaddr *addr, int socklen, void *ctx);
+static void accept_error_cb(struct evconnlistener *listener, void *ctx);
+static void signal_cb(evutil_socket_t sig, short events, void *ctx);
+static void cleanup_timer_cb(evutil_socket_t fd, short events, void *ctx);
+static void send_503_response(int fd);
+static void send_429_response(int fd);
+static int create_tls_reuseport_socket(Config *config);
+
+int get_num_cpus(void)
+{
+    long n = sysconf(_SC_NPROCESSORS_ONLN);
+    return (n > 0) ? (int)n : 1;
+}
+
+int pin_to_cpu(int cpu)
+{
+#ifdef __linux__
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(cpu, &cpuset);
+
+    if (sched_setaffinity(0, sizeof(cpuset), &cpuset) < 0) {
+        log_warn("Failed to pin to CPU %d: %s", cpu, strerror(errno));
+        return -1;
+    }
+    return 0;
+#else
+    /* CPU affinity not available on this platform */
+    (void)cpu;
+    log_warn("CPU affinity not supported on this platform");
+    return 0;
+#endif
+}
+
+/*
+ * Create SO_REUSEPORT listener socket.
+ * Each worker creates its own socket binding to the same port.
+ */
+static int create_reuseport_socket_on_port(int port)
+{
+    int fd;
+    int opt = 1;
+    struct sockaddr_in6 addr;
+
+    /* Create IPv6 socket (accepts IPv4 via dual-stack) */
+    fd = socket(AF_INET6, SOCK_STREAM | SOCK_NONBLOCK, 0);
+    if (fd < 0) {
+        log_error("socket() failed: %s", strerror(errno));
+        return -1;
+    }
+
+    /* SO_REUSEPORT - the key to multi-process architecture! */
+    if (setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt)) < 0) {
+        log_error("SO_REUSEPORT failed: %s", strerror(errno));
+        close(fd);
+        return -1;
+    }
+
+    /* Also set SO_REUSEADDR for faster restart */
+    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+    /* Allow IPv4 connections on IPv6 socket (dual-stack) */
+    opt = 0;
+    setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &opt, sizeof(opt));
+
+    /* Bind to all interfaces */
+    memset(&addr, 0, sizeof(addr));
+    addr.sin6_family = AF_INET6;
+    addr.sin6_addr = in6addr_any;
+    addr.sin6_port = htons(port);
+
+    if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+        log_error("bind() failed on port %d: %s", port, strerror(errno));
+        close(fd);
+        return -1;
+    }
+
+    if (listen(fd, 1024) < 0) {
+        log_error("listen() failed: %s", strerror(errno));
+        close(fd);
+        return -1;
+    }
+
+    return fd;
+}
+
+static int create_reuseport_socket(Config *config)
+{
+    return create_reuseport_socket_on_port(config->listen_port);
+}
+
+static int create_tls_reuseport_socket(Config *config)
+{
+    return create_reuseport_socket_on_port(config->tls_port);
+}
+
+/*
+ * Set up signal handling for worker.
+ */
+static void setup_worker_signals(WorkerProcess *worker)
+{
+    /* Ignore SIGPIPE */
+    signal(SIGPIPE, SIG_IGN);
+
+    /* Handle SIGUSR1 for graceful drain via libevent */
+    worker->signal_event = evsignal_new(worker->base, SIGUSR1, signal_cb, worker);
+    if (worker->signal_event) {
+        event_add(worker->signal_event, NULL);
+    }
+}
+
+/*
+ * Signal callback for SIGUSR1 (graceful drain).
+ */
+static void signal_cb(evutil_socket_t sig, short events, void *ctx)
+{
+    WorkerProcess *worker = ctx;
+    (void)sig;
+    (void)events;
+
+    log_info("Received SIGUSR1, starting graceful drain");
+    worker->draining = true;
+    worker_check_drain(worker);
+}
+
+/*
+ * Check if we should exit (draining and no active connections).
+ * Exported for use by connection.c
+ */
+void worker_check_drain(WorkerProcess *worker)
+{
+    if (!worker->draining) {
+        return;
+    }
+
+    /* Stop accepting new connections */
+    if (!worker->listener_disabled && worker->listener) {
+        evconnlistener_disable(worker->listener);
+        worker->listener_disabled = true;
+        log_info("Stopped accepting new connections");
+    }
+
+    /* Exit if no active connections */
+    if (worker->active_connections == 0) {
+        log_info("No active connections, exiting");
+        event_base_loopexit(worker->base, NULL);
+    }
+}
+
+/*
+ * Send 503 Service Unavailable response.
+ * Used when slot limits are reached.
+ */
+static void send_503_response(int fd)
+{
+    const char *response =
+        "HTTP/1.1 503 Service Unavailable\r\n"
+        "Content-Type: text/plain\r\n"
+        "Content-Length: 20\r\n"
+        "Connection: close\r\n"
+        "Retry-After: 5\r\n"
+        "\r\n"
+        "Service Unavailable\n";
+    /* Best-effort send - ignore result since we're closing anyway */
+    ssize_t n __attribute__((unused)) = write(fd, response, strlen(response));
+}
+
+/*
+ * Send 429 Too Many Requests response.
+ * Used when rate limit is exceeded.
+ */
+static void send_429_response(int fd)
+{
+    const char *response =
+        "HTTP/1.1 429 Too Many Requests\r\n"
+        "Content-Type: text/plain\r\n"
+        "Content-Length: 18\r\n"
+        "Connection: close\r\n"
+        "Retry-After: 1\r\n"
+        "\r\n"
+        "Too Many Requests\n";
+    /* Best-effort send - ignore result since we're closing anyway */
+    ssize_t n __attribute__((unused)) = write(fd, response, strlen(response));
+}
+
+/*
+ * Periodic cleanup timer callback.
+ * Cleans up expired rate limiter entries.
+ */
+static void cleanup_timer_cb(evutil_socket_t fd, short events, void *ctx)
+{
+    WorkerProcess *worker = ctx;
+    (void)fd;
+    (void)events;
+
+    rate_limiter_cleanup(&worker->rate_limiter);
+}
+
+/*
+ * Extract IP address string from sockaddr.
+ */
+static void get_ip_string(struct sockaddr *addr, char *ip_buf, size_t ip_buf_size)
+{
+    if (addr->sa_family == AF_INET) {
+        struct sockaddr_in *sin = (struct sockaddr_in *)addr;
+        inet_ntop(AF_INET, &sin->sin_addr, ip_buf, ip_buf_size);
+    } else if (addr->sa_family == AF_INET6) {
+        struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)addr;
+        inet_ntop(AF_INET6, &sin6->sin6_addr, ip_buf, ip_buf_size);
+    } else {
+        strncpy(ip_buf, "unknown", ip_buf_size);
+    }
+}
+
+/*
+ * Accept callback - called for each new connection.
+ * Creates a bufferevent-based Connection for async I/O.
+ */
+static void accept_cb(struct evconnlistener *listener, evutil_socket_t fd,
+                      struct sockaddr *addr, int socklen, void *ctx)
+{
+    WorkerProcess *worker = ctx;
+    Connection *conn;
+    char client_ip[INET6_ADDRSTRLEN];
+    (void)listener;
+
+    /* FIRST: Enable TCP_NODELAY before any I/O */
+    tcp_nodelay_enable(fd);
+
+    /* If draining, reject new connections */
+    if (worker->draining) {
+        close(fd);
+        return;
+    }
+
+    /* Extract client IP for rate limiting */
+    get_ip_string(addr, client_ip, sizeof(client_ip));
+
+    /* Check rate limit FIRST (before consuming a slot) */
+    if (!rate_limiter_allow(&worker->rate_limiter, client_ip)) {
+        send_429_response(fd);
+        close(fd);
+        worker->connections_rejected_rate++;
+        return;
+    }
+
+    /* Check slot availability */
+    if (!slot_manager_acquire_normal(&worker->slots)) {
+        send_503_response(fd);
+        close(fd);
+        worker->connections_rejected_slot++;
+        return;
+    }
+
+    worker->connections_accepted++;
+    worker->active_connections++;
+
+    /* Create connection with bufferevent */
+    conn = connection_new(worker, fd, addr, socklen);
+    if (!conn) {
+        log_error("Failed to create connection");
+        close(fd);
+        worker->active_connections--;
+        slot_manager_release_normal(&worker->slots);
+        return;
+    }
+
+    /* Connection is now managed by bufferevent callbacks */
+}
+
+/*
+ * TLS accept callback - called for each new TLS connection.
+ * Creates an SSL-wrapped bufferevent for async TLS I/O.
+ */
+static void tls_accept_cb(struct evconnlistener *listener, evutil_socket_t fd,
+                          struct sockaddr *addr, int socklen, void *ctx)
+{
+    WorkerProcess *worker = ctx;
+    char client_ip[INET6_ADDRSTRLEN];
+    (void)listener;
+    (void)socklen;
+
+    /* FIRST: Enable TCP_NODELAY before any I/O */
+    tcp_nodelay_enable(fd);
+
+    /* If draining, reject new connections */
+    if (worker->draining) {
+        close(fd);
+        return;
+    }
+
+    /* Extract client IP for rate limiting */
+    get_ip_string(addr, client_ip, sizeof(client_ip));
+
+    /* Check rate limit FIRST (before consuming a slot) */
+    if (!rate_limiter_allow(&worker->rate_limiter, client_ip)) {
+        send_429_response(fd);
+        close(fd);
+        worker->connections_rejected_rate++;
+        return;
+    }
+
+    /* Check slot availability */
+    if (!slot_manager_acquire_normal(&worker->slots)) {
+        send_503_response(fd);
+        close(fd);
+        worker->connections_rejected_slot++;
+        return;
+    }
+
+    worker->connections_accepted++;
+    worker->active_connections++;
+
+    /* Create SSL object */
+    SSL *ssl = tls_create_ssl(&worker->tls);
+    if (!ssl) {
+        log_error("Failed to create SSL object");
+        close(fd);
+        worker->active_connections--;
+        slot_manager_release_normal(&worker->slots);
+        return;
+    }
+
+    /* Create SSL bufferevent */
+    struct bufferevent *bev = bufferevent_openssl_socket_new(
+        worker->base, fd, ssl,
+        BUFFEREVENT_SSL_ACCEPTING,
+        BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS);
+
+    if (!bev) {
+        log_error("Failed to create SSL bufferevent");
+        SSL_free(ssl);
+        close(fd);
+        worker->active_connections--;
+        slot_manager_release_normal(&worker->slots);
+        return;
+    }
+
+    /* Create connection - pass the SSL bufferevent */
+    Connection *conn = calloc(1, sizeof(Connection));
+    if (!conn) {
+        log_error("Failed to allocate TLS connection");
+        bufferevent_free(bev);  /* This frees SSL and closes fd */
+        worker->active_connections--;
+        slot_manager_release_normal(&worker->slots);
+        return;
+    }
+
+    /* Initialize connection */
+    conn->worker = worker;
+    conn->bev = bev;
+    conn->state = CONN_STATE_READING_HEADERS;
+    conn->protocol = PROTO_HTTP_1_1;  /* May change after ALPN */
+    conn->current_tier = TIER_NORMAL;
+    conn->ssl = ssl;
+    conn->tls_handshake_done = false;
+    conn->h2 = NULL;
+
+    strncpy(conn->client_ip, client_ip, sizeof(conn->client_ip) - 1);
+    conn->client_ip[sizeof(conn->client_ip) - 1] = '\0';
+
+    if (addr->sa_family == AF_INET) {
+        conn->client_port = ntohs(((struct sockaddr_in *)addr)->sin_port);
+    } else if (addr->sa_family == AF_INET6) {
+        conn->client_port = ntohs(((struct sockaddr_in6 *)addr)->sin6_port);
+    }
+
+    gettimeofday(&conn->start_time, NULL);
+    conn->last_progress_time = conn->start_time;
+    conn->bytes_at_last_check = 0;
+
+    /* Set up callbacks - same as regular connections for now
+     * HTTP/2 detection happens after TLS handshake completes */
+    extern void connection_set_callbacks(Connection *conn);
+    connection_set_callbacks(conn);
+
+    /* Set read timeout */
+    struct timeval read_timeout = {30, 0};
+    bufferevent_set_timeouts(bev, &read_timeout, NULL);
+
+    /* Enable reading */
+    bufferevent_enable(bev, EV_READ);
+
+    /* Add to worker's connection list */
+    conn->next = worker->connections;
+    conn->prev = NULL;
+    if (worker->connections) {
+        worker->connections->prev = conn;
+    }
+    worker->connections = conn;
+
+    log_debug("TLS connection from %s:%d", conn->client_ip, conn->client_port);
+}
+
+/*
+ * Accept error callback.
+ */
+static void accept_error_cb(struct evconnlistener *listener, void *ctx)
+{
+    WorkerProcess *worker = ctx;
+    int err = EVUTIL_SOCKET_ERROR();
+    (void)listener;
+
+    log_error("Accept error: %s", evutil_socket_error_to_string(err));
+
+    /* Don't exit on transient errors */
+    if (err == EMFILE || err == ENFILE) {
+        log_warn("Too many open files, continuing...");
+        return;
+    }
+
+    /* Fatal error - exit worker */
+    event_base_loopexit(worker->base, NULL);
+}
+
+/*
+ * Clean up worker resources.
+ */
+static void worker_cleanup(WorkerProcess *worker)
+{
+    if (worker->signal_event) {
+        event_free(worker->signal_event);
+        worker->signal_event = NULL;
+    }
+
+    if (worker->cleanup_event) {
+        event_free(worker->cleanup_event);
+        worker->cleanup_event = NULL;
+    }
+
+    if (worker->listener) {
+        evconnlistener_free(worker->listener);
+        worker->listener = NULL;
+    }
+
+    if (worker->tls_listener) {
+        evconnlistener_free(worker->tls_listener);
+        worker->tls_listener = NULL;
+    }
+
+    if (worker->base) {
+        event_base_free(worker->base);
+        worker->base = NULL;
+    }
+
+    /* Free TLS context */
+    tls_context_free(&worker->tls);
+
+    /* Free static files */
+    static_files_free(&worker->static_files);
+
+    /* Free rate limiter */
+    rate_limiter_free(&worker->rate_limiter);
+
+    log_info("Worker cleanup complete");
+}
+
+/*
+ * Worker main entry point.
+ */
+void worker_main(int worker_id, Config *config)
+{
+    WorkerProcess worker = {0};
+    char identity[32];
+    int listen_fd;
+
+    /* Set up identity for logging */
+    snprintf(identity, sizeof(identity), "worker[%d]", worker_id);
+    log_set_identity(identity);
+    log_set_json_mode(config->json_logging);
+    log_set_access_enabled(config->access_logging);
+
+    worker.worker_id = worker_id;
+    worker.config = config;
+    worker.cpu_core = worker_id % get_num_cpus();
+
+    /* Record start time for uptime metric */
+    gettimeofday(&worker.start_time, NULL);
+
+    /* Pin to CPU */
+    if (pin_to_cpu(worker.cpu_core) == 0) {
+        log_info("Pinned to CPU %d", worker.cpu_core);
+    }
+
+    /* Initialize slot manager */
+    slot_manager_init(&worker.slots,
+                      config->slots_normal_max,
+                      config->slots_large_max,
+                      config->slots_huge_max);
+
+    /* Initialize rate limiter */
+    if (rate_limiter_init(&worker.rate_limiter,
+                          config->rate_limit_rps,
+                          config->rate_limit_burst) < 0) {
+        log_error("Failed to initialize rate limiter");
+        exit(1);
+    }
+
+    /* Load static files from configured directory */
+    if (static_files_load(&worker.static_files, config->static_dir) < 0) {
+        log_error("Failed to load static files from %s", config->static_dir);
+        exit(1);
+    }
+
+    /* Create event base */
+    worker.base = event_base_new();
+    if (!worker.base) {
+        log_error("Failed to create event base");
+        static_files_free(&worker.static_files);
+        exit(1);
+    }
+
+    /* Create SO_REUSEPORT socket */
+    listen_fd = create_reuseport_socket(config);
+    if (listen_fd < 0) {
+        log_error("Failed to create listener socket");
+        exit(1);
+    }
+
+    /* Create libevent listener from our socket */
+    worker.listener = evconnlistener_new(
+        worker.base,
+        accept_cb,
+        &worker,
+        LEV_OPT_CLOSE_ON_FREE,
+        -1,  /* Already listening */
+        listen_fd
+    );
+
+    if (!worker.listener) {
+        log_error("Failed to create evconnlistener");
+        close(listen_fd);
+        exit(1);
+    }
+
+    evconnlistener_set_error_cb(worker.listener, accept_error_cb);
+
+    /* Initialize TLS if enabled */
+    if (config->tls_enabled) {
+        if (tls_context_init(&worker.tls, config) < 0) {
+            log_error("Failed to initialize TLS context");
+            exit(1);
+        }
+
+        /* Create TLS listener socket */
+        int tls_fd = create_tls_reuseport_socket(config);
+        if (tls_fd < 0) {
+            log_error("Failed to create TLS listener socket");
+            exit(1);
+        }
+
+        /* Create TLS listener */
+        worker.tls_listener = evconnlistener_new(
+            worker.base,
+            tls_accept_cb,
+            &worker,
+            LEV_OPT_CLOSE_ON_FREE,
+            -1,
+            tls_fd
+        );
+
+        if (!worker.tls_listener) {
+            log_error("Failed to create TLS evconnlistener");
+            close(tls_fd);
+            exit(1);
+        }
+
+        evconnlistener_set_error_cb(worker.tls_listener, accept_error_cb);
+        log_info("TLS listener started on port %d", config->tls_port);
+    }
+
+    /* Set up signal handling */
+    g_worker = &worker;
+    setup_worker_signals(&worker);
+
+    /* Set up periodic cleanup timer for rate limiter (every 30 seconds) */
+    struct timeval cleanup_interval = {30, 0};
+    worker.cleanup_event = event_new(worker.base, -1, EV_PERSIST,
+                                     cleanup_timer_cb, &worker);
+    if (worker.cleanup_event) {
+        event_add(worker.cleanup_event, &cleanup_interval);
+    }
+
+    log_info("Started on port %d (SO_REUSEPORT)", config->listen_port);
+
+    /* Run event loop */
+    event_base_dispatch(worker.base);
+
+    /* Cleanup and exit */
+    worker_cleanup(&worker);
+
+    log_info("Exiting with %lu connections processed", worker.requests_processed);
+    exit(0);
+}

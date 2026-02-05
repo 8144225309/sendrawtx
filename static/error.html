@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error - sendrawtx.com</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+            background: #0f0f0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container { text-align: center; padding: 2rem; max-width: 600px; }
+        h1 { color: #ef4444; margin-bottom: 1rem; font-size: 1.5rem; }
+        .error-box {
+            background: #1a1a1a;
+            border-left: 3px solid #ef4444;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+            text-align: left;
+        }
+        .error-code {
+            color: #888;
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+        }
+        .error-message {
+            color: #e0e0e0;
+            font-size: 1rem;
+        }
+        .help {
+            margin-top: 1.5rem;
+            text-align: left;
+        }
+        .help h2 {
+            color: #f7931a;
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
+        }
+        .help p {
+            color: #888;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin-bottom: 0.5rem;
+        }
+        .help code {
+            background: #1a1a1a;
+            padding: 0.1rem 0.3rem;
+            border-radius: 3px;
+            font-family: monospace;
+            color: #4ade80;
+        }
+        a { color: #f7931a; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .back-link {
+            display: inline-block;
+            margin-top: 1.5rem;
+            background: #1a1a1a;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Invalid Request</h1>
+
+        <div class="error-box">
+            <div class="error-code">Error 400</div>
+            <div class="error-message" id="errorMessage">
+                The requested URL is not a valid transaction format.
+            </div>
+        </div>
+
+        <div class="help">
+            <h2>How to use sendrawtx.com</h2>
+            <p><strong>Broadcast a transaction:</strong></p>
+            <p>Append your raw transaction hex to the URL:</p>
+            <p><code>https://sendrawtx.com/{raw_tx_hex}</code></p>
+
+            <p style="margin-top: 1rem;"><strong>Check transaction status:</strong></p>
+            <p>Use the txid (64 hex characters):</p>
+            <p><code>https://sendrawtx.com/tx/{txid}</code></p>
+
+            <p style="margin-top: 1rem;"><strong>Requirements:</strong></p>
+            <p>- Raw transaction hex must be at least 164 characters (82 bytes)</p>
+            <p>- Transaction ID must be exactly 64 hex characters</p>
+        </div>
+
+        <a href="/" class="back-link">Back to Home</a>
+    </div>
+
+<!--
+================================================================================
+AI AGENT INSTRUCTIONS
+================================================================================
+
+This is an error page shown when the URL doesn't match any valid route.
+
+VALID ROUTES:
+    /{raw_tx_hex}     - Broadcast a transaction (hex > 64 chars)
+    /tx/{txid}        - Check transaction status (txid = 64 hex chars)
+    /{txid}           - Shortcut for /tx/{txid} (exactly 64 hex chars)
+
+INVALID ROUTES:
+    - Non-hex characters in path
+    - Hex strings between 1-63 characters (not a valid txid or tx)
+    - Empty paths
+    - Paths with query strings or other content
+
+================================================================================
+-->
+
+<script>
+(function() {
+    'use strict';
+
+    // Provide helpful error message based on the attempted URL
+    function analyzeUrl() {
+        const path = window.location.pathname.substring(1);
+        const errorMessage = document.getElementById('errorMessage');
+
+        if (!path || path === '') {
+            // This shouldn't normally happen as / should have its own handler
+            errorMessage.textContent = 'No transaction data provided.';
+            return;
+        }
+
+        // Check for non-hex characters
+        if (!/^[0-9a-fA-F]*$/.test(path.replace('tx/', ''))) {
+            errorMessage.textContent = 'Invalid characters detected. Only hex characters (0-9, a-f) are allowed.';
+            return;
+        }
+
+        // Check for odd length
+        const hexPart = path.startsWith('tx/') ? path.substring(3) : path;
+        if (hexPart.length % 2 !== 0) {
+            errorMessage.textContent = 'Hex string has odd length (' + hexPart.length + ' characters). Must be even.';
+            return;
+        }
+
+        // Check for too short
+        if (hexPart.length > 0 && hexPart.length < 64) {
+            errorMessage.textContent = 'Hex string too short (' + hexPart.length + ' characters). Need at least 64 for txid or 164+ for raw transaction.';
+            return;
+        }
+
+        // Generic error
+        errorMessage.textContent = 'The requested URL is not a valid transaction format.';
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', analyzeUrl);
+    } else {
+        analyzeUrl();
+    }
+})();
+</script>
+</body>
+</html>

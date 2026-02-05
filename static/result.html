@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction Status - sendrawtx.com</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+            background: #0f0f0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container { text-align: center; padding: 2rem; max-width: 700px; }
+        .spinner {
+            width: 48px; height: 48px;
+            border: 3px solid #333;
+            border-top-color: #f7931a;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1.5rem;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        h1 { color: #f7931a; margin-bottom: 0.5rem; font-size: 1.5rem; }
+        .subtitle { color: #888; font-size: 0.9rem; margin-bottom: 1rem; }
+        .txid {
+            font-family: monospace;
+            color: #4ade80;
+            word-break: break-all;
+            font-size: 0.85rem;
+            background: #1a1a1a;
+            padding: 0.75rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+        .status-box {
+            background: #1a1a1a;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+        .status-success { border-left: 3px solid #4ade80; }
+        .status-pending { border-left: 3px solid #f7931a; }
+        .status-error { border-left: 3px solid #ef4444; }
+        .status-label {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 0.5rem;
+        }
+        .status-value {
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+        .success { color: #4ade80; }
+        .pending { color: #f7931a; }
+        .error { color: #ef4444; }
+        .details {
+            text-align: left;
+            margin-top: 1.5rem;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #222;
+        }
+        .detail-label { color: #888; }
+        .detail-value { color: #e0e0e0; font-family: monospace; }
+        a { color: #f7931a; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .hidden { display: none; }
+        .links {
+            margin-top: 1.5rem;
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .link-btn {
+            background: #1a1a1a;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="loading">
+            <div class="spinner"></div>
+            <h1>Loading Transaction Status</h1>
+            <p class="subtitle">Fetching broadcast results...</p>
+        </div>
+
+        <div id="result" class="hidden">
+            <h1 id="resultTitle">Transaction Status</h1>
+            <div class="txid" id="txidDisplay"></div>
+
+            <div id="statusBox" class="status-box">
+                <div class="status-label">Broadcast Status</div>
+                <div class="status-value" id="statusText"></div>
+            </div>
+
+            <div id="details" class="details hidden">
+                <div class="detail-row" id="confirmRow">
+                    <span class="detail-label">Confirmations</span>
+                    <span class="detail-value" id="confirmations">-</span>
+                </div>
+                <div class="detail-row" id="nodeRow">
+                    <span class="detail-label">Broadcast Nodes</span>
+                    <span class="detail-value" id="nodeCount">-</span>
+                </div>
+                <div class="detail-row" id="timeRow">
+                    <span class="detail-label">Broadcast Time</span>
+                    <span class="detail-value" id="broadcastTime">-</span>
+                </div>
+            </div>
+
+            <div class="links">
+                <a href="#" id="mempoolLink" class="link-btn" target="_blank">View on mempool.space</a>
+                <a href="/" class="link-btn">Broadcast Another</a>
+            </div>
+        </div>
+
+        <div id="errorBox" class="hidden">
+            <h1 style="color: #ef4444;">Transaction Not Found</h1>
+            <div class="status-box status-error">
+                <p id="errorText">This transaction ID was not found in our broadcast history.</p>
+            </div>
+            <p style="margin-top: 1rem;"><a href="/">Broadcast a transaction</a></p>
+        </div>
+    </div>
+
+<!--
+================================================================================
+AI AGENT INSTRUCTIONS
+================================================================================
+
+This page displays the broadcast status for a transaction ID.
+
+URL FORMAT:
+    /tx/{txid}  where txid is a 64-character hex string
+
+API ENDPOINT:
+    GET /tx/{txid}
+    Accept: application/json
+
+RESPONSE FORMAT (JSON):
+    {
+        "txid": "abc123...",
+        "status": "success" | "pending" | "error",
+        "broadcast_results": {
+            "mempool_space": { "success": true, "response": "..." },
+            "blockstream": { "success": true, "response": "..." },
+            ...
+        },
+        "timestamp": "2024-01-01T00:00:00Z",
+        "confirmations": 0
+    }
+
+HOW TO USE:
+    1. Extract txid from URL path: /tx/{txid}
+    2. Fetch /tx/{txid} with Accept: application/json header
+    3. Parse JSON response for broadcast status
+
+================================================================================
+-->
+
+<script>
+(function() {
+    'use strict';
+
+    function showError(message) {
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('result').classList.add('hidden');
+        document.getElementById('errorBox').classList.remove('hidden');
+        document.getElementById('errorText').textContent = message;
+    }
+
+    function showResult(data) {
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('errorBox').classList.add('hidden');
+        document.getElementById('result').classList.remove('hidden');
+
+        // Display txid
+        document.getElementById('txidDisplay').textContent = data.txid;
+
+        // Set mempool link
+        document.getElementById('mempoolLink').href = 'https://mempool.space/tx/' + data.txid;
+
+        // Status
+        const statusBox = document.getElementById('statusBox');
+        const statusText = document.getElementById('statusText');
+
+        if (data.status === 'success') {
+            statusBox.className = 'status-box status-success';
+            statusText.className = 'status-value success';
+            statusText.textContent = 'Successfully Broadcast';
+        } else if (data.status === 'pending') {
+            statusBox.className = 'status-box status-pending';
+            statusText.className = 'status-value pending';
+            statusText.textContent = 'Broadcast Pending...';
+        } else {
+            statusBox.className = 'status-box status-error';
+            statusText.className = 'status-value error';
+            statusText.textContent = data.error || 'Broadcast Failed';
+        }
+
+        // Show details if available
+        if (data.broadcast_results || data.confirmations !== undefined || data.timestamp) {
+            document.getElementById('details').classList.remove('hidden');
+
+            if (data.confirmations !== undefined) {
+                document.getElementById('confirmations').textContent =
+                    data.confirmations === 0 ? 'Unconfirmed' : data.confirmations;
+            }
+
+            if (data.broadcast_results) {
+                const successCount = Object.values(data.broadcast_results)
+                    .filter(r => r.success).length;
+                const totalCount = Object.keys(data.broadcast_results).length;
+                document.getElementById('nodeCount').textContent =
+                    successCount + '/' + totalCount + ' successful';
+            }
+
+            if (data.timestamp) {
+                const date = new Date(data.timestamp);
+                document.getElementById('broadcastTime').textContent =
+                    date.toLocaleString();
+            }
+        }
+    }
+
+    async function main() {
+        try {
+            // Get txid from URL
+            const path = window.location.pathname;
+            const match = path.match(/^\/tx\/([a-fA-F0-9]{64})$/);
+
+            if (!match) {
+                showError('Invalid transaction ID format. Expected 64 hex characters.');
+                return;
+            }
+
+            const txid = match[1].toLowerCase();
+
+            // Fetch status
+            const response = await fetch('/tx/' + txid, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                showResult(data);
+            } else if (response.status === 404) {
+                showError('This transaction ID was not found in our broadcast history.');
+            } else {
+                showError('Failed to fetch transaction status. Please try again.');
+            }
+        } catch (e) {
+            showError('Error loading transaction status: ' + e.message);
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', main);
+    } else {
+        main();
+    }
+})();
+</script>
+</body>
+</html>
