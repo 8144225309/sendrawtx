@@ -11,13 +11,14 @@
  * ROUTE_ERROR:     Invalid request → error.html
  */
 typedef enum {
-    ROUTE_BROADCAST,  /* Raw tx hex → broadcast page */
-    ROUTE_RESULT,     /* Txid lookup → result page */
-    ROUTE_ERROR,      /* Invalid → error page */
-    ROUTE_HEALTH,     /* /health → JSON health status */
-    ROUTE_READY,      /* /ready → readiness probe */
-    ROUTE_ALIVE,      /* /alive → liveness probe */
-    ROUTE_METRICS     /* /metrics → Prometheus metrics */
+    ROUTE_BROADCAST,       /* Raw tx hex → broadcast page */
+    ROUTE_RESULT,          /* Txid lookup → result page */
+    ROUTE_ERROR,           /* Invalid → error page */
+    ROUTE_HEALTH,          /* /health → JSON health status */
+    ROUTE_READY,           /* /ready → readiness probe */
+    ROUTE_ALIVE,           /* /alive → liveness probe */
+    ROUTE_METRICS,         /* /metrics → Prometheus metrics */
+    ROUTE_ACME_CHALLENGE   /* /.well-known/acme-challenge/{token} */
 } RouteType;
 
 /*

@@ -38,3 +38,11 @@ Thumbs.db
 # Valgrind output
 vgcore.*
 massif.out.*
+
+# ACME challenge directory (created at runtime)
+.well-known/
+
+# Tests - excluded until we create proper test suite
+tests/
+test_*.sh
+test_*.c

@@ -60,4 +60,11 @@ const char *tls_get_alpn_protocol(SSL *ssl);
  */
 bool tls_is_http2(SSL *ssl);
 
+/*
+ * Reload TLS certificate and key from config paths.
+ * Used for ACME certificate renewal (SIGUSR2 trigger).
+ * Returns 0 on success, -1 on error.
+ */
+int tls_context_reload(TLSContext *tls, const Config *config);
+
 #endif /* TLS_H */

@@ -91,6 +91,17 @@ json = 0
 # Set to 1 for debugging (logs access entries and shows full IPs)
 verbose = 0
 
+[acme]
+# ACME (Let's Encrypt) HTTP-01 challenge support
+# When using certbot, point webroot to this directory:
+#   certbot certonly --webroot -w .well-known/acme-challenge -d yourdomain.com
+#
+# After certificate renewal, send SIGUSR2 to reload:
+#   kill -USR2 $(pidof rawrelay-server)
+
+# Directory containing ACME challenge files
+challenge_dir = .well-known/acme-challenge
+
 [security]
 # IP-based access control
 # Blocklist: IPs in this file are rejected with 403 Forbidden

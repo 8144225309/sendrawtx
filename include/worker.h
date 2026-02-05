@@ -120,8 +120,9 @@ typedef struct WorkerProcess {
     /* Active connections list (intrusive linked list) */
     struct Connection *connections;
 
-    /* Signal handling event */
-    struct event *signal_event;
+    /* Signal handling events */
+    struct event *signal_event;         /* SIGUSR1 - graceful drain */
+    struct event *signal_event_reload;  /* SIGUSR2 - TLS cert reload */
 
     /* Cleanup timer event (for rate limiter) */
     struct event *cleanup_event;

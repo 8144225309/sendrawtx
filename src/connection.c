@@ -14,7 +14,10 @@
 #include <ctype.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/stat.h>
 #include <dirent.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <arpa/inet.h>
 #include <event2/buffer.h>
 #include <openssl/ssl.h>
@@ -526,8 +529,15 @@ static void serve_health(Connection *conn)
     int max_fds = get_max_fds();
     double fd_usage_pct = (max_fds > 0) ? (100.0 * open_fds / max_fds) : 0.0;
 
-    /* Check if TLS is enabled */
+    /* Check if TLS is enabled and get cert expiry */
     int tls_enabled = (worker->tls.ctx != NULL) ? 1 : 0;
+    time_t cert_expiry = tls_get_cert_expiry(&worker->tls);
+    int cert_days_remaining = 0;
+    int cert_warning = 0;
+    if (cert_expiry > 0) {
+        cert_days_remaining = (int)((cert_expiry - now.tv_sec) / 86400);
+        cert_warning = (cert_days_remaining < 30) ? 1 : 0;
+    }
 
     body_len = snprintf(body, sizeof(body),
         "{\"status\":\"healthy\","
@@ -541,7 +551,7 @@ static void serve_health(Connection *conn)
             "\"huge\":{\"used\":%d,\"max\":%d}"
         "},"
         "\"rate_limiter_entries\":%d,"
-        "\"tls\":{\"enabled\":%s},"
+        "\"tls\":{\"enabled\":%s,\"cert_expires_in_days\":%d,\"cert_expiry_warning\":%s},"
         "\"resources\":{"
             "\"open_fds\":%d,"
             "\"max_fds\":%d,"
@@ -559,6 +569,8 @@ static void serve_health(Connection *conn)
         slot_manager_max(&worker->slots, TIER_HUGE),
         rate_limiter_get_entry_count(&worker->rate_limiter),
         tls_enabled ? "true" : "false",
+        cert_days_remaining,
+        cert_warning ? "true" : "false",
         open_fds,
         max_fds,
         fd_usage_pct);
@@ -634,6 +646,133 @@ static void serve_alive(Connection *conn)
     conn->response_status = 200;
     conn->response_bytes = 0;
     conn->state = conn->keep_alive ? CONN_STATE_WRITING_RESPONSE : CONN_STATE_CLOSING;
+    bufferevent_enable(conn->bev, EV_WRITE);
+}
+
+/*
+ * Serve ACME HTTP-01 challenge response.
+ * Path format: /.well-known/acme-challenge/{token}
+ *
+ * Security: Only serves files from the configured acme_challenge_dir.
+ * Rejects any path traversal attempts (../).
+ */
+static void serve_acme_challenge(Connection *conn)
+{
+    WorkerProcess *worker = conn->worker;
+    struct evbuffer *output = bufferevent_get_output(conn->bev);
+    const char *acme_dir = worker->config->acme_challenge_dir;
+
+    conn->state = CONN_STATE_WRITING_RESPONSE;
+
+    /* Extract token from path: /.well-known/acme-challenge/{token} */
+    const size_t prefix_len = 27;  /* ".well-known/acme-challenge/" */
+
+    if (conn->path_len < prefix_len + 2 || conn->path[0] != '/') {
+        log_warn("ACME: Invalid path format from %s", log_format_ip(conn->client_ip));
+        goto not_found;
+    }
+
+    const char *token = conn->path + 1 + prefix_len;
+    size_t token_len = conn->path_len - 1 - prefix_len;
+
+    /* Security: Reject path traversal attempts */
+    if (strstr(token, "..") || strchr(token, '/') || strchr(token, '\\')) {
+        log_warn("ACME: Path traversal attempt from %s: %s",
+                 log_format_ip(conn->client_ip), conn->path);
+        goto not_found;
+    }
+
+    /* Security: Token should be base64url encoded (alphanumeric, -, _) */
+    for (size_t i = 0; i < token_len; i++) {
+        char c = token[i];
+        if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+              (c >= '0' && c <= '9') || c == '-' || c == '_')) {
+            log_warn("ACME: Invalid token character from %s: '%c'",
+                     log_format_ip(conn->client_ip), c);
+            goto not_found;
+        }
+    }
+
+    /* Build full path to challenge file */
+    char filepath[512];
+    int n = snprintf(filepath, sizeof(filepath), "%s/%.*s",
+                     acme_dir, (int)token_len, token);
+    if (n < 0 || (size_t)n >= sizeof(filepath)) {
+        log_warn("ACME: Path too long from %s", log_format_ip(conn->client_ip));
+        goto not_found;
+    }
+
+    /* Open and read the challenge file */
+    int fd = open(filepath, O_RDONLY);
+    if (fd < 0) {
+        log_warn("ACME: Challenge file not found: %s (from %s)",
+                 filepath, log_format_ip(conn->client_ip));
+        goto not_found;
+    }
+
+    /* Get file size */
+    struct stat st;
+    if (fstat(fd, &st) < 0 || !S_ISREG(st.st_mode)) {
+        log_warn("ACME: Cannot stat challenge file: %s", filepath);
+        close(fd);
+        goto not_found;
+    }
+
+    /* Sanity check - ACME tokens are typically < 256 bytes */
+    if (st.st_size > 4096) {
+        log_warn("ACME: Challenge file too large: %s (%ld bytes)",
+                 filepath, (long)st.st_size);
+        close(fd);
+        goto not_found;
+    }
+
+    /* Read file content */
+    char content[4097];
+    ssize_t bytes_read = read(fd, content, st.st_size);
+    close(fd);
+
+    if (bytes_read < 0 || bytes_read != st.st_size) {
+        log_warn("ACME: Failed to read challenge file: %s", filepath);
+        goto not_found;
+    }
+
+    log_info("ACME: Serving challenge for token %.*s to %s",
+             (int)token_len, token, log_format_ip(conn->client_ip));
+
+    /* Send response - ACME expects text/plain */
+    evbuffer_add_printf(output,
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: text/plain\r\n"
+        "Content-Length: %zd\r\n"
+        "Cache-Control: no-store\r\n"
+        "X-Request-ID: %s\r\n"
+        "Connection: %s\r\n"
+        "\r\n",
+        bytes_read, conn->request_id,
+        conn->keep_alive ? "keep-alive" : "close");
+    evbuffer_add(output, content, bytes_read);
+
+    conn->response_status = 200;
+    conn->response_bytes = bytes_read;
+    conn->state = conn->keep_alive ? CONN_STATE_WRITING_RESPONSE : CONN_STATE_CLOSING;
+    bufferevent_enable(conn->bev, EV_WRITE);
+    return;
+
+not_found:
+    evbuffer_add_printf(output,
+        "HTTP/1.1 404 Not Found\r\n"
+        "Content-Type: text/plain\r\n"
+        "Content-Length: 9\r\n"
+        "Cache-Control: no-store\r\n"
+        "X-Request-ID: %s\r\n"
+        "Connection: close\r\n"
+        "\r\n"
+        "Not Found",
+        conn->request_id);
+
+    conn->response_status = 404;
+    conn->response_bytes = 9;
+    conn->state = CONN_STATE_CLOSING;
     bufferevent_enable(conn->bev, EV_WRITE);
 }
 
@@ -964,6 +1103,9 @@ static void process_request(Connection *conn)
             return;
         case ROUTE_METRICS:
             serve_metrics(conn);
+            return;
+        case ROUTE_ACME_CHALLENGE:
+            serve_acme_challenge(conn);
             return;
         default:
             break;

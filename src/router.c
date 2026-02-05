@@ -49,6 +49,12 @@ RouteType route_request(const char *path, size_t path_len)
         return ROUTE_METRICS;
     }
 
+    /* Check for ACME HTTP-01 challenge path */
+    /* Format: /.well-known/acme-challenge/{token} */
+    if (content_len > 27 && strncmp(content, ".well-known/acme-challenge/", 27) == 0) {
+        return ROUTE_ACME_CHALLENGE;
+    }
+
     /* Check for /tx/{txid} pattern */
     if (content_len > 3 && strncmp(content, "tx/", 3) == 0) {
         const char *txid = content + 3;

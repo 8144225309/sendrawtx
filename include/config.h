@@ -43,6 +43,9 @@ typedef struct {
     int json_logging;              /* Default: 0 (text format), 1 = JSON format */
     int verbose;                   /* Default: 0 (minimal), 1 = full logging with IPs */
 
+    /* ACME/Let's Encrypt settings (Phase 10) */
+    char acme_challenge_dir[256];  /* Directory for ACME HTTP-01 challenges */
+
     /* Security settings (Phase 6) */
     char blocklist_file[256];      /* Path to IP blocklist file, empty = disabled */
     char allowlist_file[256];      /* Path to IP allowlist file, empty = disabled */

@@ -221,3 +221,93 @@ time_t tls_get_cert_expiry(TLSContext *tls)
     }
     return tls->cert_expiry;
 }
+
+/*
+ * Reload TLS certificate and key.
+ * Creates a new SSL_CTX and swaps it atomically.
+ * Existing connections continue with their old SSL objects.
+ */
+int tls_context_reload(TLSContext *tls, const Config *config)
+{
+    if (!tls || !config) {
+        return -1;
+    }
+
+    log_info("Reloading TLS certificates from %s and %s",
+             config->tls_cert_file, config->tls_key_file);
+
+    /* Create new SSL context */
+    const SSL_METHOD *method = TLS_server_method();
+    SSL_CTX *new_ctx = SSL_CTX_new(method);
+    if (!new_ctx) {
+        log_error("Failed to create new SSL_CTX: %s",
+                  ERR_error_string(ERR_get_error(), NULL));
+        return -1;
+    }
+
+    /* Set minimum TLS version to 1.2 */
+    SSL_CTX_set_min_proto_version(new_ctx, TLS1_2_VERSION);
+
+    /* Load certificate chain */
+    if (SSL_CTX_use_certificate_chain_file(new_ctx, config->tls_cert_file) != 1) {
+        log_error("Failed to reload certificate from %s: %s",
+                  config->tls_cert_file, ERR_error_string(ERR_get_error(), NULL));
+        SSL_CTX_free(new_ctx);
+        return -1;
+    }
+
+    /* Load private key */
+    if (SSL_CTX_use_PrivateKey_file(new_ctx, config->tls_key_file, SSL_FILETYPE_PEM) != 1) {
+        log_error("Failed to reload private key from %s: %s",
+                  config->tls_key_file, ERR_error_string(ERR_get_error(), NULL));
+        SSL_CTX_free(new_ctx);
+        return -1;
+    }
+
+    /* Verify private key matches certificate */
+    if (SSL_CTX_check_private_key(new_ctx) != 1) {
+        log_error("Private key does not match certificate: %s",
+                  ERR_error_string(ERR_get_error(), NULL));
+        SSL_CTX_free(new_ctx);
+        return -1;
+    }
+
+    /* Extract certificate expiry time */
+    time_t new_expiry = 0;
+    X509 *cert = SSL_CTX_get0_certificate(new_ctx);
+    if (cert) {
+        const ASN1_TIME *not_after = X509_get0_notAfter(cert);
+        if (not_after) {
+            int day_diff = 0, sec_diff = 0;
+            if (ASN1_TIME_diff(&day_diff, &sec_diff, NULL, not_after) == 1) {
+                time_t now = time(NULL);
+                new_expiry = now + ((time_t)day_diff * 86400) + sec_diff;
+                log_info("New certificate expires in %d days", day_diff);
+            }
+        }
+    }
+
+    /* Set up ALPN callback */
+    SSL_CTX_set_alpn_select_cb(new_ctx, tls_alpn_select_cb, tls);
+
+    /* Set session caching */
+    SSL_CTX_set_session_cache_mode(new_ctx, SSL_SESS_CACHE_SERVER);
+    SSL_CTX_set_session_id_context(new_ctx, (const unsigned char *)"rawrelay", 8);
+
+    /* Disable TLS compression and enable server cipher preference */
+    SSL_CTX_set_options(new_ctx, SSL_OP_NO_COMPRESSION);
+    SSL_CTX_set_options(new_ctx, SSL_OP_CIPHER_SERVER_PREFERENCE);
+
+    /* Atomically swap the context */
+    SSL_CTX *old_ctx = tls->ctx;
+    tls->ctx = new_ctx;
+    tls->cert_expiry = new_expiry;
+
+    /* Free old context */
+    if (old_ctx) {
+        SSL_CTX_free(old_ctx);
+    }
+
+    log_info("TLS certificate reload complete");
+    return 0;
+}

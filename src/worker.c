@@ -36,6 +36,7 @@ static void tls_accept_cb(struct evconnlistener *listener, evutil_socket_t fd,
                           struct sockaddr *addr, int socklen, void *ctx);
 static void accept_error_cb(struct evconnlistener *listener, void *ctx);
 static void signal_cb(evutil_socket_t sig, short events, void *ctx);
+static void signal_reload_cb(evutil_socket_t sig, short events, void *ctx);
 static void cleanup_timer_cb(evutil_socket_t fd, short events, void *ctx);
 static void send_403_response(int fd);
 static void send_503_response(int fd);
@@ -143,6 +144,12 @@ static void setup_worker_signals(WorkerProcess *worker)
     if (worker->signal_event) {
         event_add(worker->signal_event, NULL);
     }
+
+    /* Handle SIGUSR2 for TLS certificate reload via libevent */
+    worker->signal_event_reload = evsignal_new(worker->base, SIGUSR2, signal_reload_cb, worker);
+    if (worker->signal_event_reload) {
+        event_add(worker->signal_event_reload, NULL);
+    }
 }
 
 /*
@@ -157,6 +164,28 @@ static void signal_cb(evutil_socket_t sig, short events, void *ctx)
     log_info("Received SIGUSR1, starting graceful drain");
     worker->draining = true;
     worker_check_drain(worker);
+}
+
+/*
+ * Signal callback for SIGUSR2 (TLS certificate reload).
+ * Used for ACME certificate renewal - certbot can trigger this after renewal.
+ */
+static void signal_reload_cb(evutil_socket_t sig, short events, void *ctx)
+{
+    WorkerProcess *worker = ctx;
+    (void)sig;
+    (void)events;
+
+    log_info("Received SIGUSR2, reloading TLS certificates");
+
+    if (!worker->config->tls_enabled) {
+        log_warn("TLS not enabled, ignoring reload signal");
+        return;
+    }
+
+    if (tls_context_reload(&worker->tls, worker->config) < 0) {
+        log_error("Failed to reload TLS certificates");
+    }
 }
 
 /*
@@ -502,6 +531,11 @@ static void worker_cleanup(WorkerProcess *worker)
     if (worker->signal_event) {
         event_free(worker->signal_event);
         worker->signal_event = NULL;
+    }
+
+    if (worker->signal_event_reload) {
+        event_free(worker->signal_event_reload);
+        worker->signal_event_reload = NULL;
     }
 
     if (worker->cleanup_event) {

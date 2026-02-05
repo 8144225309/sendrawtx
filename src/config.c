@@ -29,6 +29,7 @@
 #define DEFAULT_HTTP2_ENABLED         1                 /* HTTP/2 enabled when TLS enabled */
 #define DEFAULT_JSON_LOGGING          0                 /* Text format by default */
 #define DEFAULT_VERBOSE               0                 /* Minimal logging by default */
+#define DEFAULT_ACME_CHALLENGE_DIR    ".well-known/acme-challenge"
 
 static char *trim(char *str)
 {
@@ -153,6 +154,10 @@ Config *config_default(void)
     c->json_logging = DEFAULT_JSON_LOGGING;
     c->verbose = DEFAULT_VERBOSE;
 
+    /* ACME settings */
+    strncpy(c->acme_challenge_dir, DEFAULT_ACME_CHALLENGE_DIR, sizeof(c->acme_challenge_dir) - 1);
+    c->acme_challenge_dir[sizeof(c->acme_challenge_dir) - 1] = '\0';
+
     /* Security settings (Phase 6) */
     c->blocklist_file[0] = '\0';
     c->allowlist_file[0] = '\0';
@@ -274,6 +279,11 @@ Config *config_load(const char *path)
             } else if (strcmp(key, "verbose") == 0) {
                 c->verbose = parse_int(value, DEFAULT_VERBOSE);
             }
+        } else if (strcmp(section, "acme") == 0) {
+            if (strcmp(key, "challenge_dir") == 0) {
+                strncpy(c->acme_challenge_dir, value, sizeof(c->acme_challenge_dir) - 1);
+                c->acme_challenge_dir[sizeof(c->acme_challenge_dir) - 1] = '\0';
+            }
         } else if (strcmp(section, "security") == 0) {
             if (strcmp(key, "blocklist_file") == 0) {
                 strncpy(c->blocklist_file, value, sizeof(c->blocklist_file) - 1);
@@ -349,6 +359,8 @@ void config_print(const Config *c)
     printf("  Logging:\n");
     printf("    json_format:      %s\n", c->json_logging ? "ENABLED" : "DISABLED");
     printf("    verbose:          %s\n", c->verbose ? "ENABLED (full IPs)" : "DISABLED (IPs hidden)");
+    printf("  ACME:\n");
+    printf("    challenge_dir:    %s\n", c->acme_challenge_dir);
     printf("  Security:\n");
     printf("    blocklist_file:   %s\n", c->blocklist_file[0] ? c->blocklist_file : "(disabled)");
     printf("    allowlist_file:   %s\n", c->allowlist_file[0] ? c->allowlist_file : "(disabled)");
