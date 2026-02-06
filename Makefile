@@ -45,7 +45,8 @@ SRCS = $(SRC_DIR)/main.c \
        $(SRC_DIR)/http2.c \
        $(SRC_DIR)/security.c \
        $(SRC_DIR)/network.c \
-       $(SRC_DIR)/rpc.c
+       $(SRC_DIR)/rpc.c \
+       $(SRC_DIR)/hex.c
 
 OBJS = $(SRCS:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 

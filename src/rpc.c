@@ -301,8 +301,10 @@ static char *rpc_http_request(RPCClient *client,
         return NULL;
     }
 
-    /* Receive response */
-    char *response = malloc(RPC_MAX_RESPONSE_LEN);
+    /* Receive response - start with small buffer, grow if needed
+     * Most RPC responses are <64KB, so this avoids 4MB allocation for typical requests */
+    size_t buffer_size = RPC_INITIAL_BUFFER_LEN;
+    char *response = malloc(buffer_size);
     if (!response) {
         close(fd);
         *rpc_error = RPC_ERR_MEMORY;
@@ -311,8 +313,22 @@ static char *rpc_http_request(RPCClient *client,
 
     size_t total = 0;
     ssize_t n;
-    while ((n = recv(fd, response + total, RPC_MAX_RESPONSE_LEN - total - 1, 0)) > 0) {
+    while ((n = recv(fd, response + total, buffer_size - total - 1, 0)) > 0) {
         total += n;
+        /* Grow buffer if needed */
+        if (total >= buffer_size - 1 && buffer_size < RPC_MAX_RESPONSE_LEN) {
+            size_t new_size = buffer_size * 2;
+            if (new_size > RPC_MAX_RESPONSE_LEN) {
+                new_size = RPC_MAX_RESPONSE_LEN;
+            }
+            char *new_buf = realloc(response, new_size);
+            if (!new_buf) {
+                /* Use what we have if realloc fails */
+                break;
+            }
+            response = new_buf;
+            buffer_size = new_size;
+        }
         if (total >= RPC_MAX_RESPONSE_LEN - 1) break;
     }
     response[total] = '\0';
@@ -367,10 +383,11 @@ static char *rpc_http_request(RPCClient *client,
 static char *build_jsonrpc_request(const char *method, const char *params)
 {
     static uint64_t request_id = 0;
-    char *request = malloc(strlen(params) + 256);
+    size_t buf_size = strlen(params) + strlen(method) + 128;
+    char *request = malloc(buf_size);
     if (!request) return NULL;
 
-    sprintf(request,
+    snprintf(request, buf_size,
         "{\"jsonrpc\":\"1.0\",\"id\":%lu,\"method\":\"%s\",\"params\":%s}",
         (unsigned long)(++request_id), method, params);
 
