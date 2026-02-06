@@ -36,7 +36,6 @@ SRCS = $(SRC_DIR)/main.c \
        $(SRC_DIR)/tcp_opts.c \
        $(SRC_DIR)/buffer.c \
        $(SRC_DIR)/reader.c \
-       $(SRC_DIR)/http.c \
        $(SRC_DIR)/router.c \
        $(SRC_DIR)/static_files.c \
        $(SRC_DIR)/slot_manager.c \
@@ -54,7 +53,7 @@ OBJS = $(SRCS:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 TARGET = rawrelay-server
 
 # Object files for tests (without main)
-LIB_OBJS = $(BUILD_DIR)/buffer.o $(BUILD_DIR)/config.o $(BUILD_DIR)/reader.o $(BUILD_DIR)/http.o $(BUILD_DIR)/log.o $(BUILD_DIR)/network.o
+LIB_OBJS = $(BUILD_DIR)/buffer.o $(BUILD_DIR)/config.o $(BUILD_DIR)/reader.o $(BUILD_DIR)/log.o $(BUILD_DIR)/network.o
 
 # Object files for RPC test
 RPC_TEST_OBJS = $(BUILD_DIR)/rpc.o $(BUILD_DIR)/network.o $(BUILD_DIR)/log.o
