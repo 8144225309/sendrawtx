@@ -37,7 +37,8 @@ struct event;
 #define RPC_MAX_HOST_LEN 256
 #define RPC_MAX_AUTH_LEN 512
 #define RPC_MAX_WALLET_LEN 64
-#define RPC_MAX_RESPONSE_LEN (4 * 1024 * 1024)  /* 4MB for large responses */
+#define RPC_INITIAL_BUFFER_LEN (64 * 1024)      /* 64KB initial buffer */
+#define RPC_MAX_RESPONSE_LEN   (4 * 1024 * 1024) /* 4MB max for large responses */
 
 /* RPC error codes */
 #define RPC_OK              0
