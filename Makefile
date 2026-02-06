@@ -102,7 +102,7 @@ test_rpc: $(RPC_TEST_OBJS) $(TEST_DIR)/test_rpc.c | $(BUILD_DIR)
 
 test_async_rpc: $(RPC_TEST_OBJS) $(TEST_DIR)/test_async_rpc.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -o $(BUILD_DIR)/$@ $(RPC_TEST_OBJS) $(TEST_DIR)/test_async_rpc.c $(LDFLAGS)
-	@echo "Real-world test built. Run with: ./$(BUILD_DIR)/$@ <host> <port> <user> <pass> <tx_hex>"
+	@echo "Real-world test built. Run with: ./$(BUILD_DIR)/$@ <host> <port> <user> <pass> <tx_file>"
 	@echo "Or use: make test_async_rpc_live"
 
 # Run async RPC test against a live regtest node (automated setup/teardown)

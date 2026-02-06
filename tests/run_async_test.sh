@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
-# Starts a fresh regtest bitcoind, funds a wallet, creates a real
-# signed transaction, runs the async RPC test binary, then cleans up.
+# Starts a fresh regtest bitcoind, funds a wallet, creates multiple
+# unique signed transactions, writes them to a file, then runs the
+# async RPC test binary.
 #
 # Usage:
 #   ./tests/run_async_test.sh ./build/test_async_rpc
@@ -10,6 +11,7 @@
 #   BITCOIND      path to bitcoind        (default: auto-detect)
 #   BITCOIN_CLI   path to bitcoin-cli     (default: auto-detect)
 #   RPC_PORT      port for regtest node   (default: 18600)
+#   NUM_TX        total transactions       (default: 22)
 
 set -euo pipefail
 
@@ -38,10 +40,14 @@ PORT="${RPC_PORT:-18600}"
 USER="asynctest"
 PASS="asynctest$(date +%s)"
 DATADIR=$(mktemp -d)
+TX_FILE=$(mktemp)
+NUM_TX="${NUM_TX:-22}"
 
 echo "bitcoind: $BITCOIND"
 echo "datadir:  $DATADIR"
 echo "port:     $PORT"
+echo "tx file:  $TX_FILE"
+echo "creating: $NUM_TX unique transactions"
 
 # Cleanup on exit
 cleanup() {
@@ -57,6 +63,7 @@ cleanup() {
         sleep 0.5
     done
     rm -rf "$DATADIR"
+    rm -f "$TX_FILE"
     echo "Done."
 }
 trap cleanup EXIT
@@ -96,33 +103,46 @@ fi
 
 CLI="$BITCOIN_CLI -datadir=$DATADIR -rpcport=$PORT -rpcuser=$USER -rpcpassword=$PASS"
 
-# Create wallet and mine blocks
-echo "Creating wallet and mining 101 blocks..."
+# Create wallet and mine enough blocks for sufficient coinbase maturity.
+# Each TX needs its own UTXO. Mine extra blocks to have plenty of mature
+# coinbase outputs (each coinbase = 50 BTC in regtest).
+MINE_BLOCKS=$(( NUM_TX + 100 ))
+echo "Creating wallet and mining $MINE_BLOCKS blocks..."
 $CLI createwallet "test" >/dev/null 2>&1
 
 ADDR=$($CLI getnewaddress)
-$CLI generatetoaddress 101 "$ADDR" >/dev/null 2>&1
+$CLI generatetoaddress "$MINE_BLOCKS" "$ADDR" >/dev/null 2>&1
 
 BALANCE=$($CLI getbalance)
 echo "Wallet balance: $BALANCE BTC"
 
-# Create a real signed transaction
-echo "Creating funded+signed transaction..."
-DEST=$($CLI getnewaddress)
-RAW=$($CLI createrawtransaction '[]' "{\"$DEST\":0.001}")
-FUNDED=$($CLI fundrawtransaction "$RAW" | jq -r '.hex')
-SIGNED=$($CLI signrawtransactionwithwallet "$FUNDED" | jq -r '.hex')
+# Create multiple unique funded+signed transactions.
+# Each one sends 0.001 BTC to a fresh address. Because each uses different
+# inputs, bitcoind must do full validation on every one.
+echo "Creating $NUM_TX unique funded+signed transactions..."
+> "$TX_FILE"
 
-echo "TX hex: ${SIGNED:0:60}... (${#SIGNED} chars)"
+for i in $(seq 1 "$NUM_TX"); do
+    DEST=$($CLI getnewaddress)
+    RAW=$($CLI createrawtransaction '[]' "{\"$DEST\":0.001}")
+    FUNDED=$($CLI fundrawtransaction "$RAW" '{"lockUnspents":true}' | jq -r '.hex')
+    SIGNED=$($CLI signrawtransactionwithwallet "$FUNDED" | jq -r '.hex')
+    echo "$SIGNED" >> "$TX_FILE"
+    printf "\r  %d/%d" "$i" "$NUM_TX"
+done
+echo ""
+
+TX_LINES=$(wc -l < "$TX_FILE")
+echo "Wrote $TX_LINES transactions to $TX_FILE"
 echo ""
 
 # Run the test
 echo "================================================"
-echo "Running: $TEST_BIN 127.0.0.1 $PORT $USER $PASS <tx>"
+echo "Running: $TEST_BIN 127.0.0.1 $PORT $USER $PASS $TX_FILE"
 echo "================================================"
 echo ""
 
-${VALGRIND:-} "$TEST_BIN" 127.0.0.1 "$PORT" "$USER" "$PASS" "$SIGNED"
+${VALGRIND:-} "$TEST_BIN" 127.0.0.1 "$PORT" "$USER" "$PASS" "$TX_FILE"
 EXIT_CODE=$?
 
 echo ""

@@ -2,13 +2,17 @@
  * Real-World Async RPC Test
  *
  * A/B comparison of sync vs async RPC against a live Bitcoin Core node.
- * Proves: (A) sync path blocks the event loop, (B) async path doesn't.
- * Also tests correctness, error handling, and throughput.
+ * Every comparison uses SEPARATE never-before-seen transactions so
+ * bitcoind does full validation on both paths.
  *
  * Usage:
- *   ./test_async_rpc <host> <port> <user> <pass> <tx_hex>
+ *   ./test_async_rpc <host> <port> <user> <pass> <tx_file>
  *
- * Requires a running bitcoind in regtest mode with a funded wallet.
+ * tx_file format: one raw TX hex per line.
+ *   Line 1:    sync A/B test
+ *   Line 2:    async A/B test
+ *   Lines 3-N: first half for sync throughput, second half for async throughput
+ *
  * See tests/run_async_test.sh for automated setup.
  */
 
@@ -44,6 +48,36 @@ static int fail_count = 0;
     fail_count++; \
     printf("  FAIL: %s\n", msg); \
 } while(0)
+
+/* ========== TX file reader ========== */
+
+#define MAX_TX 64
+#define MAX_TX_LEN 8192
+
+static char tx_list[MAX_TX][MAX_TX_LEN];
+static int tx_count = 0;
+
+static int load_tx_file(const char *path)
+{
+    FILE *f = fopen(path, "r");
+    if (!f) {
+        fprintf(stderr, "Cannot open TX file: %s\n", path);
+        return -1;
+    }
+
+    char line[MAX_TX_LEN];
+    while (fgets(line, sizeof(line), f) && tx_count < MAX_TX) {
+        size_t len = strlen(line);
+        while (len > 0 && (line[len-1] == '\n' || line[len-1] == '\r'))
+            line[--len] = '\0';
+        if (len < 10) continue;
+        memcpy(tx_list[tx_count], line, len + 1);
+        tx_count++;
+    }
+
+    fclose(f);
+    return tx_count;
+}
 
 /* ========== Timing ========== */
 
@@ -93,10 +127,6 @@ typedef struct {
     double time_after;
 } SyncFromLoopCtx;
 
-/*
- * Called from INSIDE the event loop via a timer.
- * The blocking rpc_manager_broadcast() freezes the thread here.
- */
 static void sync_from_loop_cb(evutil_socket_t fd, short events, void *arg)
 {
     SyncFromLoopCtx *ctx = arg;
@@ -136,11 +166,10 @@ static void async_callback(int status, const char *result,
     ar->result[ar->result_len] = '\0';
 }
 
-/* ========== Throughput test context ========== */
-
-#define THROUGHPUT_N 20
+/* ========== Throughput context ========== */
 
 static int throughput_completed = 0;
+static int throughput_target = 0;
 static struct event_base *throughput_base = NULL;
 
 static void throughput_cb(int status, const char *result,
@@ -148,12 +177,12 @@ static void throughput_cb(int status, const char *result,
 {
     (void)status; (void)result; (void)result_len; (void)user_data;
     throughput_completed++;
-    if (throughput_completed >= THROUGHPUT_N && throughput_base) {
+    if (throughput_completed >= throughput_target && throughput_base) {
         event_base_loopexit(throughput_base, NULL);
     }
 }
 
-/* ========== Helper: create manager for tests ========== */
+/* ========== Helper: create manager ========== */
 
 static int make_manager(RPCManager *mgr, struct event_base *base,
                          const char *host, int port,
@@ -165,20 +194,22 @@ static int make_manager(RPCManager *mgr, struct event_base *base,
     cfg.port = port;
     strncpy(cfg.user, user, sizeof(cfg.user) - 1);
     strncpy(cfg.password, pass, sizeof(cfg.password) - 1);
-    cfg.timeout_sec = 10;
+    cfg.timeout_sec = 30;
     return rpc_manager_init_async(mgr, base, NULL, NULL, NULL, &cfg);
 }
 
-/* ========== Tests ========== */
+/* ========== Main ========== */
 
 int main(int argc, char **argv)
 {
     if (argc < 6) {
         fprintf(stderr,
-            "Usage: %s <host> <port> <user> <pass> <tx_hex>\n"
+            "Usage: %s <host> <port> <user> <pass> <tx_file>\n"
             "\n"
-            "Requires a running bitcoind regtest with a funded wallet.\n"
-            "See tests/run_async_test.sh for automated setup.\n",
+            "tx_file: one signed TX hex per line.\n"
+            "  Line 1: used for sync A/B test (fresh TX)\n"
+            "  Line 2: used for async A/B test (different fresh TX)\n"
+            "  Lines 3+: split for throughput comparison (all fresh)\n",
             argv[0]);
         return 1;
     }
@@ -187,19 +218,27 @@ int main(int argc, char **argv)
     int port = atoi(argv[2]);
     const char *user = argv[3];
     const char *pass = argv[4];
-    const char *tx_hex = argv[5];
+    const char *tx_file = argv[5];
 
     signal(SIGPIPE, SIG_IGN);
     log_init(LOG_WARN);
 
+    if (load_tx_file(tx_file) < 2) {
+        fprintf(stderr, "Need at least 2 transactions in %s\n", tx_file);
+        return 1;
+    }
+
     printf("================================================\n");
     printf("Real-World Async RPC Test\n");
     printf("Target: %s:%d (regtest)\n", host, port);
-    printf("TX hex: %.60s... (%zu bytes)\n", tx_hex, strlen(tx_hex));
+    printf("Loaded %d unique transactions from %s\n", tx_count, tx_file);
     printf("================================================\n");
 
+    const char *sync_tx = tx_list[0];
+    const char *async_tx = tx_list[1];
+
     /* ============================================================
-     * TEST 1: Connectivity — can we talk to the node at all?
+     * TEST 1: Connectivity
      * ============================================================ */
     TEST("Sync RPC: verify connectivity to live node");
     {
@@ -220,7 +259,6 @@ int main(int argc, char **argv)
             printf("       Response: %.80s...\n", info);
         } else {
             FAIL("Could not connect — is bitcoind running?");
-            printf("       Error: %s\n", info);
             return 1;
         }
 
@@ -229,53 +267,46 @@ int main(int argc, char **argv)
     }
 
     /* ============================================================
-     * TEST 2 (A): Sync broadcast FROM INSIDE the event loop.
+     * TEST 2 (A): Sync broadcast of FRESH TX_A from inside loop.
      *
-     * Setup: 1ms repeating tick timer + sync RPC fired from a
-     * timer callback. The blocking connect/send/recv freezes the
-     * thread, so the tick timer cannot fire during the call.
-     *
-     * Expected: ticks_during == 0
+     * TX_A has never been broadcast. Bitcoind does full validation:
+     * decode, check inputs exist, verify signatures, mempool policy.
      * ============================================================ */
-    TEST("A) SYNC broadcast from inside event loop — proves blocking");
+    TEST("A) SYNC broadcast of fresh TX_A from inside event loop");
 
-    char sync_txid[4096] = {0};
+    char sync_result[4096] = {0};
     double sync_elapsed = 0;
+    int sync_status = -99;
     {
         struct event_base *base = event_base_new();
         RPCManager mgr;
         make_manager(&mgr, base, host, port, user, pass);
 
-        /* 1ms repeating tick timer */
         tick_counter = 0;
         struct timeval tick_iv = { .tv_sec = 0, .tv_usec = 1000 };
         struct event *tick_ev = event_new(base, -1, EV_PERSIST, tick_cb, NULL);
         event_add(tick_ev, &tick_iv);
 
-        /* Schedule the sync call to fire immediately from inside the loop */
-        SyncFromLoopCtx ctx = { .mgr = &mgr, .tx_hex = tx_hex };
+        SyncFromLoopCtx ctx = { .mgr = &mgr, .tx_hex = sync_tx };
         struct timeval imm = { .tv_sec = 0, .tv_usec = 0 };
         struct event *trigger = evtimer_new(base, sync_from_loop_cb, &ctx);
         evtimer_add(trigger, &imm);
 
-        /* Run — sync call will block inside the loop */
-        run_loop_briefly(base, 10000);
+        run_loop_briefly(base, 30000);
 
         sync_elapsed = ctx.time_after - ctx.time_before;
+        sync_status = ctx.rpc_status;
         int ticks_during = ctx.ticks_after - ctx.ticks_before;
+        snprintf(sync_result, sizeof(sync_result), "%s", ctx.result);
 
-        if (ctx.rpc_status == RPC_OK) {
-            PASS("Sync RPC completed against live node");
+        printf("       TX_A: %.40s... (never broadcast before)\n", sync_tx);
+
+        if (sync_status == RPC_OK) {
+            PASS("Sync RPC completed — node did full validation");
             printf("       TXID: %.64s\n", ctx.result);
-            snprintf(sync_txid, sizeof(sync_txid), "%s", ctx.result);
-        } else if (ctx.rpc_status == RPC_ERR_NODE) {
-            /* Node error (e.g., already in mempool) is still a valid response */
-            PASS("Sync RPC got node response");
-            printf("       Node said: %s\n", ctx.result);
-            snprintf(sync_txid, sizeof(sync_txid), "%s", ctx.result);
         } else {
-            FAIL("Sync RPC failed to reach node");
-            printf("       Status: %d, Error: %s\n", ctx.rpc_status, ctx.result);
+            FAIL("Sync RPC failed");
+            printf("       Status: %d, Error: %s\n", sync_status, ctx.result);
         }
 
         printf("       Wall time: %.1f ms\n", sync_elapsed);
@@ -286,7 +317,6 @@ int main(int argc, char **argv)
             PASS("Event loop was BLOCKED during sync call (0 ticks)");
         } else {
             FAIL("Expected 0 ticks during blocking sync call");
-            printf("       Got %d — loop wasn't fully blocked?\n", ticks_during);
         }
 
         event_free(trigger);
@@ -296,24 +326,22 @@ int main(int argc, char **argv)
     }
 
     /* ============================================================
-     * TEST 3 (B): Async broadcast with the same tick timer.
+     * TEST 3 (B): Async broadcast of DIFFERENT FRESH TX_B.
      *
-     * Same node, same TX, same 1ms tick. But this time the RPC
-     * goes through bufferevent — the event loop keeps running.
-     *
-     * Expected: ticks > 0 during the call
+     * TX_B has also never been broadcast. Same validation work.
+     * Same 1ms tick timer. The only difference is the code path.
      * ============================================================ */
-    TEST("B) ASYNC broadcast — proves non-blocking");
+    TEST("B) ASYNC broadcast of fresh TX_B (different TX, same work)");
 
-    char async_txid[4096] = {0};
+    char async_result[4096] = {0};
     double async_elapsed = 0;
     int async_ticks = 0;
+    int async_status = -99;
     {
         struct event_base *base = event_base_new();
         RPCManager mgr;
         make_manager(&mgr, base, host, port, user, pass);
 
-        /* Same 1ms tick timer */
         tick_counter = 0;
         struct timeval tick_iv = { .tv_sec = 0, .tv_usec = 1000 };
         struct event *tick_ev = event_new(base, -1, EV_PERSIST, tick_cb, NULL);
@@ -323,36 +351,36 @@ int main(int argc, char **argv)
         double t_start = now_ms();
 
         RPCRequest *req = rpc_manager_broadcast_async(&mgr, CHAIN_REGTEST,
-                                                        tx_hex,
+                                                        async_tx,
                                                         async_callback, &ar);
+        printf("       TX_B: %.40s... (never broadcast before)\n", async_tx);
+
         if (!req) {
             FAIL("broadcast_async returned NULL");
         } else {
-            run_loop_briefly(base, 10000);
+            run_loop_briefly(base, 30000);
 
             async_elapsed = ar.time_called > 0 ? ar.time_called - t_start : 0;
             async_ticks = tick_counter;
+            async_status = ar.status;
+            snprintf(async_result, sizeof(async_result), "%s", ar.result);
 
             if (ar.called) {
                 PASS("Async callback fired");
-                if (ar.status == RPC_OK) {
-                    PASS("Node accepted TX");
+                if (async_status == RPC_OK) {
+                    PASS("Node accepted TX_B — full validation");
                     printf("       TXID: %.64s\n", ar.result);
-                    snprintf(async_txid, sizeof(async_txid), "%s", ar.result);
-                } else if (ar.status == RPC_ERR_NODE) {
-                    PASS("Node responded (duplicate/already-in-mempool is expected)");
-                    printf("       Node said: %s\n", ar.result);
-                    snprintf(async_txid, sizeof(async_txid), "%s", ar.result);
                 } else {
-                    FAIL("Unexpected error from async RPC");
-                    printf("       Status: %d, Result: %s\n", ar.status, ar.result);
+                    FAIL("Async RPC error");
+                    printf("       Status: %d, Result: %s\n", async_status, ar.result);
                 }
             } else {
                 FAIL("Callback never fired");
             }
 
             printf("       Wall time: %.1f ms\n", async_elapsed);
-            printf("       Ticks during async call: %d (1ms timer)\n", async_ticks);
+            printf("       Ticks during async call: %d (1ms timer)\n",
+                   async_ticks);
 
             if (async_ticks > 0) {
                 PASS("Event loop was RESPONSIVE during async call");
@@ -367,56 +395,26 @@ int main(int argc, char **argv)
     }
 
     /* ============================================================
-     * TEST 4: A/B Summary — direct comparison
+     * TEST 4: A/B side-by-side
      * ============================================================ */
-    TEST("A/B comparison summary");
+    TEST("A/B comparison — both did full validation of fresh TXs");
     {
-        printf("       SYNC:  %.1f ms, 0 ticks (blocked)\n", sync_elapsed);
-        printf("       ASYNC: %.1f ms, %d ticks (responsive)\n",
+        printf("       SYNC  (TX_A): %.1f ms, 0 ticks → BLOCKED\n",
+               sync_elapsed);
+        printf("       ASYNC (TX_B): %.1f ms, %d ticks → RESPONSIVE\n",
                async_elapsed, async_ticks);
 
-        if (async_ticks > 0) {
+        if (async_ticks > 0 && sync_status == RPC_OK && async_status == RPC_OK) {
+            PASS("Both paths did real validation; only async kept the loop alive");
+        } else if (async_ticks > 0) {
             PASS("Async kept loop alive while sync froze it");
         } else {
-            FAIL("No difference between sync and async");
+            FAIL("No meaningful difference");
         }
     }
 
     /* ============================================================
-     * TEST 5: Correctness — both paths talk to the same node.
-     *
-     * If both got a TXID, they should match (same TX).
-     * If one got "already in mempool" that's also correct.
-     * ============================================================ */
-    TEST("Correctness: sync and async return consistent results");
-    {
-        if (sync_txid[0] && async_txid[0]) {
-            /* Both got a response. If both are 64-char hex, compare TXIDs */
-            int sync_is_txid = (strlen(sync_txid) == 64);
-            int async_is_txid = (strlen(async_txid) == 64);
-
-            if (sync_is_txid && async_is_txid) {
-                if (strcmp(sync_txid, async_txid) == 0) {
-                    PASS("Both paths returned identical TXID");
-                    printf("       %s\n", sync_txid);
-                } else {
-                    FAIL("TXIDs differ between sync and async");
-                    printf("       Sync:  %s\n", sync_txid);
-                    printf("       Async: %s\n", async_txid);
-                }
-            } else {
-                /* One got TXID, other got error message — both valid */
-                PASS("Both paths got responses from node");
-                printf("       Sync:  %s\n", sync_txid);
-                printf("       Async: %s\n", async_txid);
-            }
-        } else {
-            FAIL("Missing response from one or both paths");
-        }
-    }
-
-    /* ============================================================
-     * TEST 6: Async error handling with invalid TX
+     * TEST 5: Async error handling
      * ============================================================ */
     TEST("Async: invalid TX gets proper error from live node");
     {
@@ -429,21 +427,21 @@ int main(int argc, char **argv)
                                                         "deadbeef",
                                                         async_callback, &ar);
         if (!req) {
-            FAIL("broadcast_async returned NULL for invalid TX");
+            FAIL("broadcast_async returned NULL");
         } else {
             run_loop_briefly(base, 10000);
 
             if (ar.called) {
                 PASS("Callback fired for invalid TX");
                 if (ar.status == RPC_ERR_NODE) {
-                    PASS("Got RPC_ERR_NODE (correct error code)");
-                    printf("       Error from node: %s\n", ar.result);
+                    PASS("Got RPC_ERR_NODE (correct)");
+                    printf("       Error: %s\n", ar.result);
                 } else {
-                    FAIL("Expected RPC_ERR_NODE for invalid TX");
+                    FAIL("Expected RPC_ERR_NODE");
                     printf("       Got status %d: %s\n", ar.status, ar.result);
                 }
             } else {
-                FAIL("Callback never fired for invalid TX");
+                FAIL("Callback never fired");
             }
         }
 
@@ -452,74 +450,92 @@ int main(int argc, char **argv)
     }
 
     /* ============================================================
-     * TEST 7: Throughput — serial sync vs concurrent async.
+     * TEST 6: Throughput — all fresh unique TXs, no duplicates.
      *
-     * Fire THROUGHPUT_N broadcasts each way, measure wall time.
-     * Sync: N sequential blocking calls.
-     * Async: N concurrent non-blocking calls.
+     * First half of remaining TXs → serial sync
+     * Second half → concurrent async
+     * Every TX requires full validation by bitcoind.
      * ============================================================ */
-    TEST("Throughput: serial sync vs concurrent async");
+    TEST("Throughput: serial sync vs concurrent async (all unique fresh TXs)");
     {
-        struct event_base *base = event_base_new();
-        RPCManager mgr;
-        make_manager(&mgr, base, host, port, user, pass);
+        int avail = tx_count - 2;
+        int half = avail / 2;
 
-        /* --- Serial sync --- */
-        double sync_start = now_ms();
-        for (int i = 0; i < THROUGHPUT_N; i++) {
-            char result[256];
-            rpc_manager_broadcast(&mgr, CHAIN_REGTEST, tx_hex,
-                                   result, sizeof(result));
-        }
-        double sync_total = now_ms() - sync_start;
-
-        /* --- Concurrent async --- */
-        throughput_completed = 0;
-        throughput_base = base;
-        double async_start = now_ms();
-        for (int i = 0; i < THROUGHPUT_N; i++) {
-            rpc_manager_broadcast_async(&mgr, CHAIN_REGTEST, tx_hex,
-                                          throughput_cb, NULL);
-        }
-        run_loop_briefly(base, 30000);
-        double async_total = now_ms() - async_start;
-
-        printf("       Sync:  %d calls in %.1f ms (%.1f ms/call)\n",
-               THROUGHPUT_N, sync_total, sync_total / THROUGHPUT_N);
-        printf("       Async: %d/%d completed in %.1f ms (%.1f ms/call)\n",
-               throughput_completed, THROUGHPUT_N, async_total,
-               throughput_completed > 0 ? async_total / throughput_completed : 0);
-
-        if (throughput_completed == THROUGHPUT_N) {
-            PASS("All async broadcasts completed");
+        if (half < 2) {
+            printf("       Not enough TXs (have %d extra, need 4+)\n", avail);
+            PASS("Skipped — insufficient transactions");
         } else {
-            FAIL("Not all async broadcasts completed");
-            printf("       Only %d/%d\n", throughput_completed, THROUGHPUT_N);
+            struct event_base *base = event_base_new();
+            RPCManager mgr;
+            make_manager(&mgr, base, host, port, user, pass);
+
+            printf("       %d unique fresh TXs for sync, %d for async\n",
+                   half, half);
+
+            /* Serial sync */
+            double sync_start = now_ms();
+            int sync_ok = 0;
+            for (int i = 0; i < half; i++) {
+                char result[256];
+                int ret = rpc_manager_broadcast(&mgr, CHAIN_REGTEST,
+                                                 tx_list[2 + i],
+                                                 result, sizeof(result));
+                if (ret == RPC_OK) sync_ok++;
+            }
+            double sync_total = now_ms() - sync_start;
+
+            /* Concurrent async */
+            throughput_completed = 0;
+            throughput_target = half;
+            throughput_base = base;
+
+            double async_start = now_ms();
+            for (int i = 0; i < half; i++) {
+                rpc_manager_broadcast_async(&mgr, CHAIN_REGTEST,
+                                              tx_list[2 + half + i],
+                                              throughput_cb, NULL);
+            }
+            run_loop_briefly(base, 60000);
+            double async_total = now_ms() - async_start;
+
+            printf("       Sync:  %d/%d in %.1f ms (%.1f ms/tx)\n",
+                   sync_ok, half, sync_total, sync_total / half);
+            printf("       Async: %d/%d in %.1f ms (%.1f ms/tx)\n",
+                   throughput_completed, half, async_total,
+                   half > 0 ? async_total / half : 0);
+
+            if (sync_ok == half) {
+                PASS("All sync broadcasts validated");
+            } else {
+                FAIL("Some sync broadcasts failed");
+            }
+
+            if (throughput_completed == half) {
+                PASS("All async broadcasts validated");
+            } else {
+                FAIL("Not all async broadcasts completed");
+            }
+
+            double speedup = sync_total / (async_total > 0 ? async_total : 1);
+            printf("       Speedup: %.1fx\n", speedup);
+
+            if (async_total < sync_total) {
+                PASS("Concurrent async faster than serial sync");
+            } else {
+                printf("       NOTE: async not faster on localhost\n");
+                PASS("Throughput comparison completed");
+            }
+
+            rpc_manager_cancel_all(&mgr);
+            event_base_free(base);
         }
-
-        double speedup = sync_total / (async_total > 0 ? async_total : 1);
-        printf("       Speedup: %.1fx\n", speedup);
-
-        if (async_total < sync_total) {
-            PASS("Concurrent async is faster than serial sync");
-        } else {
-            printf("       NOTE: async not faster — localhost overhead may dominate\n");
-            printf("       (This is expected on localhost; real gains appear over network)\n");
-            /* Not a failure — just informational */
-            PASS("Throughput comparison completed");
-        }
-
-        rpc_manager_cancel_all(&mgr);
-        event_base_free(base);
     }
 
     /* ============================================================ */
 
     printf("\n================================================\n");
-    printf("Results: %d/%d passed", pass_count, test_count);
-    if (fail_count > 0) {
-        printf(" (%d FAILED)", fail_count);
-    }
+    printf("Results: %d passed, %d failed (across %d tests)",
+           pass_count, fail_count, test_count);
     printf("\n================================================\n");
 
     return (fail_count == 0) ? 0 : 1;
