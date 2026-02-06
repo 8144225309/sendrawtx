@@ -848,9 +848,19 @@ static void serve_metrics(Connection *conn)
     WorkerProcess *worker = conn->worker;
     struct evbuffer *output = bufferevent_get_output(conn->bev);
     char body[8192];  /* Larger buffer for all metrics */
-    int offset = 0;
-    int remaining = sizeof(body);
+    size_t offset = 0;
+    size_t remaining = sizeof(body) - 1;  /* Reserve space for null terminator */
     int n;
+
+    /* Helper macro to safely advance buffer position */
+    #define METRICS_ADVANCE() do { \
+        if (n > 0 && (size_t)n < remaining) { \
+            offset += (size_t)n; \
+            remaining -= (size_t)n; \
+        } else { \
+            remaining = 0; \
+        } \
+    } while(0)
 
     conn->state = CONN_STATE_WRITING_RESPONSE;
 
@@ -895,7 +905,7 @@ static void serve_metrics(Connection *conn)
         worker->worker_id, (unsigned long)worker->connections_rejected_blocked,
         worker->worker_id, (unsigned long)worker->connections_allowlisted,
         worker->worker_id, worker->active_connections);
-    offset += n; remaining -= n;
+    METRICS_ADVANCE();
 
     /* === Request Latency Histogram === */
     n = snprintf(body + offset, remaining,
@@ -924,7 +934,7 @@ static void serve_metrics(Connection *conn)
         worker->worker_id, (unsigned long)worker->latency_bucket_inf,
         worker->worker_id, worker->latency_sum_seconds,
         worker->worker_id, (unsigned long)worker->latency_bucket_inf);
-    offset += n; remaining -= n;
+    METRICS_ADVANCE();
 
     /* === HTTP Status Code Counters === */
     n = snprintf(body + offset, remaining,
@@ -952,7 +962,7 @@ static void serve_metrics(Connection *conn)
         worker->worker_id, (unsigned long)worker->status_2xx,
         worker->worker_id, (unsigned long)worker->status_4xx,
         worker->worker_id, (unsigned long)worker->status_5xx);
-    offset += n; remaining -= n;
+    METRICS_ADVANCE();
 
     /* === Request Method Counters === */
     n = snprintf(body + offset, remaining,
@@ -965,7 +975,7 @@ static void serve_metrics(Connection *conn)
         worker->worker_id, (unsigned long)worker->method_get,
         worker->worker_id, (unsigned long)worker->method_post,
         worker->worker_id, (unsigned long)worker->method_other);
-    offset += n; remaining -= n;
+    METRICS_ADVANCE();
 
     /* === Process Info === */
     n = snprintf(body + offset, remaining,
@@ -979,7 +989,7 @@ static void serve_metrics(Connection *conn)
         "\n",
         worker->worker_id, (long)worker->start_time.tv_sec,
         worker->worker_id, uptime_sec);
-    offset += n; remaining -= n;
+    METRICS_ADVANCE();
 
     /* === File Descriptor Metrics === */
     if (open_fds >= 0 && max_fds >= 0) {
@@ -994,7 +1004,7 @@ static void serve_metrics(Connection *conn)
             "\n",
             worker->worker_id, open_fds,
             worker->worker_id, max_fds);
-        offset += n; remaining -= n;
+        METRICS_ADVANCE();
     }
 
     /* === TLS Metrics === */
@@ -1011,7 +1021,7 @@ static void serve_metrics(Connection *conn)
         worker->worker_id, (unsigned long)worker->tls_protocol_tls12,
         worker->worker_id, (unsigned long)worker->tls_protocol_tls13,
         worker->worker_id, (unsigned long)worker->tls_handshake_errors);
-    offset += n; remaining -= n;
+    METRICS_ADVANCE();
 
     /* === TLS Certificate Expiry === */
     time_t cert_expiry = tls_get_cert_expiry(&worker->tls);
@@ -1022,7 +1032,7 @@ static void serve_metrics(Connection *conn)
             "rawrelay_tls_cert_expiry_timestamp_seconds{worker=\"%d\"} %ld\n"
             "\n",
             worker->worker_id, (long)cert_expiry);
-        offset += n; remaining -= n;
+        METRICS_ADVANCE();
     }
 
     /* === HTTP/2 Metrics === */
@@ -1047,7 +1057,7 @@ static void serve_metrics(Connection *conn)
         worker->worker_id, worker->h2_streams_active,
         worker->worker_id, (unsigned long)worker->h2_rst_stream_total,
         worker->worker_id, (unsigned long)worker->h2_goaway_sent);
-    offset += n; remaining -= n;
+    METRICS_ADVANCE();
 
     /* === Error Type Counters === */
     n = snprintf(body + offset, remaining,
@@ -1060,7 +1070,7 @@ static void serve_metrics(Connection *conn)
         worker->worker_id, (unsigned long)worker->errors_timeout,
         worker->worker_id, (unsigned long)worker->errors_parse,
         worker->worker_id, (unsigned long)worker->errors_tls);
-    offset += n; remaining -= n;
+    METRICS_ADVANCE();
 
     /* === Slot Metrics === */
     n = snprintf(body + offset, remaining,
@@ -1086,12 +1096,15 @@ static void serve_metrics(Connection *conn)
         worker->worker_id, slot_manager_max(&worker->slots, TIER_LARGE),
         worker->worker_id, slot_manager_max(&worker->slots, TIER_HUGE),
         worker->worker_id, rate_limiter_get_entry_count(&worker->rate_limiter));
-    offset += n;
+    METRICS_ADVANCE();
+
+    /* Ensure null termination */
+    body[offset] = '\0';
 
     evbuffer_add_printf(output,
         "HTTP/1.1 200 OK\r\n"
         "Content-Type: text/plain; version=0.0.4; charset=utf-8\r\n"
-        "Content-Length: %d\r\n"
+        "Content-Length: %zu\r\n"
         "Cache-Control: no-store\r\n"
         "X-Request-ID: %s\r\n"
         "Connection: close\r\n"
@@ -1099,9 +1112,11 @@ static void serve_metrics(Connection *conn)
         offset, conn->request_id, body);
 
     conn->response_status = 200;
-    conn->response_bytes = offset;
+    conn->response_bytes = (int)offset;
     conn->state = CONN_STATE_CLOSING;
     bufferevent_enable(conn->bev, EV_WRITE);
+
+    #undef METRICS_ADVANCE
 }
 
 /*
