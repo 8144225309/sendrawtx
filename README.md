@@ -1,5 +1,7 @@
 # RawRelay Server
 
+[![CI](https://github.com/8144225309/sendrawtx/actions/workflows/ci.yml/badge.svg)](https://github.com/8144225309/sendrawtx/actions/workflows/ci.yml)
+
 High-performance Bitcoin raw transaction relay server.
 
 ## Features

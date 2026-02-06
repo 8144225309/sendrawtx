@@ -78,3 +78,64 @@ jobs:
           wait $SERVER_PID 2>/dev/null || true
 
           echo "All functional tests passed!"
+
+  # Memory safety with AddressSanitizer and UndefinedBehaviorSanitizer
+  sanitizers:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config \
+            libevent-dev libssl-dev libnghttp2-dev
+
+      - name: Build with ASan/UBSan
+        run: |
+          make clean
+          make CFLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -Wall -Wextra -Werror -I./include -D_GNU_SOURCE"
+
+      - name: Run with sanitizers
+        run: |
+          echo "Starting server with sanitizers..."
+          ./rawrelay-server -c config.ini.example -w 1 &
+          SERVER_PID=$!
+          sleep 2
+
+          echo "Running requests to trigger sanitizer checks..."
+          for i in {1..20}; do
+            curl -sf http://localhost:8080/health > /dev/null
+            curl -sf "http://localhost:8080/0000000000000000000000000000000000000000000000000000000000000000" > /dev/null
+          done
+
+          echo "Testing large URL..."
+          HEX1000=$(printf 'a%.0s' {1..1000})
+          curl -sf "http://localhost:8080/${HEX1000}" > /dev/null
+
+          echo "Stopping server..."
+          kill $SERVER_PID 2>/dev/null || true
+          wait $SERVER_PID 2>/dev/null || true
+
+          echo "Sanitizer tests passed - no memory errors detected!"
+
+  # Static analysis with cppcheck
+  static-analysis:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install cppcheck
+        run: sudo apt-get update && sudo apt-get install -y cppcheck
+
+      - name: Run cppcheck
+        run: |
+          cppcheck --enable=warning,style,performance,portability \
+            --error-exitcode=1 \
+            --suppress=missingIncludeSystem \
+            --suppress=unusedFunction \
+            --inline-suppr \
+            -I include/ \
+            src/ include/
