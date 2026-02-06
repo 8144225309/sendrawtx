@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04, macos-13, macos-14]
+        compiler: [gcc, clang]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (Ubuntu)
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config \
+            libevent-dev libssl-dev libnghttp2-dev
+
+      - name: Install dependencies (macOS)
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          brew install libevent openssl nghttp2 pkg-config
+
+      - name: Build with ${{ matrix.compiler }}
+        env:
+          CC: ${{ matrix.compiler }}
+        run: make
+
+      - name: Run unit tests
+        run: make test
+
+      - name: Functional tests
+        run: |
+          echo "Starting server..."
+          ./rawrelay-server -c config.ini.example -w 1 &
+          SERVER_PID=$!
+          sleep 2
+
+          echo "Test 1: Health endpoint"
+          curl -sf http://localhost:8080/health | head -c 100
+          echo ""
+
+          echo "Test 2: 64-char hex path (txid format)"
+          TXID="0000000000000000000000000000000000000000000000000000000000000000"
+          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" "http://localhost:8080/${TXID}")
+          if [ "$STATUS" != "200" ]; then
+            echo "FAIL: Expected 200, got $STATUS"
+            exit 1
+          fi
+          echo "OK: $STATUS"
+
+          echo "Test 3: 200-char hex path"
+          HEX200=$(printf '0%.0s' {1..200})
+          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" "http://localhost:8080/${HEX200}")
+          if [ "$STATUS" != "200" ]; then
+            echo "FAIL: Expected 200, got $STATUS"
+            exit 1
+          fi
+          echo "OK: $STATUS"
+
+          echo "Test 4: Invalid path (should return error page)"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8080/invalid!path")
+          echo "Got: $STATUS (error page expected)"
+
+          echo "Stopping server..."
+          kill $SERVER_PID 2>/dev/null || true
+          wait $SERVER_PID 2>/dev/null || true
+
+          echo "All functional tests passed!"
