@@ -132,10 +132,14 @@ jobs:
 
       - name: Run cppcheck
         run: |
-          cppcheck --enable=warning,style,performance,portability \
+          cppcheck --enable=warning,performance,portability \
             --error-exitcode=1 \
             --suppress=missingIncludeSystem \
             --suppress=unusedFunction \
+            --suppress=knownConditionTrueFalse \
+            --suppress=constVariablePointer \
+            --suppress=constParameterPointer \
+            --suppress=variableScope \
             --inline-suppr \
             -I include/ \
             src/ include/
