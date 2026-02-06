@@ -36,13 +36,4 @@ typedef enum {
  */
 RouteType route_request(const char *path, size_t path_len);
 
-/*
- * Check if a string contains only valid hex characters (0-9, a-f, A-F).
- *
- * @param data Pointer to string data
- * @param len  Length of string
- * @return 1 if all characters are hex, 0 otherwise
- */
-int is_all_hex(const char *data, size_t len);
-
 #endif /* ROUTER_H */

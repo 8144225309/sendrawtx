@@ -6,6 +6,7 @@
 #include "slot_manager.h"
 #include "http2.h"
 #include "tls.h"
+#include "hex.h"
 #include "log.h"
 
 #include <stdlib.h>
@@ -37,20 +38,9 @@ static void conn_write_cb(struct bufferevent *bev, void *ctx);
 static void conn_event_cb(struct bufferevent *bev, short events, void *ctx);
 static int parse_request_headers(Connection *conn, const unsigned char *headers, size_t len);
 static int try_promote_tier(Connection *conn, size_t new_size);
-static int is_valid_hex_char(char c);
 static int validate_path_early(Connection *conn, const unsigned char *data, size_t len);
 static int get_open_fds(void);
 static int get_max_fds(void);
-
-/*
- * Check if character is valid hex (0-9, a-f, A-F).
- */
-static int is_valid_hex_char(char c)
-{
-    return (c >= '0' && c <= '9') ||
-           (c >= 'a' && c <= 'f') ||
-           (c >= 'A' && c <= 'F');
-}
 
 /*
  * Early validation of path data as it arrives.
@@ -120,7 +110,7 @@ static int validate_path_early(Connection *conn, const unsigned char *data, size
             continue;
         }
 
-        if (!is_valid_hex_char(*p)) {
+        if (!is_hex_char(*p)) {
             log_warn("Invalid character in path from %s: '%c' (0x%02x) at position %zu",
                      log_format_ip(conn->client_ip), *p, (unsigned char)*p, (size_t)(p - path_start));
             conn->validation_failed = true;

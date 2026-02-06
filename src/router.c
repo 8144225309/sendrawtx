@@ -1,4 +1,5 @@
 #include "router.h"
+#include "hex.h"
 #include <string.h>
 
 /* Minimum raw transaction hex length (82 bytes = 164 chars) */
@@ -6,19 +7,6 @@
 
 /* Transaction ID length (32 bytes = 64 chars) */
 #define TXID_HEX_LENGTH 64
-
-int is_all_hex(const char *data, size_t len)
-{
-    for (size_t i = 0; i < len; i++) {
-        char c = data[i];
-        if (!((c >= '0' && c <= '9') ||
-              (c >= 'a' && c <= 'f') ||
-              (c >= 'A' && c <= 'F'))) {
-            return 0;
-        }
-    }
-    return 1;
-}
 
 RouteType route_request(const char *path, size_t path_len)
 {

@@ -562,6 +562,9 @@ static void worker_cleanup(WorkerProcess *worker)
         worker->tls_listener = NULL;
     }
 
+    /* Cancel in-flight async RPC requests before destroying event loop */
+    rpc_manager_cancel_all(&worker->rpc);
+
     if (worker->base) {
         event_base_free(worker->base);
         worker->base = NULL;
@@ -649,12 +652,21 @@ void worker_main(int worker_id, Config *config)
         exit(1);
     }
 
-    /* Initialize RPC manager for Bitcoin node connections */
-    if (rpc_manager_init(&worker.rpc,
-                         &config->rpc_mainnet,
-                         &config->rpc_testnet,
-                         &config->rpc_signet,
-                         &config->rpc_regtest) < 0) {
+    /* Create event base BEFORE RPC init so async manager has a loop to use */
+    worker.base = event_base_new();
+    if (!worker.base) {
+        log_error("Failed to create event base");
+        static_files_free(&worker.static_files);
+        exit(1);
+    }
+
+    /* Initialize RPC manager for Bitcoin node connections (async mode).
+     * Pre-resolves hostnames before seccomp locks down DNS. */
+    if (rpc_manager_init_async(&worker.rpc, worker.base,
+                                &config->rpc_mainnet,
+                                &config->rpc_testnet,
+                                &config->rpc_signet,
+                                &config->rpc_regtest) < 0) {
         log_warn("RPC manager initialization failed - broadcasting disabled");
     } else {
         /* Test connections and log status */
@@ -662,14 +674,6 @@ void worker_main(int worker_id, Config *config)
             log_info("Mixed mode: testing all enabled RPC connections");
         }
         rpc_manager_log_status(&worker.rpc);
-    }
-
-    /* Create event base */
-    worker.base = event_base_new();
-    if (!worker.base) {
-        log_error("Failed to create event base");
-        static_files_free(&worker.static_files);
-        exit(1);
     }
 
     /* Create SO_REUSEPORT socket */

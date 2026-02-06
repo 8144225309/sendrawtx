@@ -5,14 +5,21 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <time.h>
+#include <sys/socket.h>
+
+/* Forward declarations for libevent types */
+struct event_base;
+struct bufferevent;
+struct event;
 
 /*
- * Bitcoin Core RPC Client - Phase 13c
+ * Bitcoin Core RPC Client - Phase 13c + async extension
  *
- * Synchronous JSON-RPC client for Bitcoin Core.
+ * Synchronous JSON-RPC client for Bitcoin Core (startup/testing).
+ * Asynchronous bufferevent-based client for event loop use.
  * Supports both username/password and cookie authentication.
  *
- * Usage:
+ * Usage (sync):
  *   RPCClient client;
  *   rpc_init(&client, "127.0.0.1", 18443, "user", "pass", CHAIN_REGTEST);
  *
@@ -20,13 +27,18 @@
  *   if (rpc_sendrawtransaction(&client, hex_tx, result, sizeof(result)) == 0) {
  *       printf("TXID: %s\n", result);
  *   }
+ *
+ * Usage (async):
+ *   rpc_manager_init_async(&mgr, base, ...);
+ *   rpc_manager_broadcast_async(&mgr, chain, hex_tx, my_callback, my_data);
  */
 
 /* Maximum sizes */
 #define RPC_MAX_HOST_LEN 256
 #define RPC_MAX_AUTH_LEN 512
 #define RPC_MAX_WALLET_LEN 64
-#define RPC_MAX_RESPONSE_LEN (4 * 1024 * 1024)  /* 4MB for large responses */
+#define RPC_INITIAL_BUFFER_LEN (64 * 1024)      /* 64KB initial buffer */
+#define RPC_MAX_RESPONSE_LEN   (4 * 1024 * 1024) /* 4MB max for large responses */
 
 /* RPC error codes */
 #define RPC_OK              0
@@ -37,6 +49,14 @@
 #define RPC_ERR_NODE       -5   /* Node returned an error */
 #define RPC_ERR_MEMORY     -6   /* Memory allocation failed */
 #define RPC_ERR_COOKIE     -7   /* Failed to read cookie file */
+#define RPC_ERR_CANCELLED  -8   /* Request was cancelled */
+
+/* Async completion callback */
+typedef void (*RPCResultCallback)(int status, const char *result,
+                                   size_t result_len, void *user_data);
+
+/* Forward declaration for RPCRequest */
+typedef struct RPCRequest RPCRequest;
 
 /*
  * RPC connection configuration.
@@ -72,6 +92,10 @@ typedef struct {
     /* Cookie auth state */
     char cookie_path[256];              /* Path to cookie file */
     time_t cookie_mtime;                /* Last modified time of cookie */
+
+    /* Pre-resolved address for async connections */
+    struct sockaddr_storage resolved_addr;
+    socklen_t resolved_addr_len;
 } RPCClient;
 
 /*
@@ -82,6 +106,10 @@ typedef struct {
     RPCClient testnet;
     RPCClient signet;
     RPCClient regtest;
+
+    /* Async state */
+    struct event_base *base;            /* NULL = sync-only mode */
+    RPCRequest *active_requests;        /* Head of active doubly-linked list */
 
     /* Stats */
     uint64_t total_broadcasts;
@@ -201,5 +229,74 @@ int rpc_manager_broadcast(RPCManager *mgr, BitcoinChain chain,
  * Log RPC manager status.
  */
 void rpc_manager_log_status(RPCManager *mgr);
+
+/* ========== Async RPC API ========== */
+
+/*
+ * In-flight async RPC request.
+ */
+struct RPCRequest {
+    RPCClient *client;
+    RPCManager *mgr;
+    struct bufferevent *bev;
+    struct event *timeout_ev;
+    struct event_base *base;
+
+    /* Request */
+    char *request_body;
+    size_t request_body_len;
+
+    /* Response accumulation */
+    char *response_buf;
+    size_t response_len;
+    size_t response_cap;
+
+    /* Callback */
+    RPCResultCallback callback;
+    void *callback_data;
+
+    /* State */
+    int auth_retried;               /* Cookie refresh retry flag */
+
+    /* Active list (doubly-linked, intrusive) */
+    RPCRequest *next;
+    RPCRequest *prev;
+};
+
+/*
+ * Initialize RPC manager for async operation.
+ * Like rpc_manager_init() but stores event_base and pre-resolves
+ * hostnames via getaddrinfo() (safe to call before seccomp).
+ *
+ * Must be called AFTER event_base_new() creates the loop.
+ */
+int rpc_manager_init_async(RPCManager *mgr,
+                            struct event_base *base,
+                            const RPCConfig *mainnet,
+                            const RPCConfig *testnet,
+                            const RPCConfig *signet,
+                            const RPCConfig *regtest);
+
+/*
+ * Broadcast a raw transaction asynchronously.
+ * Callback fires when the RPC completes (or fails/times out).
+ * Returns the RPCRequest handle (for cancellation), or NULL on error.
+ */
+RPCRequest *rpc_manager_broadcast_async(RPCManager *mgr, BitcoinChain chain,
+                                         const char *hex_tx,
+                                         RPCResultCallback callback,
+                                         void *user_data);
+
+/*
+ * Cancel an in-flight async request.
+ * The callback will NOT be fired after cancellation.
+ */
+void rpc_request_cancel(RPCRequest *req);
+
+/*
+ * Cancel all in-flight async requests.
+ * Call during shutdown before destroying the event_base.
+ */
+void rpc_manager_cancel_all(RPCManager *mgr);
 
 #endif /* RPC_H */
