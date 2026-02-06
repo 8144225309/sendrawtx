@@ -22,6 +22,10 @@
 #include <fcntl.h>
 #include <poll.h>
 
+#include <event2/event.h>
+#include <event2/bufferevent.h>
+#include <event2/buffer.h>
+
 /* Base64 encoding for auth header */
 static const char base64_table[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -727,5 +731,547 @@ void rpc_manager_log_status(RPCManager *mgr)
     if (mgr->regtest.host[0]) {
         log_info("  Regtest: %s:%d (%s)", mgr->regtest.host, mgr->regtest.port,
                  mgr->regtest.available ? "UP" : "DOWN");
+    }
+}
+
+/* ========== Async RPC Implementation ========== */
+
+/* Default async timeout in seconds */
+#define RPC_ASYNC_TIMEOUT_SEC 30
+
+/* Initial response buffer size */
+#define RPC_ASYNC_INITIAL_BUF 4096
+
+/* Forward declarations for async callbacks */
+static void rpc_async_read_cb(struct bufferevent *bev, void *ctx);
+static void rpc_async_event_cb(struct bufferevent *bev, short events, void *ctx);
+static void rpc_async_timeout_cb(evutil_socket_t fd, short events, void *ctx);
+static void rpc_async_process_response(RPCRequest *req);
+static void rpc_request_complete(RPCRequest *req, int status,
+                                  const char *result, size_t result_len);
+static int rpc_async_connect(RPCRequest *req);
+
+/*
+ * Pre-resolve hostname for a client into resolved_addr.
+ * Must be called before seccomp locks down DNS.
+ */
+static int rpc_resolve_host(RPCClient *client)
+{
+    struct addrinfo hints, *res;
+    char port_str[16];
+
+    snprintf(port_str, sizeof(port_str), "%d", client->port);
+
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+
+    int err = getaddrinfo(client->host, port_str, &hints, &res);
+    if (err != 0) {
+        log_error("RPC: getaddrinfo(%s): %s", client->host, gai_strerror(err));
+        return -1;
+    }
+
+    /* Store the first result */
+    if (res->ai_addrlen <= sizeof(client->resolved_addr)) {
+        memcpy(&client->resolved_addr, res->ai_addr, res->ai_addrlen);
+        client->resolved_addr_len = res->ai_addrlen;
+    } else {
+        freeaddrinfo(res);
+        return -1;
+    }
+
+    freeaddrinfo(res);
+    log_debug("RPC: Pre-resolved %s:%d", client->host, client->port);
+    return 0;
+}
+
+int rpc_manager_init_async(RPCManager *mgr,
+                            struct event_base *base,
+                            const RPCConfig *mainnet,
+                            const RPCConfig *testnet,
+                            const RPCConfig *signet,
+                            const RPCConfig *regtest)
+{
+    /* First do the normal sync init */
+    int ret = rpc_manager_init(mgr, mainnet, testnet, signet, regtest);
+
+    /* Store event base for async operations */
+    mgr->base = base;
+    mgr->active_requests = NULL;
+
+    /* Pre-resolve hostnames for all enabled clients */
+    if (mgr->mainnet.host[0]) {
+        if (rpc_resolve_host(&mgr->mainnet) < 0) {
+            log_warn("RPC: Failed to resolve mainnet host %s", mgr->mainnet.host);
+        }
+    }
+    if (mgr->testnet.host[0]) {
+        if (rpc_resolve_host(&mgr->testnet) < 0) {
+            log_warn("RPC: Failed to resolve testnet host %s", mgr->testnet.host);
+        }
+    }
+    if (mgr->signet.host[0]) {
+        if (rpc_resolve_host(&mgr->signet) < 0) {
+            log_warn("RPC: Failed to resolve signet host %s", mgr->signet.host);
+        }
+    }
+    if (mgr->regtest.host[0]) {
+        if (rpc_resolve_host(&mgr->regtest) < 0) {
+            log_warn("RPC: Failed to resolve regtest host %s", mgr->regtest.host);
+        }
+    }
+
+    log_info("RPC: Async manager initialized (event_base=%p)", (void *)base);
+    return ret;
+}
+
+/*
+ * Add request to the manager's active list.
+ */
+static void rpc_request_list_add(RPCManager *mgr, RPCRequest *req)
+{
+    req->next = mgr->active_requests;
+    req->prev = NULL;
+    if (mgr->active_requests) {
+        mgr->active_requests->prev = req;
+    }
+    mgr->active_requests = req;
+}
+
+/*
+ * Remove request from the manager's active list.
+ */
+static void rpc_request_list_remove(RPCManager *mgr, RPCRequest *req)
+{
+    if (req->prev) {
+        req->prev->next = req->next;
+    } else {
+        mgr->active_requests = req->next;
+    }
+    if (req->next) {
+        req->next->prev = req->prev;
+    }
+    req->next = NULL;
+    req->prev = NULL;
+}
+
+/*
+ * Free all resources associated with an RPCRequest.
+ */
+static void rpc_request_free(RPCRequest *req)
+{
+    if (req->bev) {
+        bufferevent_free(req->bev);
+        req->bev = NULL;
+    }
+    if (req->timeout_ev) {
+        event_free(req->timeout_ev);
+        req->timeout_ev = NULL;
+    }
+    free(req->request_body);
+    free(req->response_buf);
+    free(req);
+}
+
+/*
+ * Complete an async request: fire callback, remove from list, free.
+ */
+static void rpc_request_complete(RPCRequest *req, int status,
+                                  const char *result, size_t result_len)
+{
+    /* Remove from active list */
+    if (req->mgr) {
+        rpc_request_list_remove(req->mgr, req);
+    }
+
+    /* Fire callback if still set (cancelled requests have NULL callback) */
+    if (req->callback) {
+        req->callback(status, result, result_len, req->callback_data);
+    }
+
+    rpc_request_free(req);
+}
+
+/*
+ * Build HTTP request bytes for an async RPC call.
+ * Returns a malloc'd string (caller takes ownership).
+ */
+static char *rpc_build_http_request(RPCClient *client, const char *body,
+                                     size_t body_len, size_t *out_len)
+{
+    const char *path = client->wallet[0] ? "/wallet/" : "/";
+    char header[2048];
+
+    int header_len = snprintf(header, sizeof(header),
+        "POST %s%s HTTP/1.1\r\n"
+        "Host: %s:%d\r\n"
+        "Authorization: %s\r\n"
+        "Content-Type: application/json\r\n"
+        "Content-Length: %zu\r\n"
+        "Connection: close\r\n"
+        "\r\n",
+        path, client->wallet,
+        client->host, client->port,
+        client->auth_header,
+        body_len);
+
+    size_t total_len = (size_t)header_len + body_len;
+    char *buf = malloc(total_len);
+    if (!buf) return NULL;
+
+    memcpy(buf, header, header_len);
+    memcpy(buf + header_len, body, body_len);
+    *out_len = total_len;
+    return buf;
+}
+
+/*
+ * Initiate async connection to RPC server.
+ */
+static int rpc_async_connect(RPCRequest *req)
+{
+    RPCClient *client = req->client;
+
+    if (client->resolved_addr_len == 0) {
+        log_error("RPC async: No resolved address for %s:%d",
+                  client->host, client->port);
+        return -1;
+    }
+
+    /* Create bufferevent */
+    req->bev = bufferevent_socket_new(req->base, -1, BEV_OPT_CLOSE_ON_FREE);
+    if (!req->bev) {
+        log_error("RPC async: Failed to create bufferevent");
+        return -1;
+    }
+
+    /* Set callbacks */
+    bufferevent_setcb(req->bev, rpc_async_read_cb, NULL,
+                      rpc_async_event_cb, req);
+
+    /* Set per-operation timeouts on the bufferevent */
+    struct timeval tv = { .tv_sec = client->timeout_sec, .tv_usec = 0 };
+    bufferevent_set_timeouts(req->bev, &tv, &tv);
+
+    /* Start overall timeout timer */
+    req->timeout_ev = evtimer_new(req->base, rpc_async_timeout_cb, req);
+    if (req->timeout_ev) {
+        struct timeval overall_tv = { .tv_sec = client->timeout_sec, .tv_usec = 0 };
+        evtimer_add(req->timeout_ev, &overall_tv);
+    }
+
+    /* Initiate async connect */
+    if (bufferevent_socket_connect(req->bev,
+            (struct sockaddr *)&client->resolved_addr,
+            client->resolved_addr_len) < 0) {
+        log_error("RPC async: bufferevent_socket_connect failed");
+        bufferevent_free(req->bev);
+        req->bev = NULL;
+        if (req->timeout_ev) {
+            event_free(req->timeout_ev);
+            req->timeout_ev = NULL;
+        }
+        return -1;
+    }
+
+    return 0;
+}
+
+/*
+ * Event callback: connected, EOF, error, timeout.
+ */
+static void rpc_async_event_cb(struct bufferevent *bev, short events, void *ctx)
+{
+    RPCRequest *req = ctx;
+    (void)bev;
+
+    if (events & BEV_EVENT_CONNECTED) {
+        /* Connection established — send the HTTP request */
+        size_t http_len;
+        char *http_req = rpc_build_http_request(req->client,
+                                                 req->request_body,
+                                                 req->request_body_len,
+                                                 &http_len);
+        if (!http_req) {
+            rpc_request_complete(req, RPC_ERR_MEMORY, "Memory allocation failed", 24);
+            return;
+        }
+
+        bufferevent_write(req->bev, http_req, http_len);
+        free(http_req);
+
+        /* Enable reading for the response */
+        bufferevent_enable(req->bev, EV_READ);
+        return;
+    }
+
+    if (events & BEV_EVENT_EOF) {
+        /* Server closed connection — response is complete */
+        rpc_async_process_response(req);
+        return;
+    }
+
+    if (events & BEV_EVENT_TIMEOUT) {
+        log_debug("RPC async: timeout for %s:%d",
+                  req->client->host, req->client->port);
+        rpc_request_complete(req, RPC_ERR_TIMEOUT, "Request timed out", 17);
+        return;
+    }
+
+    if (events & BEV_EVENT_ERROR) {
+        int err = EVUTIL_SOCKET_ERROR();
+        log_debug("RPC async: connection error for %s:%d: %s",
+                  req->client->host, req->client->port,
+                  evutil_socket_error_to_string(err));
+        rpc_request_complete(req, RPC_ERR_CONNECT,
+                              "Failed to connect to node", 25);
+        return;
+    }
+}
+
+/*
+ * Read callback: accumulate response data.
+ */
+static void rpc_async_read_cb(struct bufferevent *bev, void *ctx)
+{
+    RPCRequest *req = ctx;
+    struct evbuffer *input = bufferevent_get_input(bev);
+    size_t avail = evbuffer_get_length(input);
+
+    if (avail == 0) return;
+
+    /* Grow buffer if needed */
+    size_t needed = req->response_len + avail + 1;
+    if (needed > RPC_MAX_RESPONSE_LEN) {
+        log_warn("RPC async: response exceeds %d bytes, truncating",
+                 RPC_MAX_RESPONSE_LEN);
+        avail = RPC_MAX_RESPONSE_LEN - req->response_len - 1;
+        if (avail == 0) return;
+    }
+
+    if (needed > req->response_cap) {
+        size_t new_cap = req->response_cap ? req->response_cap * 2 : RPC_ASYNC_INITIAL_BUF;
+        while (new_cap < needed) new_cap *= 2;
+        if (new_cap > RPC_MAX_RESPONSE_LEN) new_cap = RPC_MAX_RESPONSE_LEN;
+
+        char *new_buf = realloc(req->response_buf, new_cap);
+        if (!new_buf) {
+            rpc_request_complete(req, RPC_ERR_MEMORY,
+                                  "Memory allocation failed", 24);
+            return;
+        }
+        req->response_buf = new_buf;
+        req->response_cap = new_cap;
+    }
+
+    /* Drain data from evbuffer into our response buffer */
+    evbuffer_remove(input, req->response_buf + req->response_len, avail);
+    req->response_len += avail;
+    req->response_buf[req->response_len] = '\0';
+}
+
+/*
+ * Overall timeout callback.
+ */
+static void rpc_async_timeout_cb(evutil_socket_t fd, short events, void *ctx)
+{
+    RPCRequest *req = ctx;
+    (void)fd;
+    (void)events;
+
+    log_debug("RPC async: overall timeout for %s:%d",
+              req->client->host, req->client->port);
+    rpc_request_complete(req, RPC_ERR_TIMEOUT, "Request timed out", 17);
+}
+
+/*
+ * Process a complete HTTP response from the RPC server.
+ * Handles HTTP status parsing, auth retry, and JSON-RPC result extraction.
+ */
+static void rpc_async_process_response(RPCRequest *req)
+{
+    if (!req->response_buf || req->response_len == 0) {
+        rpc_request_complete(req, RPC_ERR_CONNECT,
+                              "Empty response from node", 24);
+        return;
+    }
+
+    /* Parse HTTP status line */
+    int http_status = 0;
+    if (strncmp(req->response_buf, "HTTP/", 5) == 0) {
+        char *status_start = strchr(req->response_buf, ' ');
+        if (status_start) {
+            http_status = atoi(status_start + 1);
+        }
+    }
+
+    /* Handle auth failure with cookie retry */
+    if ((http_status == 401 || http_status == 403) && !req->auth_retried) {
+        if (req->client->cookie_path[0]) {
+            log_info("RPC async: auth failed, refreshing cookie...");
+            req->auth_retried = 1;
+
+            if (rpc_refresh_cookie(req->client) == 0) {
+                /* Reset response state and reconnect */
+                free(req->response_buf);
+                req->response_buf = NULL;
+                req->response_len = 0;
+                req->response_cap = 0;
+
+                if (req->bev) {
+                    bufferevent_free(req->bev);
+                    req->bev = NULL;
+                }
+                if (req->timeout_ev) {
+                    event_free(req->timeout_ev);
+                    req->timeout_ev = NULL;
+                }
+
+                if (rpc_async_connect(req) == 0) {
+                    return;  /* Retry in progress */
+                }
+            }
+        }
+        req->client->error_count++;
+        rpc_request_complete(req, RPC_ERR_AUTH,
+                              "Authentication failed", 21);
+        return;
+    }
+
+    if (http_status == 401 || http_status == 403) {
+        req->client->error_count++;
+        rpc_request_complete(req, RPC_ERR_AUTH,
+                              "Authentication failed", 21);
+        return;
+    }
+
+    /* Find body after \r\n\r\n */
+    char *body_start = strstr(req->response_buf, "\r\n\r\n");
+    if (!body_start) {
+        rpc_request_complete(req, RPC_ERR_PARSE,
+                              "Malformed HTTP response", 23);
+        return;
+    }
+    body_start += 4;
+
+    /* Parse JSON-RPC response using existing logic */
+    char result[4096];
+    int is_error;
+    int ret = parse_jsonrpc_response(body_start, result, sizeof(result), &is_error);
+
+    req->client->request_count++;
+
+    if (is_error) {
+        req->client->error_count++;
+        rpc_request_complete(req, ret, result, strlen(result));
+    } else {
+        req->client->available = 1;
+        rpc_request_complete(req, RPC_OK, result, strlen(result));
+    }
+}
+
+RPCRequest *rpc_manager_broadcast_async(RPCManager *mgr, BitcoinChain chain,
+                                         const char *hex_tx,
+                                         RPCResultCallback callback,
+                                         void *user_data)
+{
+    if (!mgr->base) {
+        log_error("RPC async: no event_base (async not initialized)");
+        if (callback) {
+            callback(RPC_ERR_CONNECT, "Async RPC not initialized", 25, user_data);
+        }
+        return NULL;
+    }
+
+    RPCClient *client = rpc_manager_get_client(mgr, chain);
+    if (!client) {
+        log_error("RPC async: no client for %s", network_chain_to_string(chain));
+        if (callback) {
+            char msg[64];
+            int len = snprintf(msg, sizeof(msg), "No RPC configured for %s",
+                               network_chain_to_string(chain));
+            callback(RPC_ERR_CONNECT, msg, len, user_data);
+        }
+        return NULL;
+    }
+
+    /* Build JSON-RPC request body */
+    size_t params_len = strlen(hex_tx) + 8;
+    char *params = malloc(params_len);
+    if (!params) {
+        if (callback) {
+            callback(RPC_ERR_MEMORY, "Memory allocation failed", 24, user_data);
+        }
+        return NULL;
+    }
+    snprintf(params, params_len, "[\"%s\"]", hex_tx);
+
+    char *body = build_jsonrpc_request("sendrawtransaction", params);
+    free(params);
+    if (!body) {
+        if (callback) {
+            callback(RPC_ERR_MEMORY, "Memory allocation failed", 24, user_data);
+        }
+        return NULL;
+    }
+
+    /* Create request */
+    RPCRequest *req = calloc(1, sizeof(RPCRequest));
+    if (!req) {
+        free(body);
+        if (callback) {
+            callback(RPC_ERR_MEMORY, "Memory allocation failed", 24, user_data);
+        }
+        return NULL;
+    }
+
+    req->client = client;
+    req->mgr = mgr;
+    req->base = mgr->base;
+    req->request_body = body;
+    req->request_body_len = strlen(body);
+    req->callback = callback;
+    req->callback_data = user_data;
+
+    /* Add to active list */
+    rpc_request_list_add(mgr, req);
+    mgr->total_broadcasts++;
+
+    /* Initiate async connect */
+    if (rpc_async_connect(req) < 0) {
+        rpc_request_list_remove(mgr, req);
+        mgr->failed_broadcasts++;
+        if (callback) {
+            callback(RPC_ERR_CONNECT, "Failed to connect to node", 25, user_data);
+        }
+        rpc_request_free(req);
+        return NULL;
+    }
+
+    return req;
+}
+
+void rpc_request_cancel(RPCRequest *req)
+{
+    if (!req) return;
+
+    /* Prevent callback from firing */
+    req->callback = NULL;
+    req->callback_data = NULL;
+
+    /* Remove from active list */
+    if (req->mgr) {
+        rpc_request_list_remove(req->mgr, req);
+    }
+
+    rpc_request_free(req);
+}
+
+void rpc_manager_cancel_all(RPCManager *mgr)
+{
+    while (mgr->active_requests) {
+        RPCRequest *req = mgr->active_requests;
+        rpc_request_cancel(req);
     }
 }
