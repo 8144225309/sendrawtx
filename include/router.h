@@ -6,11 +6,13 @@
 /*
  * Route types for request routing.
  *
+ * ROUTE_HOME:      / (empty path) → index.html
  * ROUTE_BROADCAST: Raw transaction hex (>64 chars) → broadcast.html
  * ROUTE_RESULT:    Transaction ID lookup → result.html
  * ROUTE_ERROR:     Invalid request → error.html
  */
 typedef enum {
+    ROUTE_HOME,            /* / → home page */
     ROUTE_BROADCAST,       /* Raw tx hex → broadcast page */
     ROUTE_RESULT,          /* Txid lookup → result page */
     ROUTE_ERROR,           /* Invalid → error page */

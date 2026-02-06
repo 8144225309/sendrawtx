@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to sendrawtx.com</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+            background: #0f0f0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+            max-width: 600px;
+        }
+        h1 {
+            color: #f7931a;
+            margin-bottom: 1rem;
+            font-size: 2rem;
+        }
+        .subtitle {
+            color: #888;
+            font-size: 1rem;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+        .instructions {
+            background: #1a1a1a;
+            padding: 1.5rem;
+            border-radius: 4px;
+            margin: 2rem 0;
+            text-align: left;
+        }
+        .instructions h2 {
+            color: #f7931a;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+        .instructions ol {
+            margin-left: 1.5rem;
+            line-height: 1.8;
+        }
+        .instructions li {
+            margin-bottom: 0.75rem;
+            color: #b0b0b0;
+        }
+        .code {
+            font-family: 'Courier New', monospace;
+            background: #0f0f0f;
+            padding: 0.25rem 0.5rem;
+            border-radius: 2px;
+            color: #4ade80;
+        }
+        .link-section {
+            margin-top: 2rem;
+        }
+        .link-section a {
+            display: inline-block;
+            color: #f7931a;
+            text-decoration: none;
+            margin: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: 1px solid #f7931a;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+        .link-section a:hover {
+            background: #f7931a;
+            color: #0f0f0f;
+        }
+        /* NETWORK_BANNER */
+        .network-banner {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to sendrawtx</h1>
+        <p class="subtitle">
+            A fast, reliable Bitcoin raw transaction broadcaster.
+        </p>
+
+        <div class="instructions">
+            <h2>How to use:</h2>
+            <ol>
+                <li>Prepare your raw transaction hex (from your wallet)</li>
+                <li>POST or visit: <span class="code">https://sendrawtx.com/{hex}</span></li>
+                <li>The transaction is broadcast to the network</li>
+                <li>You'll see the transaction ID (txid) confirmation</li>
+            </ol>
+        </div>
+
+        <div class="instructions">
+            <h2>Example:</h2>
+            <p style="color: #888; font-size: 0.9rem;">
+                Visit your transaction with a raw hex (must be 82+ bytes):
+            </p>
+            <p style="color: #4ade80; word-break: break-all; font-size: 0.8rem; margin-top: 0.5rem;">
+                https://sendrawtx.com/0100000001...
+            </p>
+        </div>
+
+        <div class="link-section">
+            <a href="javascript:void(0)">View Docs</a>
+            <a href="javascript:void(0)">API Reference</a>
+        </div>
+    </div>
+</body>
+</html>

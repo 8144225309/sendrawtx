@@ -195,6 +195,13 @@ int static_files_load(StaticFiles *files, const char *dir, const Config *config)
 
     memset(files, 0, sizeof(StaticFiles));
 
+    /* Load index.html */
+    snprintf(path, sizeof(path), "%s/index.html", dir);
+    if (load_file(&files->index, path, "text/html; charset=utf-8") < 0) {
+        static_files_free(files);
+        return -1;
+    }
+
     /* Load broadcast.html */
     snprintf(path, sizeof(path), "%s/broadcast.html", dir);
     if (load_file(&files->broadcast, path, "text/html; charset=utf-8") < 0) {
@@ -221,7 +228,8 @@ int static_files_load(StaticFiles *files, const char *dir, const Config *config)
         log_info("Injecting %s banner into HTML files",
                  network_chain_to_string(config->chain));
 
-        if (inject_banner_into_file(&files->broadcast, config->chain) < 0 ||
+        if (inject_banner_into_file(&files->index, config->chain) < 0 ||
+            inject_banner_into_file(&files->broadcast, config->chain) < 0 ||
             inject_banner_into_file(&files->result, config->chain) < 0 ||
             inject_banner_into_file(&files->error, config->chain) < 0) {
             log_error("Failed to inject network banner");
@@ -235,6 +243,7 @@ int static_files_load(StaticFiles *files, const char *dir, const Config *config)
 
 void static_files_free(StaticFiles *files)
 {
+    free_file(&files->index);
     free_file(&files->broadcast);
     free_file(&files->result);
     free_file(&files->error);

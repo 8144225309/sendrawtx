@@ -1147,6 +1147,9 @@ static void process_request(Connection *conn)
 
     /* Select file based on route */
     switch (route) {
+        case ROUTE_HOME:
+            file = &worker->static_files.index;
+            break;
         case ROUTE_BROADCAST:
             file = &worker->static_files.broadcast;
             break;
