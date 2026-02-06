@@ -2,9 +2,7 @@
 
 [![CI](https://github.com/8144225309/sendrawtx/actions/workflows/ci.yml/badge.svg)](https://github.com/8144225309/sendrawtx/actions/workflows/ci.yml)
 
-High-performance Bitcoin raw transaction relay server.
-
-Bitcoin application server written in C. Built for services that talk to Bitcoin Core and need to handle real traffic.
+High-performance Bitcoin raw transaction relay server, written in C. Uses a local Bitcoin Core node to serve data over HTTP.
 
 ## Features
 
