@@ -1,3 +1,16 @@
+/*
+ * MOSTLY DEAD CODE — only tier_name() and size_to_tier() are still used.
+ *
+ * read_request_line() and its helpers (approaching_threshold, calculate_read_size,
+ * wait_for_read, find_newline) were the synchronous select()+read() reader,
+ * replaced by libevent bufferevent async I/O in connection.c (v6 rewrite).
+ *
+ * LIVE functions (called from connection.c and http2.c):
+ *   - tier_name()     — returns human-readable tier name
+ *   - size_to_tier()  — maps request size to tier enum
+ * These two should be factored into their own file if reader.c is removed.
+ */
+
 #include "reader.h"
 #include <unistd.h>
 #include <errno.h>
@@ -26,6 +39,10 @@ RequestTier size_to_tier(size_t size, Config *cfg)
     }
     return TIER_NORMAL;
 }
+
+/* DEAD CODE below: approaching_threshold, calculate_read_size, wait_for_read,
+ * find_newline, and read_request_line are all unused since the v6 rewrite.
+ * Only called internally by read_request_line(), which has no callers. */
 
 /*
  * Check if we're approaching a threshold.

@@ -108,26 +108,24 @@ int slot_manager_max(SlotManager *sm, RequestTier tier)
     }
 }
 
+/* UNHOOKED: Not called from production or test code. */
 int slot_manager_total_connections(SlotManager *sm)
 {
     return sm->normal_current + sm->large_current + sm->huge_current;
 }
 
 /*
- * Acquire a slot for a new request (keep-alive).
- * Same as slot_manager_acquire but semantically different:
- * used for request-level (not connection-level) slot tracking.
+ * UNHOOKED: Not called from production or test code.
+ * Written for a planned per-request (vs per-connection) slot tracking model
+ * that was never adopted. Keep-alive code in connection.c uses
+ * slot_manager_acquire()/slot_manager_release() directly instead.
  */
 int slot_manager_acquire_request(SlotManager *sm, RequestTier tier)
 {
     return slot_manager_acquire(sm, tier);
 }
 
-/*
- * Release a slot after completing a request (keep-alive).
- * Same as slot_manager_release but semantically different:
- * used for request-level slot tracking.
- */
+/* UNHOOKED: See slot_manager_acquire_request() note above. */
 void slot_manager_release_request(SlotManager *sm, RequestTier tier)
 {
     slot_manager_release(sm, tier);

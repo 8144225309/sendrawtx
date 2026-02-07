@@ -1,3 +1,17 @@
+/*
+ * DEAD CODE — entire file is unused.
+ *
+ * Replaced by: libevent's evbuffer (v6 rewrite). connection.c notes:
+ *   "v6: No more request_buffer allocation - we use evbuffer directly."
+ *   "v6: No more request_buffer to free."
+ *
+ * The only caller was reader.c's read_request_line(), which is also dead code.
+ * No production or test code calls any function in this file.
+ * Still compiled via Makefile but nothing links to it.
+ *
+ * Safe to remove this file and include/buffer.h.
+ */
+
 #include "buffer.h"
 #include <stdlib.h>
 #include <string.h>

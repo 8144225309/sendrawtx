@@ -169,6 +169,8 @@ int rpc_init(RPCClient *client, const RPCConfig *config, BitcoinChain chain)
     return RPC_OK;
 }
 
+/* UNHOOKED: Convenience wrapper used in tests (test_rpc.c, test_async_rpc.c) only.
+ * Production uses rpc_init() via rpc_manager_init(). */
 int rpc_init_simple(RPCClient *client, const char *host, int port,
                     const char *user, const char *password, BitcoinChain chain)
 {
@@ -183,6 +185,8 @@ int rpc_init_simple(RPCClient *client, const char *host, int port,
     return rpc_init(client, &config, chain);
 }
 
+/* UNHOOKED: Convenience wrapper used in tests (test_rpc.c) only.
+ * Production uses rpc_init() via rpc_manager_init(). */
 int rpc_init_cookie(RPCClient *client, const char *host, int port,
                     const char *cookie_path, BitcoinChain chain)
 {
@@ -569,6 +573,7 @@ static int rpc_call(RPCClient *client, const char *method, const char *params,
     return ret;
 }
 
+/* UNHOOKED: Used in tests (test_rpc.c) only. Not called from production code. */
 int rpc_test_connection(RPCClient *client)
 {
     char result[256];
@@ -609,11 +614,15 @@ int rpc_sendrawtransaction(RPCClient *client, const char *hex_tx,
     return ret;
 }
 
+/* UNHOOKED: Used in tests (test_rpc.c, test_async_rpc.c) only.
+ * Not called from production code. Planned for future node status features. */
 int rpc_getblockchaininfo(RPCClient *client, char *result, size_t result_sz)
 {
     return rpc_call(client, "getblockchaininfo", "[]", result, result_sz);
 }
 
+/* UNHOOKED: Not called from production or test code.
+ * Planned for future transaction lookup features. */
 int rpc_getrawtransaction(RPCClient *client, const char *txid,
                           char *result, size_t result_sz)
 {
@@ -622,6 +631,8 @@ int rpc_getrawtransaction(RPCClient *client, const char *txid,
     return rpc_call(client, "getrawtransaction", params, result, result_sz);
 }
 
+/* UNHOOKED: Not called from production or test code.
+ * Planned for future mempool inspection features. */
 int rpc_getmempoolentry(RPCClient *client, const char *txid,
                         char *result, size_t result_sz)
 {
@@ -630,6 +641,8 @@ int rpc_getmempoolentry(RPCClient *client, const char *txid,
     return rpc_call(client, "getmempoolentry", params, result, result_sz);
 }
 
+/* UNHOOKED: Used in tests (test_rpc.c) only. Not called from production code.
+ * Planned for future transaction decode/display features. */
 int rpc_decoderawtransaction(RPCClient *client, const char *hex_tx,
                              char *result, size_t result_sz)
 {
@@ -643,6 +656,8 @@ int rpc_decoderawtransaction(RPCClient *client, const char *hex_tx,
     return ret;
 }
 
+/* UNHOOKED: Not called from production or test code.
+ * Planned for future pre-broadcast validation features. */
 int rpc_testmempoolaccept(RPCClient *client, const char *hex_tx,
                           char *result, size_t result_sz)
 {
@@ -704,6 +719,8 @@ RPCClient *rpc_manager_get_client(RPCManager *mgr, BitcoinChain chain)
     }
 }
 
+/* UNHOOKED: Sync broadcast — used in tests (test_async_rpc.c) only.
+ * Production uses rpc_manager_broadcast_async() instead. */
 int rpc_manager_broadcast(RPCManager *mgr, BitcoinChain chain,
                           const char *hex_tx, char *txid, size_t txid_sz)
 {

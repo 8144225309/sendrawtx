@@ -49,3 +49,4 @@ test_*.c
 
 # Internal planning docs (not for public repo)
 ROADMAP.md
+BUGS.md
