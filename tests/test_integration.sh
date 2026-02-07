@@ -81,6 +81,16 @@ else
     fail "/ready (got $CODE)"
 fi
 
+# Test /version
+RESP=$(curl -s -w "\n%{http_code}" "${BASE_URL}/version")
+CODE=$(echo "$RESP" | tail -1)
+BODY=$(echo "$RESP" | sed '$d')
+if [ "$CODE" = "200" ] && echo "$BODY" | grep -q '"version"\s*:\s*"0.1.0"'; then
+    pass "/version returns 200 with version 0.1.0"
+else
+    fail "/version (got $CODE)"
+fi
+
 # Test /alive
 RESP=$(curl -s -w "\n%{http_code}" "${BASE_URL}/alive")
 CODE=$(echo "$RESP" | tail -1)
