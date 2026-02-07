@@ -61,7 +61,7 @@ The server listens on port 8080 (HTTP) and optionally 8443 (HTTPS/HTTP2) if TLS 
 The current application relays raw Bitcoin transactions through a Bitcoin Core node via JSON-RPC.
 
 ```
-User                         sendrawtx                    Bitcoin Core
+User                         sendrawtx                    Bitcoin Node
  │                              │                              │
  │  GET /{raw_tx_hex}           │                              │
  │─────────────────────────────>│  sendrawtransaction(hex)     │
