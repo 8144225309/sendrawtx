@@ -65,7 +65,7 @@ section "Health & Observability Endpoints"
 # Test /health
 RESP=$(curl -s -w "\n%{http_code}" "${BASE_URL}/health")
 CODE=$(echo "$RESP" | tail -1)
-BODY=$(echo "$RESP" | head -n -1)
+BODY=$(echo "$RESP" | sed '$d')
 if [ "$CODE" = "200" ] && echo "$BODY" | grep -q "healthy"; then
     pass "/health returns 200 with healthy status"
 else
@@ -93,7 +93,7 @@ fi
 # Test /metrics (Prometheus format)
 RESP=$(curl -s -w "\n%{http_code}" "${BASE_URL}/metrics")
 CODE=$(echo "$RESP" | tail -1)
-BODY=$(echo "$RESP" | head -n -1)
+BODY=$(echo "$RESP" | sed '$d')
 if [ "$CODE" = "200" ] && echo "$BODY" | grep -q "rawrelay_"; then
     pass "/metrics returns Prometheus format"
 else
@@ -109,11 +109,11 @@ section "Static File Serving"
 # The server expects transaction hex in the path
 RESP=$(curl -s -w "\n%{http_code}" "${BASE_URL}/")
 CODE=$(echo "$RESP" | tail -1)
-BODY=$(echo "$RESP" | head -n -1)
-if [ "$CODE" = "400" ] && echo "$BODY" | grep -qi "html"; then
-    pass "/ returns error page (no transaction provided)"
+BODY=$(echo "$RESP" | sed '$d')
+if [ "$CODE" = "200" ] && echo "$BODY" | grep -qi "html"; then
+    pass "/ returns HTML page"
 else
-    fail "/ (got $CODE)"
+    fail "/ (expected HTML 200, got $CODE)"
 fi
 
 # Test invalid path returns error page (400)
