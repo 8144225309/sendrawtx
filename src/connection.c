@@ -184,22 +184,15 @@ static void downgrade_tier_to_normal(Connection *conn)
 }
 
 /*
- * Create new connection from accepted socket.
- * v6: No more request_buffer allocation - we use evbuffer directly.
+ * Initialize a connection's fields, set up callbacks, and add to worker list.
+ * Shared by connection_new() and connection_new_with_bev().
+ * The caller must have already set conn->bev before calling this.
+ * Returns 0 on success, -1 on error.
  */
-Connection *connection_new(struct WorkerProcess *worker, evutil_socket_t fd,
-                           struct sockaddr *addr, int addrlen)
+static int connection_init_common(Connection *conn, struct WorkerProcess *worker,
+                                  struct sockaddr *addr)
 {
-    Connection *conn;
     struct timeval read_timeout = {READ_TIMEOUT_SEC, 0};
-
-    (void)addrlen;
-
-    conn = calloc(1, sizeof(Connection));
-    if (!conn) {
-        log_error("Failed to allocate connection");
-        return NULL;
-    }
 
     conn->worker = worker;
     conn->state = CONN_STATE_READING_HEADERS;
@@ -246,15 +239,6 @@ Connection *connection_new(struct WorkerProcess *worker, evutil_socket_t fd,
         strncpy(conn->client_ip, "unknown", sizeof(conn->client_ip));
     }
 
-    /* Create bufferevent - v6: no separate buffer allocation */
-    conn->bev = bufferevent_socket_new(worker->base, fd,
-                                        BEV_OPT_CLOSE_ON_FREE);
-    if (!conn->bev) {
-        log_error("Failed to create bufferevent");
-        free(conn);
-        return NULL;
-    }
-
     /* Set callbacks */
     bufferevent_setcb(conn->bev, conn_read_cb, conn_write_cb, conn_event_cb, conn);
 
@@ -271,6 +255,72 @@ Connection *connection_new(struct WorkerProcess *worker, evutil_socket_t fd,
         worker->connections->prev = conn;
     }
     worker->connections = conn;
+
+    return 0;
+}
+
+/*
+ * Create new connection from accepted socket.
+ * v6: No more request_buffer allocation - we use evbuffer directly.
+ */
+Connection *connection_new(struct WorkerProcess *worker, evutil_socket_t fd,
+                           struct sockaddr *addr, int addrlen)
+{
+    Connection *conn;
+
+    (void)addrlen;
+
+    conn = calloc(1, sizeof(Connection));
+    if (!conn) {
+        log_error("Failed to allocate connection");
+        return NULL;
+    }
+
+    /* Create bufferevent - v6: no separate buffer allocation */
+    conn->bev = bufferevent_socket_new(worker->base, fd,
+                                        BEV_OPT_CLOSE_ON_FREE);
+    if (!conn->bev) {
+        log_error("Failed to create bufferevent");
+        free(conn);
+        return NULL;
+    }
+
+    if (connection_init_common(conn, worker, addr) < 0) {
+        bufferevent_free(conn->bev);
+        free(conn);
+        return NULL;
+    }
+
+    return conn;
+}
+
+/*
+ * Create new connection from a pre-created bufferevent.
+ * Used by TLS accept path where the bufferevent is already created
+ * (bufferevent_openssl_socket_new). Ensures TLS connections get
+ * identical initialization to plain HTTP, including slot_held = true,
+ * keep_alive = true, and request_id generation.
+ */
+Connection *connection_new_with_bev(struct WorkerProcess *worker,
+                                     struct bufferevent *bev,
+                                     struct sockaddr *addr, int addrlen)
+{
+    Connection *conn;
+
+    (void)addrlen;
+
+    conn = calloc(1, sizeof(Connection));
+    if (!conn) {
+        log_error("Failed to allocate connection");
+        return NULL;
+    }
+
+    conn->bev = bev;
+
+    if (connection_init_common(conn, worker, addr) < 0) {
+        free(conn);
+        return NULL;
+    }
 
     return conn;
 }

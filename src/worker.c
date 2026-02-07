@@ -214,6 +214,13 @@ void worker_check_drain(WorkerProcess *worker)
         log_info("Stopped accepting new connections");
     }
 
+    /* Stop accepting new TLS connections */
+    if (!worker->tls_listener_disabled && worker->tls_listener) {
+        evconnlistener_disable(worker->tls_listener);
+        worker->tls_listener_disabled = true;
+        log_info("Stopped accepting new TLS connections");
+    }
+
     /* Exit if no active connections */
     if (worker->active_connections == 0) {
         log_info("No active connections, exiting");
@@ -383,7 +390,6 @@ static void tls_accept_cb(struct evconnlistener *listener, evutil_socket_t fd,
     WorkerProcess *worker = ctx;
     char client_ip[INET6_ADDRSTRLEN];
     (void)listener;
-    (void)socklen;
 
     /* FIRST: Enable TCP_NODELAY before any I/O */
     tcp_nodelay_enable(fd);
@@ -455,8 +461,8 @@ static void tls_accept_cb(struct evconnlistener *listener, evutil_socket_t fd,
         return;
     }
 
-    /* Create connection - pass the SSL bufferevent */
-    Connection *conn = calloc(1, sizeof(Connection));
+    /* Create connection using shared init (fixes slot leak - sets slot_held=true) */
+    Connection *conn = connection_new_with_bev(worker, bev, addr, socklen);
     if (!conn) {
         log_error("Failed to allocate TLS connection");
         bufferevent_free(bev);  /* This frees SSL and closes fd */
@@ -465,48 +471,8 @@ static void tls_accept_cb(struct evconnlistener *listener, evutil_socket_t fd,
         return;
     }
 
-    /* Initialize connection */
-    conn->worker = worker;
-    conn->bev = bev;
-    conn->state = CONN_STATE_READING_HEADERS;
-    conn->protocol = PROTO_HTTP_1_1;  /* May change after ALPN */
-    conn->current_tier = TIER_NORMAL;
     conn->ssl = ssl;
     conn->tls_handshake_done = false;
-    conn->h2 = NULL;
-
-    strncpy(conn->client_ip, client_ip, sizeof(conn->client_ip) - 1);
-    conn->client_ip[sizeof(conn->client_ip) - 1] = '\0';
-
-    if (addr->sa_family == AF_INET) {
-        conn->client_port = ntohs(((struct sockaddr_in *)addr)->sin_port);
-    } else if (addr->sa_family == AF_INET6) {
-        conn->client_port = ntohs(((struct sockaddr_in6 *)addr)->sin6_port);
-    }
-
-    gettimeofday(&conn->start_time, NULL);
-    conn->last_progress_time = conn->start_time;
-    conn->bytes_at_last_check = 0;
-
-    /* Set up callbacks - same as regular connections for now
-     * HTTP/2 detection happens after TLS handshake completes */
-    extern void connection_set_callbacks(Connection *conn);
-    connection_set_callbacks(conn);
-
-    /* Set read timeout */
-    struct timeval read_timeout = {30, 0};
-    bufferevent_set_timeouts(bev, &read_timeout, NULL);
-
-    /* Enable reading */
-    bufferevent_enable(bev, EV_READ);
-
-    /* Add to worker's connection list */
-    conn->next = worker->connections;
-    conn->prev = NULL;
-    if (worker->connections) {
-        worker->connections->prev = conn;
-    }
-    worker->connections = conn;
 
     log_debug("TLS connection from %s:%d", log_format_ip(conn->client_ip), conn->client_port);
 }
