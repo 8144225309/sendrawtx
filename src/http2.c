@@ -644,7 +644,9 @@ int h2_send_response(Connection *conn, int32_t stream_id,
 }
 
 /*
- * Send error response (RST_STREAM).
+ * UNHOOKED: Not called from production or test code.
+ * The one place that sends RST_STREAM (h2_on_header_callback, line ~387)
+ * calls nghttp2_submit_rst_stream() directly instead of using this wrapper.
  */
 int h2_send_error(Connection *conn, int32_t stream_id, uint32_t error_code)
 {

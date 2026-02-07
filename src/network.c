@@ -71,12 +71,19 @@ const char *network_chain_to_string(BitcoinChain chain)
     }
 }
 
+/* UNHOOKED: Not currently called from production code.
+ * Intended for X-Bitcoin-Network HTTP response header (see test_integration.sh SKIP note). */
 const char *network_get_header_value(BitcoinChain chain)
 {
     /* Same as chain_to_string for now, but separate function
      * in case we want different formatting later */
     return network_chain_to_string(chain);
 }
+
+/* UNHOOKED: detect_address_network() and the functions that call it
+ * (network_check_address, network_get_address_warning, network_detect_chain_from_address,
+ * network_detect_chain_from_address_with_hint) are Phase 13 mixed-mode address routing
+ * infrastructure. Backend logic is complete but no request handler calls into it yet. */
 
 /*
  * Detect which network an address belongs to based on prefix.
@@ -127,6 +134,7 @@ static int detect_address_network(const char *address)
     return -1;
 }
 
+/* UNHOOKED: Not called from production code. Part of mixed-mode address routing. */
 AddressCheckResult network_check_address(BitcoinChain expected,
                                          const char *address,
                                          BitcoinChain *detected_network)
@@ -171,6 +179,7 @@ AddressCheckResult network_check_address(BitcoinChain expected,
     return ADDR_WRONG_NETWORK;
 }
 
+/* UNHOOKED: Not called from production code. Part of mixed-mode address routing. */
 const char *network_get_address_warning(BitcoinChain server_chain,
                                         BitcoinChain address_chain)
 {
@@ -219,6 +228,7 @@ int network_is_test_network(BitcoinChain chain)
     return chain != CHAIN_MAINNET && chain != CHAIN_MIXED;
 }
 
+/* UNHOOKED: Not called from production code. Intended for HTML test-network banners. */
 const char *network_get_banner_text(BitcoinChain chain)
 {
     switch (chain) {
@@ -236,6 +246,7 @@ const char *network_get_banner_text(BitcoinChain chain)
     }
 }
 
+/* UNHOOKED: Not called from production code. Intended for HTML test-network banner CSS. */
 const char *network_get_banner_class(BitcoinChain chain)
 {
     switch (chain) {
@@ -253,11 +264,13 @@ const char *network_get_banner_class(BitcoinChain chain)
     }
 }
 
+/* UNHOOKED: Called from test_network.c only. Not called from production code. */
 int network_detect_chain_from_address(const char *address)
 {
     return detect_address_network(address);
 }
 
+/* UNHOOKED: Not called from production or test code. */
 int network_detect_chain_from_address_with_hint(const char *address, BitcoinChain hint)
 {
     int detected = detect_address_network(address);
