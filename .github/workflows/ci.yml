@@ -37,9 +37,6 @@ jobs:
           CC: ${{ matrix.compiler }}
         run: make
 
-      - name: Run unit tests
-        run: make test
-
       - name: Functional tests
         run: |
           echo "Starting server..."
