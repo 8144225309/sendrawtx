@@ -60,6 +60,7 @@ typedef struct WorkerProcess {
     /* State flags */
     volatile bool draining;
     bool listener_disabled;
+    bool tls_listener_disabled;
 
     /* Statistics */
     uint64_t connections_accepted;

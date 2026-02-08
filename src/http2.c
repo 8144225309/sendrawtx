@@ -39,6 +39,13 @@ static int h2_on_data_chunk_recv_callback(nghttp2_session *session,
                                           const uint8_t *data, size_t len,
                                           void *user_data);
 
+/* Forward declaration - body source for async response data */
+typedef struct {
+    unsigned char *data;  /* Owned copy of the body data */
+    size_t len;
+    size_t pos;
+} H2BodySource;
+
 /*
  * Create a new HTTP/2 stream.
  */
@@ -118,8 +125,13 @@ void h2_stream_free(H2Connection *h2, H2Stream *stream)
     free(stream->authority);
     free(stream->scheme);
 
-    /* Free response body source if allocated */
-    free(stream->body_source);
+    /* Free response body source and its owned data */
+    if (stream->body_source) {
+        H2BodySource *bs = (H2BodySource *)stream->body_source;
+        free(bs->data);
+        free(bs);
+        stream->body_source = NULL;
+    }
 
     free(stream);
 }
@@ -329,14 +341,16 @@ static int h2_on_begin_headers_callback(nghttp2_session *session,
     if (!slot_manager_acquire(&h2->worker->slots, TIER_NORMAL)) {
         log_warn("HTTP/2: Cannot accept stream %d - no slots available",
                  frame->hd.stream_id);
-        return NGHTTP2_ERR_CALLBACK_FAILURE;  /* Will trigger RST_STREAM */
+        h2->worker->h2_rst_stream_total++;
+        return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;  /* Rejects this stream only (RST_STREAM), not the session */
     }
 
     /* Create stream */
     H2Stream *stream = h2_stream_new(h2, frame->hd.stream_id);
     if (!stream) {
         slot_manager_release(&h2->worker->slots, TIER_NORMAL);
-        return NGHTTP2_ERR_CALLBACK_FAILURE;
+        h2->worker->h2_rst_stream_total++;
+        return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
     }
 
     stream->slot_acquired = true;
@@ -550,13 +564,6 @@ int h2_send_pending(Connection *conn)
     return 0;
 }
 
-/* Body source for response data provider */
-typedef struct {
-    const unsigned char *data;
-    size_t len;
-    size_t pos;
-} H2BodySource;
-
 /* Callback for reading response body */
 static ssize_t h2_body_read_callback(nghttp2_session *session,
                                      int32_t stream_id,
@@ -573,7 +580,8 @@ static ssize_t h2_body_read_callback(nghttp2_session *session,
     size_t remaining = bs->len - bs->pos;
     size_t to_copy = remaining < length ? remaining : length;
 
-    memcpy(buf, bs->data + bs->pos, to_copy);
+    if (to_copy > 0)
+        memcpy(buf, bs->data + bs->pos, to_copy);
     bs->pos += to_copy;
 
     if (bs->pos >= bs->len) {
@@ -610,12 +618,23 @@ int h2_send_response(Connection *conn, int32_t stream_id,
         {(uint8_t *)"content-length", (uint8_t *)content_length_str, 14, strlen(content_length_str), NGHTTP2_NV_FLAG_NONE}
     };
 
-    /* Data provider for body - allocate on heap so it survives async send */
+    /* Data provider for body - copy body data so it survives async send.
+     * Callers often pass stack-allocated buffers (e.g. char body[8192])
+     * which go out of scope before nghttp2 reads the data. */
     H2BodySource *body_source = malloc(sizeof(H2BodySource));
     if (!body_source) {
         return -1;
     }
-    body_source->data = body;
+    if (body_len > 0) {
+        body_source->data = malloc(body_len);
+        if (!body_source->data) {
+            free(body_source);
+            return -1;
+        }
+        memcpy(body_source->data, body, body_len);
+    } else {
+        body_source->data = NULL;
+    }
     body_source->len = body_len;
     body_source->pos = 0;
 
@@ -628,6 +647,7 @@ int h2_send_response(Connection *conn, int32_t stream_id,
                                       &data_prd);
     if (rv != 0) {
         log_error("HTTP/2: Failed to submit response: %s", nghttp2_strerror(rv));
+        free(body_source->data);
         free(body_source);
         return -1;
     }
@@ -636,7 +656,11 @@ int h2_send_response(Connection *conn, int32_t stream_id,
     H2Stream *stream = h2_stream_find(h2, stream_id);
     if (stream) {
         /* Free any previous body_source (shouldn't happen, but be safe) */
-        free(stream->body_source);
+        if (stream->body_source) {
+            H2BodySource *old_bs = (H2BodySource *)stream->body_source;
+            free(old_bs->data);
+            free(old_bs);
+        }
         stream->body_source = body_source;
     }
 

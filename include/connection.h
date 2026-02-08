@@ -114,6 +114,16 @@ Connection *connection_new(struct WorkerProcess *worker, evutil_socket_t fd,
                            struct sockaddr *addr, int addrlen);
 
 /*
+ * Create a new connection from a pre-created bufferevent.
+ * Used by TLS accept path where bufferevent_openssl_socket_new()
+ * has already created the bufferevent.
+ * Does NOT take ownership of bev on failure (caller must free).
+ */
+Connection *connection_new_with_bev(struct WorkerProcess *worker,
+                                     struct bufferevent *bev,
+                                     struct sockaddr *addr, int addrlen);
+
+/*
  * Close and free a connection.
  */
 void connection_free(Connection *conn);
