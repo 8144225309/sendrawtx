@@ -7,6 +7,7 @@
 #include "http2.h"
 #include "tls.h"
 #include "hex.h"
+#include "endpoints.h"
 #include "log.h"
 
 #include <stdlib.h>
@@ -14,9 +15,7 @@
 #include <errno.h>
 #include <ctype.h>
 #include <sys/time.h>
-#include <sys/resource.h>
 #include <sys/stat.h>
-#include <dirent.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <arpa/inet.h>
@@ -39,8 +38,6 @@ static void conn_event_cb(struct bufferevent *bev, short events, void *ctx);
 static int parse_request_headers(Connection *conn, const unsigned char *headers, size_t len);
 static int try_promote_tier(Connection *conn, size_t new_size);
 static int validate_path_early(Connection *conn, const unsigned char *data, size_t len);
-static int get_open_fds(void);
-static int get_max_fds(void);
 
 /*
  * Early validation of path data as it arrives.
@@ -584,65 +581,10 @@ static void serve_health(Connection *conn)
     WorkerProcess *worker = conn->worker;
     struct evbuffer *output = bufferevent_get_output(conn->bev);
     char body[1024];
-    int body_len;
 
     conn->state = CONN_STATE_WRITING_RESPONSE;
 
-    /* Calculate uptime */
-    struct timeval now;
-    gettimeofday(&now, NULL);
-    long uptime_sec = now.tv_sec - worker->start_time.tv_sec;
-
-    /* Get FD counts */
-    int open_fds = get_open_fds();
-    int max_fds = get_max_fds();
-    double fd_usage_pct = (max_fds > 0) ? (100.0 * open_fds / max_fds) : 0.0;
-
-    /* Check if TLS is enabled and get cert expiry */
-    int tls_enabled = (worker->tls.ctx != NULL) ? 1 : 0;
-    time_t cert_expiry = tls_get_cert_expiry(&worker->tls);
-    int cert_days_remaining = 0;
-    int cert_warning = 0;
-    if (cert_expiry > 0) {
-        cert_days_remaining = (int)((cert_expiry - now.tv_sec) / 86400);
-        cert_warning = (cert_days_remaining < 30) ? 1 : 0;
-    }
-
-    body_len = snprintf(body, sizeof(body),
-        "{\"status\":\"healthy\","
-        "\"worker_id\":%d,"
-        "\"uptime_seconds\":%ld,"
-        "\"active_connections\":%d,"
-        "\"requests_processed\":%lu,"
-        "\"slots\":{"
-            "\"normal\":{\"used\":%d,\"max\":%d},"
-            "\"large\":{\"used\":%d,\"max\":%d},"
-            "\"huge\":{\"used\":%d,\"max\":%d}"
-        "},"
-        "\"rate_limiter_entries\":%d,"
-        "\"tls\":{\"enabled\":%s,\"cert_expires_in_days\":%d,\"cert_expiry_warning\":%s},"
-        "\"resources\":{"
-            "\"open_fds\":%d,"
-            "\"max_fds\":%d,"
-            "\"fd_usage_percent\":%.1f"
-        "}}",
-        worker->worker_id,
-        uptime_sec,
-        worker->active_connections,
-        (unsigned long)worker->requests_processed,
-        slot_manager_current(&worker->slots, TIER_NORMAL),
-        slot_manager_max(&worker->slots, TIER_NORMAL),
-        slot_manager_current(&worker->slots, TIER_LARGE),
-        slot_manager_max(&worker->slots, TIER_LARGE),
-        slot_manager_current(&worker->slots, TIER_HUGE),
-        slot_manager_max(&worker->slots, TIER_HUGE),
-        rate_limiter_get_entry_count(&worker->rate_limiter),
-        tls_enabled ? "true" : "false",
-        cert_days_remaining,
-        cert_warning ? "true" : "false",
-        open_fds,
-        max_fds,
-        fd_usage_pct);
+    int body_len = generate_health_body(worker, body, sizeof(body));
 
     evbuffer_add_printf(output,
         "HTTP/1.1 200 OK\r\n"
@@ -846,317 +788,32 @@ not_found:
 }
 
 /*
- * Get number of open file descriptors for this process.
- */
-static int get_open_fds(void)
-{
-#ifdef __linux__
-    int count = 0;
-    DIR *dir = opendir("/proc/self/fd");
-    if (dir) {
-        struct dirent *entry;
-        while ((entry = readdir(dir)) != NULL) {
-            if (entry->d_name[0] != '.') {
-                count++;
-            }
-        }
-        closedir(dir);
-    }
-    return count;
-#else
-    return -1;  /* Not available on this platform */
-#endif
-}
-
-/*
- * Get maximum file descriptors for this process.
- */
-static int get_max_fds(void)
-{
-    struct rlimit rl;
-    if (getrlimit(RLIMIT_NOFILE, &rl) == 0) {
-        return (int)rl.rlim_cur;
-    }
-    return -1;
-}
-
-/*
  * Serve /metrics endpoint - Prometheus text exposition format.
  */
 static void serve_metrics(Connection *conn)
 {
     WorkerProcess *worker = conn->worker;
     struct evbuffer *output = bufferevent_get_output(conn->bev);
-    char body[8192];  /* Larger buffer for all metrics */
-    size_t offset = 0;
-    size_t remaining = sizeof(body) - 1;  /* Reserve space for null terminator */
-    int n;
-
-    /* Helper macro to safely advance buffer position */
-    #define METRICS_ADVANCE() do { \
-        if (n > 0 && (size_t)n < remaining) { \
-            offset += (size_t)n; \
-            remaining -= (size_t)n; \
-        } else { \
-            remaining = 0; \
-        } \
-    } while(0)
+    char body[8192];
 
     conn->state = CONN_STATE_WRITING_RESPONSE;
 
-    /* Calculate uptime */
-    struct timeval now;
-    gettimeofday(&now, NULL);
-    double uptime_sec = (now.tv_sec - worker->start_time.tv_sec) +
-                        (now.tv_usec - worker->start_time.tv_usec) / 1000000.0;
-
-    /* Get FD counts */
-    int open_fds = get_open_fds();
-    int max_fds = get_max_fds();
-
-    /* === Basic Counters === */
-    n = snprintf(body + offset, remaining,
-        "# HELP rawrelay_requests_total Total requests processed\n"
-        "# TYPE rawrelay_requests_total counter\n"
-        "rawrelay_requests_total{worker=\"%d\"} %lu\n"
-        "\n"
-        "# HELP rawrelay_connections_accepted_total Total connections accepted\n"
-        "# TYPE rawrelay_connections_accepted_total counter\n"
-        "rawrelay_connections_accepted_total{worker=\"%d\"} %lu\n"
-        "\n"
-        "# HELP rawrelay_connections_rejected_total Rejected connections by reason\n"
-        "# TYPE rawrelay_connections_rejected_total counter\n"
-        "rawrelay_connections_rejected_total{worker=\"%d\",reason=\"rate_limit\"} %lu\n"
-        "rawrelay_connections_rejected_total{worker=\"%d\",reason=\"slot_limit\"} %lu\n"
-        "rawrelay_connections_rejected_total{worker=\"%d\",reason=\"blocked\"} %lu\n"
-        "\n"
-        "# HELP rawrelay_connections_allowlisted_total Connections that bypassed rate limiting\n"
-        "# TYPE rawrelay_connections_allowlisted_total counter\n"
-        "rawrelay_connections_allowlisted_total{worker=\"%d\"} %lu\n"
-        "\n"
-        "# HELP rawrelay_active_connections Current active connections\n"
-        "# TYPE rawrelay_active_connections gauge\n"
-        "rawrelay_active_connections{worker=\"%d\"} %d\n"
-        "\n",
-        worker->worker_id, (unsigned long)worker->requests_processed,
-        worker->worker_id, (unsigned long)worker->connections_accepted,
-        worker->worker_id, (unsigned long)worker->connections_rejected_rate,
-        worker->worker_id, (unsigned long)worker->connections_rejected_slot,
-        worker->worker_id, (unsigned long)worker->connections_rejected_blocked,
-        worker->worker_id, (unsigned long)worker->connections_allowlisted,
-        worker->worker_id, worker->active_connections);
-    METRICS_ADVANCE();
-
-    /* === Request Latency Histogram === */
-    n = snprintf(body + offset, remaining,
-        "# HELP rawrelay_request_duration_seconds Request latency histogram\n"
-        "# TYPE rawrelay_request_duration_seconds histogram\n"
-        "rawrelay_request_duration_seconds_bucket{worker=\"%d\",le=\"0.001\"} %lu\n"
-        "rawrelay_request_duration_seconds_bucket{worker=\"%d\",le=\"0.005\"} %lu\n"
-        "rawrelay_request_duration_seconds_bucket{worker=\"%d\",le=\"0.01\"} %lu\n"
-        "rawrelay_request_duration_seconds_bucket{worker=\"%d\",le=\"0.05\"} %lu\n"
-        "rawrelay_request_duration_seconds_bucket{worker=\"%d\",le=\"0.1\"} %lu\n"
-        "rawrelay_request_duration_seconds_bucket{worker=\"%d\",le=\"0.5\"} %lu\n"
-        "rawrelay_request_duration_seconds_bucket{worker=\"%d\",le=\"1\"} %lu\n"
-        "rawrelay_request_duration_seconds_bucket{worker=\"%d\",le=\"5\"} %lu\n"
-        "rawrelay_request_duration_seconds_bucket{worker=\"%d\",le=\"+Inf\"} %lu\n"
-        "rawrelay_request_duration_seconds_sum{worker=\"%d\"} %.6f\n"
-        "rawrelay_request_duration_seconds_count{worker=\"%d\"} %lu\n"
-        "\n",
-        worker->worker_id, (unsigned long)worker->latency_bucket_1ms,
-        worker->worker_id, (unsigned long)worker->latency_bucket_5ms,
-        worker->worker_id, (unsigned long)worker->latency_bucket_10ms,
-        worker->worker_id, (unsigned long)worker->latency_bucket_50ms,
-        worker->worker_id, (unsigned long)worker->latency_bucket_100ms,
-        worker->worker_id, (unsigned long)worker->latency_bucket_500ms,
-        worker->worker_id, (unsigned long)worker->latency_bucket_1s,
-        worker->worker_id, (unsigned long)worker->latency_bucket_5s,
-        worker->worker_id, (unsigned long)worker->latency_bucket_inf,
-        worker->worker_id, worker->latency_sum_seconds,
-        worker->worker_id, (unsigned long)worker->latency_bucket_inf);
-    METRICS_ADVANCE();
-
-    /* === HTTP Status Code Counters === */
-    n = snprintf(body + offset, remaining,
-        "# HELP rawrelay_http_requests_total HTTP requests by status code\n"
-        "# TYPE rawrelay_http_requests_total counter\n"
-        "rawrelay_http_requests_total{worker=\"%d\",status=\"200\"} %lu\n"
-        "rawrelay_http_requests_total{worker=\"%d\",status=\"400\"} %lu\n"
-        "rawrelay_http_requests_total{worker=\"%d\",status=\"404\"} %lu\n"
-        "rawrelay_http_requests_total{worker=\"%d\",status=\"408\"} %lu\n"
-        "rawrelay_http_requests_total{worker=\"%d\",status=\"429\"} %lu\n"
-        "rawrelay_http_requests_total{worker=\"%d\",status=\"503\"} %lu\n"
-        "\n"
-        "# HELP rawrelay_http_requests_by_class_total HTTP requests by status class\n"
-        "# TYPE rawrelay_http_requests_by_class_total counter\n"
-        "rawrelay_http_requests_by_class_total{worker=\"%d\",class=\"2xx\"} %lu\n"
-        "rawrelay_http_requests_by_class_total{worker=\"%d\",class=\"4xx\"} %lu\n"
-        "rawrelay_http_requests_by_class_total{worker=\"%d\",class=\"5xx\"} %lu\n"
-        "\n",
-        worker->worker_id, (unsigned long)worker->status_200,
-        worker->worker_id, (unsigned long)worker->status_400,
-        worker->worker_id, (unsigned long)worker->status_404,
-        worker->worker_id, (unsigned long)worker->status_408,
-        worker->worker_id, (unsigned long)worker->status_429,
-        worker->worker_id, (unsigned long)worker->status_503,
-        worker->worker_id, (unsigned long)worker->status_2xx,
-        worker->worker_id, (unsigned long)worker->status_4xx,
-        worker->worker_id, (unsigned long)worker->status_5xx);
-    METRICS_ADVANCE();
-
-    /* === Request Method Counters === */
-    n = snprintf(body + offset, remaining,
-        "# HELP rawrelay_requests_by_method_total HTTP requests by method\n"
-        "# TYPE rawrelay_requests_by_method_total counter\n"
-        "rawrelay_requests_by_method_total{worker=\"%d\",method=\"GET\"} %lu\n"
-        "rawrelay_requests_by_method_total{worker=\"%d\",method=\"POST\"} %lu\n"
-        "rawrelay_requests_by_method_total{worker=\"%d\",method=\"OTHER\"} %lu\n"
-        "\n",
-        worker->worker_id, (unsigned long)worker->method_get,
-        worker->worker_id, (unsigned long)worker->method_post,
-        worker->worker_id, (unsigned long)worker->method_other);
-    METRICS_ADVANCE();
-
-    /* === Process Info === */
-    n = snprintf(body + offset, remaining,
-        "# HELP rawrelay_process_start_time_seconds Unix timestamp of process start\n"
-        "# TYPE rawrelay_process_start_time_seconds gauge\n"
-        "rawrelay_process_start_time_seconds{worker=\"%d\"} %ld\n"
-        "\n"
-        "# HELP rawrelay_process_uptime_seconds Process uptime in seconds\n"
-        "# TYPE rawrelay_process_uptime_seconds gauge\n"
-        "rawrelay_process_uptime_seconds{worker=\"%d\"} %.3f\n"
-        "\n",
-        worker->worker_id, (long)worker->start_time.tv_sec,
-        worker->worker_id, uptime_sec);
-    METRICS_ADVANCE();
-
-    /* === File Descriptor Metrics === */
-    if (open_fds >= 0 && max_fds >= 0) {
-        n = snprintf(body + offset, remaining,
-            "# HELP rawrelay_open_fds Current number of open file descriptors\n"
-            "# TYPE rawrelay_open_fds gauge\n"
-            "rawrelay_open_fds{worker=\"%d\"} %d\n"
-            "\n"
-            "# HELP rawrelay_max_fds Maximum file descriptors allowed\n"
-            "# TYPE rawrelay_max_fds gauge\n"
-            "rawrelay_max_fds{worker=\"%d\"} %d\n"
-            "\n",
-            worker->worker_id, open_fds,
-            worker->worker_id, max_fds);
-        METRICS_ADVANCE();
-    }
-
-    /* === TLS Metrics === */
-    n = snprintf(body + offset, remaining,
-        "# HELP rawrelay_tls_handshakes_total TLS handshakes by protocol version\n"
-        "# TYPE rawrelay_tls_handshakes_total counter\n"
-        "rawrelay_tls_handshakes_total{worker=\"%d\",protocol=\"TLSv1.2\"} %lu\n"
-        "rawrelay_tls_handshakes_total{worker=\"%d\",protocol=\"TLSv1.3\"} %lu\n"
-        "\n"
-        "# HELP rawrelay_tls_handshake_errors_total TLS handshake errors\n"
-        "# TYPE rawrelay_tls_handshake_errors_total counter\n"
-        "rawrelay_tls_handshake_errors_total{worker=\"%d\"} %lu\n"
-        "\n",
-        worker->worker_id, (unsigned long)worker->tls_protocol_tls12,
-        worker->worker_id, (unsigned long)worker->tls_protocol_tls13,
-        worker->worker_id, (unsigned long)worker->tls_handshake_errors);
-    METRICS_ADVANCE();
-
-    /* === TLS Certificate Expiry === */
-    time_t cert_expiry = tls_get_cert_expiry(&worker->tls);
-    if (cert_expiry > 0) {
-        n = snprintf(body + offset, remaining,
-            "# HELP rawrelay_tls_cert_expiry_timestamp_seconds Unix timestamp when certificate expires\n"
-            "# TYPE rawrelay_tls_cert_expiry_timestamp_seconds gauge\n"
-            "rawrelay_tls_cert_expiry_timestamp_seconds{worker=\"%d\"} %ld\n"
-            "\n",
-            worker->worker_id, (long)cert_expiry);
-        METRICS_ADVANCE();
-    }
-
-    /* === HTTP/2 Metrics === */
-    n = snprintf(body + offset, remaining,
-        "# HELP rawrelay_http2_streams_total Total HTTP/2 streams opened\n"
-        "# TYPE rawrelay_http2_streams_total counter\n"
-        "rawrelay_http2_streams_total{worker=\"%d\"} %lu\n"
-        "\n"
-        "# HELP rawrelay_http2_streams_active Current active HTTP/2 streams\n"
-        "# TYPE rawrelay_http2_streams_active gauge\n"
-        "rawrelay_http2_streams_active{worker=\"%d\"} %d\n"
-        "\n"
-        "# HELP rawrelay_http2_rst_stream_total HTTP/2 RST_STREAM frames sent\n"
-        "# TYPE rawrelay_http2_rst_stream_total counter\n"
-        "rawrelay_http2_rst_stream_total{worker=\"%d\"} %lu\n"
-        "\n"
-        "# HELP rawrelay_http2_goaway_total HTTP/2 GOAWAY frames sent\n"
-        "# TYPE rawrelay_http2_goaway_total counter\n"
-        "rawrelay_http2_goaway_total{worker=\"%d\"} %lu\n"
-        "\n",
-        worker->worker_id, (unsigned long)worker->h2_streams_total,
-        worker->worker_id, worker->h2_streams_active,
-        worker->worker_id, (unsigned long)worker->h2_rst_stream_total,
-        worker->worker_id, (unsigned long)worker->h2_goaway_sent);
-    METRICS_ADVANCE();
-
-    /* === Error Type Counters === */
-    n = snprintf(body + offset, remaining,
-        "# HELP rawrelay_errors_total Errors by type\n"
-        "# TYPE rawrelay_errors_total counter\n"
-        "rawrelay_errors_total{worker=\"%d\",type=\"timeout\"} %lu\n"
-        "rawrelay_errors_total{worker=\"%d\",type=\"parse_error\"} %lu\n"
-        "rawrelay_errors_total{worker=\"%d\",type=\"tls_error\"} %lu\n"
-        "\n",
-        worker->worker_id, (unsigned long)worker->errors_timeout,
-        worker->worker_id, (unsigned long)worker->errors_parse,
-        worker->worker_id, (unsigned long)worker->errors_tls);
-    METRICS_ADVANCE();
-
-    /* === Slot Metrics === */
-    n = snprintf(body + offset, remaining,
-        "# HELP rawrelay_slots_used Slots currently in use by tier\n"
-        "# TYPE rawrelay_slots_used gauge\n"
-        "rawrelay_slots_used{worker=\"%d\",tier=\"normal\"} %d\n"
-        "rawrelay_slots_used{worker=\"%d\",tier=\"large\"} %d\n"
-        "rawrelay_slots_used{worker=\"%d\",tier=\"huge\"} %d\n"
-        "\n"
-        "# HELP rawrelay_slots_max Maximum slots by tier\n"
-        "# TYPE rawrelay_slots_max gauge\n"
-        "rawrelay_slots_max{worker=\"%d\",tier=\"normal\"} %d\n"
-        "rawrelay_slots_max{worker=\"%d\",tier=\"large\"} %d\n"
-        "rawrelay_slots_max{worker=\"%d\",tier=\"huge\"} %d\n"
-        "\n"
-        "# HELP rawrelay_rate_limiter_entries Current rate limiter table size\n"
-        "# TYPE rawrelay_rate_limiter_entries gauge\n"
-        "rawrelay_rate_limiter_entries{worker=\"%d\"} %d\n",
-        worker->worker_id, slot_manager_current(&worker->slots, TIER_NORMAL),
-        worker->worker_id, slot_manager_current(&worker->slots, TIER_LARGE),
-        worker->worker_id, slot_manager_current(&worker->slots, TIER_HUGE),
-        worker->worker_id, slot_manager_max(&worker->slots, TIER_NORMAL),
-        worker->worker_id, slot_manager_max(&worker->slots, TIER_LARGE),
-        worker->worker_id, slot_manager_max(&worker->slots, TIER_HUGE),
-        worker->worker_id, rate_limiter_get_entry_count(&worker->rate_limiter));
-    METRICS_ADVANCE();
-
-    /* Ensure null termination */
-    body[offset] = '\0';
+    int body_len = generate_metrics_body(worker, body, sizeof(body));
 
     evbuffer_add_printf(output,
         "HTTP/1.1 200 OK\r\n"
         "Content-Type: text/plain; version=0.0.4; charset=utf-8\r\n"
-        "Content-Length: %zu\r\n"
+        "Content-Length: %d\r\n"
         "Cache-Control: no-store\r\n"
         "X-Request-ID: %s\r\n"
         "Connection: close\r\n"
         "\r\n%s",
-        offset, conn->request_id, body);
+        body_len, conn->request_id, body);
 
     conn->response_status = 200;
-    conn->response_bytes = (int)offset;
+    conn->response_bytes = body_len;
     conn->state = CONN_STATE_CLOSING;
     bufferevent_enable(conn->bev, EV_WRITE);
-
-    #undef METRICS_ADVANCE
 }
 
 /*
@@ -1494,71 +1151,8 @@ static void connection_reset_for_keepalive(Connection *conn)
 }
 
 /*
- * Update latency histogram bucket based on duration in seconds.
- */
-static void update_latency_histogram(WorkerProcess *worker, double duration_sec)
-{
-    /* Increment appropriate bucket (cumulative histogram) */
-    if (duration_sec <= 0.001) worker->latency_bucket_1ms++;
-    if (duration_sec <= 0.005) worker->latency_bucket_5ms++;
-    if (duration_sec <= 0.01) worker->latency_bucket_10ms++;
-    if (duration_sec <= 0.05) worker->latency_bucket_50ms++;
-    if (duration_sec <= 0.1) worker->latency_bucket_100ms++;
-    if (duration_sec <= 0.5) worker->latency_bucket_500ms++;
-    if (duration_sec <= 1.0) worker->latency_bucket_1s++;
-    if (duration_sec <= 5.0) worker->latency_bucket_5s++;
-    worker->latency_bucket_inf++;  /* +Inf always increments */
-
-    worker->latency_sum_seconds += duration_sec;
-}
-
-/*
- * Update status code counters.
- */
-static void update_status_counters(WorkerProcess *worker, int status)
-{
-    /* Category counters */
-    if (status >= 200 && status < 300) {
-        worker->status_2xx++;
-    } else if (status >= 400 && status < 500) {
-        worker->status_4xx++;
-    } else if (status >= 500 && status < 600) {
-        worker->status_5xx++;
-    }
-
-    /* Specific status counters */
-    switch (status) {
-        case 200: worker->status_200++; break;
-        case 400: worker->status_400++; break;
-        case 404: worker->status_404++; break;
-        case 408: worker->status_408++; break;
-        case 429: worker->status_429++; break;
-        case 503: worker->status_503++; break;
-        default: break;
-    }
-}
-
-/*
- * Update method counters.
- */
-static void update_method_counters(WorkerProcess *worker, const char *method)
-{
-    if (!method || !method[0]) {
-        worker->method_other++;
-        return;
-    }
-
-    if (strcmp(method, "GET") == 0) {
-        worker->method_get++;
-    } else if (strcmp(method, "POST") == 0) {
-        worker->method_post++;
-    } else {
-        worker->method_other++;
-    }
-}
-
-/*
  * Log access entry for completed request.
+ * Uses shared counter/logging functions from endpoints.c.
  */
 static void log_request_complete(Connection *conn)
 {
@@ -1715,11 +1309,3 @@ void connection_send_error(Connection *conn, int status_code,
     connection_send_response(conn, status_code, status_text, body);
 }
 
-/*
- * Set up callbacks for a connection.
- * Used by TLS accept to reuse the same callback setup.
- */
-void connection_set_callbacks(Connection *conn)
-{
-    bufferevent_setcb(conn->bev, conn_read_cb, conn_write_cb, conn_event_cb, conn);
-}

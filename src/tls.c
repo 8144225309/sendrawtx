@@ -142,11 +142,47 @@ int tls_context_init(TLSContext *tls, const Config *config)
     SSL_CTX_set_session_cache_mode(tls->ctx, SSL_SESS_CACHE_SERVER);
     SSL_CTX_set_session_id_context(tls->ctx, (const unsigned char *)"rawrelay", 8);
 
-    /* Disable TLS compression (CRIME attack mitigation) */
-    SSL_CTX_set_options(tls->ctx, SSL_OP_NO_COMPRESSION);
+    /* TLS security hardening - defense-in-depth flags.
+     * SSL_CTX_set_min_proto_version(TLS1_2_VERSION) already disables
+     * SSLv2/SSLv3/TLS1.0/1.1, but explicit flags guard against
+     * implementation bugs. */
+    SSL_CTX_set_options(tls->ctx,
+        SSL_OP_NO_SSLv2 |
+        SSL_OP_NO_SSLv3 |
+        SSL_OP_NO_COMPRESSION |
+        SSL_OP_CIPHER_SERVER_PREFERENCE
+#ifdef SSL_OP_SINGLE_DH_USE
+        | SSL_OP_SINGLE_DH_USE
+#endif
+    );
 
-    /* Enable server preference for cipher ordering */
-    SSL_CTX_set_options(tls->ctx, SSL_OP_CIPHER_SERVER_PREFERENCE);
+    /* Disable TLS renegotiation (CVE-2009-3555 and similar attacks) */
+#ifdef SSL_OP_NO_RENEGOTIATION
+    SSL_CTX_set_options(tls->ctx, SSL_OP_NO_RENEGOTIATION);
+#endif
+
+    /* Treat unexpected EOF from peer as normal close (OpenSSL 3.x) */
+#ifdef SSL_OP_IGNORE_UNEXPECTED_EOF
+    SSL_CTX_set_options(tls->ctx, SSL_OP_IGNORE_UNEXPECTED_EOF);
+#endif
+
+    /* Explicit cipher list - Mozilla Intermediate profile.
+     * Ensures only strong ciphers with forward secrecy. */
+    if (SSL_CTX_set_cipher_list(tls->ctx,
+        "ECDHE-ECDSA-AES128-GCM-SHA256:"
+        "ECDHE-RSA-AES128-GCM-SHA256:"
+        "ECDHE-ECDSA-AES256-GCM-SHA384:"
+        "ECDHE-RSA-AES256-GCM-SHA384:"
+        "ECDHE-ECDSA-CHACHA20-POLY1305:"
+        "ECDHE-RSA-CHACHA20-POLY1305:"
+        "DHE-RSA-AES128-GCM-SHA256:"
+        "DHE-RSA-AES256-GCM-SHA384") != 1) {
+        log_error("Failed to set cipher list: %s",
+                  ERR_error_string(ERR_get_error(), NULL));
+        SSL_CTX_free(tls->ctx);
+        tls->ctx = NULL;
+        return -1;
+    }
 
     log_info("TLS context initialized (HTTP/2: %s)",
              tls->http2_enabled ? "enabled" : "disabled");
@@ -294,9 +330,40 @@ int tls_context_reload(TLSContext *tls, const Config *config)
     SSL_CTX_set_session_cache_mode(new_ctx, SSL_SESS_CACHE_SERVER);
     SSL_CTX_set_session_id_context(new_ctx, (const unsigned char *)"rawrelay", 8);
 
-    /* Disable TLS compression and enable server cipher preference */
-    SSL_CTX_set_options(new_ctx, SSL_OP_NO_COMPRESSION);
-    SSL_CTX_set_options(new_ctx, SSL_OP_CIPHER_SERVER_PREFERENCE);
+    /* TLS security hardening - same flags as tls_context_init() */
+    SSL_CTX_set_options(new_ctx,
+        SSL_OP_NO_SSLv2 |
+        SSL_OP_NO_SSLv3 |
+        SSL_OP_NO_COMPRESSION |
+        SSL_OP_CIPHER_SERVER_PREFERENCE
+#ifdef SSL_OP_SINGLE_DH_USE
+        | SSL_OP_SINGLE_DH_USE
+#endif
+    );
+
+#ifdef SSL_OP_NO_RENEGOTIATION
+    SSL_CTX_set_options(new_ctx, SSL_OP_NO_RENEGOTIATION);
+#endif
+
+#ifdef SSL_OP_IGNORE_UNEXPECTED_EOF
+    SSL_CTX_set_options(new_ctx, SSL_OP_IGNORE_UNEXPECTED_EOF);
+#endif
+
+    /* Mozilla Intermediate cipher list */
+    if (SSL_CTX_set_cipher_list(new_ctx,
+        "ECDHE-ECDSA-AES128-GCM-SHA256:"
+        "ECDHE-RSA-AES128-GCM-SHA256:"
+        "ECDHE-ECDSA-AES256-GCM-SHA384:"
+        "ECDHE-RSA-AES256-GCM-SHA384:"
+        "ECDHE-ECDSA-CHACHA20-POLY1305:"
+        "ECDHE-RSA-CHACHA20-POLY1305:"
+        "DHE-RSA-AES128-GCM-SHA256:"
+        "DHE-RSA-AES256-GCM-SHA384") != 1) {
+        log_error("Failed to set cipher list during reload: %s",
+                  ERR_error_string(ERR_get_error(), NULL));
+        SSL_CTX_free(new_ctx);
+        return -1;
+    }
 
     /* Atomically swap the context */
     SSL_CTX *old_ctx = tls->ctx;

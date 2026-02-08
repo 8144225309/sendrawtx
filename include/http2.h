@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <sys/time.h>
 #include <event2/bufferevent.h>
 
 /* Forward declarations */
@@ -47,6 +48,12 @@ typedef struct H2Stream {
     /* Request body */
     size_t content_length;
     size_t body_received;
+
+    /* Per-stream request tracking */
+    char request_id[32];           /* Per-stream request ID */
+    struct timeval start_time;     /* Stream start time for latency */
+    int response_status;           /* HTTP status code sent */
+    size_t response_bytes;         /* Response body size */
 
     /* Response body source (for cleanup) */
     void *body_source;
@@ -121,10 +128,5 @@ void h2_stream_free(H2Connection *h2, H2Stream *stream);
 int h2_send_response(struct Connection *conn, int32_t stream_id,
                      int status_code, const char *content_type,
                      const unsigned char *body, size_t body_len);
-
-/*
- * Send HTTP/2 error response (RST_STREAM with error code).
- */
-int h2_send_error(struct Connection *conn, int32_t stream_id, uint32_t error_code);
 
 #endif /* HTTP2_H */
