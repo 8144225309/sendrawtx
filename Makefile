@@ -42,6 +42,7 @@ SRCS = $(SRC_DIR)/main.c \
        $(SRC_DIR)/rate_limiter.c \
        $(SRC_DIR)/ip_acl.c \
        $(SRC_DIR)/tls.c \
+       $(SRC_DIR)/endpoints.c \
        $(SRC_DIR)/http2.c \
        $(SRC_DIR)/security.c \
        $(SRC_DIR)/network.c \

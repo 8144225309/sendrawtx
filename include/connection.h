@@ -140,10 +140,4 @@ void connection_send_response(Connection *conn, int status_code,
 void connection_send_error(Connection *conn, int status_code,
                            const char *status_text);
 
-/*
- * Set up callbacks for a connection.
- * Used by TLS accept to configure bufferevent callbacks.
- */
-void connection_set_callbacks(Connection *conn);
-
 #endif /* CONNECTION_H */
