@@ -451,7 +451,7 @@ static int h2_on_header_callback(nghttp2_session *session,
                                           stream->stream_id, NGHTTP2_REFUSED_STREAM);
                 h2->worker->h2_rst_stream_total++;
                 h2->worker->errors_parse++;
-                return 0;
+                return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
             }
         }
 
@@ -466,7 +466,7 @@ static int h2_on_header_callback(nghttp2_session *session,
                 nghttp2_submit_rst_stream(session, NGHTTP2_FLAG_NONE,
                                           stream->stream_id, NGHTTP2_REFUSED_STREAM);
                 h2->worker->h2_rst_stream_total++;
-                return 0;
+                return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
             }
             stream->tier = required;
             log_debug("HTTP/2: Promoted stream %d to %s tier (path len %zu)",
@@ -546,7 +546,7 @@ int h2_connection_init(Connection *conn)
     /* CVE-2023-44487: Rapid Reset attack protection.
      * Limit stream reset rate to 1000 resets per 33 second window. */
 #ifdef NGHTTP2_VERSION_NUM
-#if NGHTTP2_VERSION_NUM >= 0x013b00  /* 1.59.0 */
+#if NGHTTP2_VERSION_NUM >= 0x013900  /* 1.57.0 */
     nghttp2_option_set_stream_reset_rate_limit(option, 1000, 33);
 #endif
 #endif
@@ -554,21 +554,21 @@ int h2_connection_init(Connection *conn)
     /* CVE-2024-28182: CONTINUATION flood protection.
      * Limit CONTINUATION frames per HEADERS sequence. */
 #ifdef NGHTTP2_VERSION_NUM
-#if NGHTTP2_VERSION_NUM >= 0x013c00  /* 1.60.0 */
+#if NGHTTP2_VERSION_NUM >= 0x013d00  /* 1.61.0 */
     nghttp2_option_set_max_continuations(option, 8);
 #endif
 #endif
 
-    /* SETTINGS flood protection */
+    /* SETTINGS flood protection (CVE-2020-11080) */
 #ifdef NGHTTP2_VERSION_NUM
-#if NGHTTP2_VERSION_NUM >= 0x012600  /* 1.38.0 */
+#if NGHTTP2_VERSION_NUM >= 0x012900  /* 1.41.0 */
     nghttp2_option_set_max_settings(option, 32);
 #endif
 #endif
 
-    /* Ping/SETTINGS ACK flood protection */
+    /* Ping/SETTINGS ACK flood protection (CVE-2019-9512/CVE-2019-9515) */
 #ifdef NGHTTP2_VERSION_NUM
-#if NGHTTP2_VERSION_NUM >= 0x012600  /* 1.38.0 */
+#if NGHTTP2_VERSION_NUM >= 0x012702  /* 1.39.2 */
     nghttp2_option_set_max_outbound_ack(option, 1000);
 #endif
 #endif

@@ -113,6 +113,11 @@ int generate_health_body(WorkerProcess *worker, char *buf, size_t bufsize)
         max_fds,
         fd_usage_pct);
 
+    if (body_len < 0)
+        return 0;
+    if ((size_t)body_len >= bufsize)
+        body_len = (int)(bufsize - 1);
+
     return body_len;
 }
 

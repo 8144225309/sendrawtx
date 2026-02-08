@@ -168,7 +168,7 @@ int tls_context_init(TLSContext *tls, const Config *config)
 
     /* Explicit cipher list - Mozilla Intermediate profile.
      * Ensures only strong ciphers with forward secrecy. */
-    SSL_CTX_set_cipher_list(tls->ctx,
+    if (SSL_CTX_set_cipher_list(tls->ctx,
         "ECDHE-ECDSA-AES128-GCM-SHA256:"
         "ECDHE-RSA-AES128-GCM-SHA256:"
         "ECDHE-ECDSA-AES256-GCM-SHA384:"
@@ -176,7 +176,13 @@ int tls_context_init(TLSContext *tls, const Config *config)
         "ECDHE-ECDSA-CHACHA20-POLY1305:"
         "ECDHE-RSA-CHACHA20-POLY1305:"
         "DHE-RSA-AES128-GCM-SHA256:"
-        "DHE-RSA-AES256-GCM-SHA384");
+        "DHE-RSA-AES256-GCM-SHA384") != 1) {
+        log_error("Failed to set cipher list: %s",
+                  ERR_error_string(ERR_get_error(), NULL));
+        SSL_CTX_free(tls->ctx);
+        tls->ctx = NULL;
+        return -1;
+    }
 
     log_info("TLS context initialized (HTTP/2: %s)",
              tls->http2_enabled ? "enabled" : "disabled");
@@ -344,7 +350,7 @@ int tls_context_reload(TLSContext *tls, const Config *config)
 #endif
 
     /* Mozilla Intermediate cipher list */
-    SSL_CTX_set_cipher_list(new_ctx,
+    if (SSL_CTX_set_cipher_list(new_ctx,
         "ECDHE-ECDSA-AES128-GCM-SHA256:"
         "ECDHE-RSA-AES128-GCM-SHA256:"
         "ECDHE-ECDSA-AES256-GCM-SHA384:"
@@ -352,7 +358,12 @@ int tls_context_reload(TLSContext *tls, const Config *config)
         "ECDHE-ECDSA-CHACHA20-POLY1305:"
         "ECDHE-RSA-CHACHA20-POLY1305:"
         "DHE-RSA-AES128-GCM-SHA256:"
-        "DHE-RSA-AES256-GCM-SHA384");
+        "DHE-RSA-AES256-GCM-SHA384") != 1) {
+        log_error("Failed to set cipher list during reload: %s",
+                  ERR_error_string(ERR_get_error(), NULL));
+        SSL_CTX_free(new_ctx);
+        return -1;
+    }
 
     /* Atomically swap the context */
     SSL_CTX *old_ctx = tls->ctx;
