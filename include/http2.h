@@ -51,7 +51,7 @@ typedef struct H2Stream {
 
     /* Per-stream request tracking */
     char request_id[32];           /* Per-stream request ID */
-    struct timeval start_time;     /* Stream start time for latency */
+    struct timespec start_time;    /* Stream start time for latency */
     int response_status;           /* HTTP status code sent */
     size_t response_bytes;         /* Response body size */
 

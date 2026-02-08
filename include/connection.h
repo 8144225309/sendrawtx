@@ -90,10 +90,10 @@ typedef struct Connection {
     struct H2Connection *h2;     /* HTTP/2 session state */
 
     /* Timing */
-    struct timeval start_time;
+    struct timespec start_time;
 
     /* Slowloris protection - throughput tracking */
-    struct timeval last_progress_time;  /* Last time we checked throughput */
+    struct timespec last_progress_time;  /* Last time we checked throughput */
     size_t bytes_at_last_check;         /* Bytes received at last check */
 
     /* Request tracking (Phase 5) */

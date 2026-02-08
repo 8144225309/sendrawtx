@@ -206,7 +206,7 @@ static int connection_init_common(Connection *conn, struct WorkerProcess *worker
     conn->ssl = NULL;
     conn->tls_handshake_done = false;
     conn->h2 = NULL;
-    gettimeofday(&conn->start_time, NULL);
+    clock_gettime(CLOCK_MONOTONIC, &conn->start_time);
 
     /* Slowloris protection - initialize throughput tracking */
     conn->last_progress_time = conn->start_time;
@@ -216,7 +216,7 @@ static int connection_init_common(Connection *conn, struct WorkerProcess *worker
     static uint32_t request_counter = 0;
     snprintf(conn->request_id, sizeof(conn->request_id), "%d-%lx-%x",
              worker->worker_id,
-             (unsigned long)(conn->start_time.tv_sec * 1000000 + conn->start_time.tv_usec),
+             (unsigned long)(conn->start_time.tv_sec * 1000000 + conn->start_time.tv_nsec / 1000),
              request_counter++);
 
     /* Initialize response tracking */
@@ -930,12 +930,12 @@ static void conn_read_cb(struct bufferevent *bev, void *ctx)
     }
 
     /* Slowloris protection - applies to ALL protocols (HTTP/1.1 and HTTP/2) */
-    struct timeval now;
-    gettimeofday(&now, NULL);
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
 
     /* Check 1: Maximum total connection time */
     double total_elapsed = (now.tv_sec - conn->start_time.tv_sec) +
-                           (now.tv_usec - conn->start_time.tv_usec) / 1000000.0;
+                           (now.tv_nsec - conn->start_time.tv_nsec) / 1e9;
     if (total_elapsed > MAX_REQUEST_TIME_SEC) {
         log_warn("Slowloris: Connection exceeded max time (%.1fs) from %s [%s]",
                  total_elapsed, log_format_ip(conn->client_ip),
@@ -946,7 +946,7 @@ static void conn_read_cb(struct bufferevent *bev, void *ctx)
 
     /* Check 2: Minimum throughput (every THROUGHPUT_CHECK_INTERVAL_SEC) */
     double check_elapsed = (now.tv_sec - conn->last_progress_time.tv_sec) +
-                           (now.tv_usec - conn->last_progress_time.tv_usec) / 1000000.0;
+                           (now.tv_nsec - conn->last_progress_time.tv_nsec) / 1e9;
     if (check_elapsed >= THROUGHPUT_CHECK_INTERVAL_SEC) {
         size_t bytes_this_period = available - conn->bytes_at_last_check;
         if (available < conn->bytes_at_last_check ||
@@ -1141,7 +1141,7 @@ static void connection_reset_for_keepalive(Connection *conn)
     }
 
     /* Reset timing for next request */
-    gettimeofday(&conn->start_time, NULL);
+    clock_gettime(CLOCK_MONOTONIC, &conn->start_time);
     conn->last_progress_time = conn->start_time;
     conn->bytes_at_last_check = 0;
 
@@ -1163,10 +1163,10 @@ static void log_request_complete(Connection *conn)
     WorkerProcess *worker = conn->worker;
 
     /* Calculate duration */
-    struct timeval now;
-    gettimeofday(&now, NULL);
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
     double duration_ms = (now.tv_sec - conn->start_time.tv_sec) * 1000.0 +
-                         (now.tv_usec - conn->start_time.tv_usec) / 1000.0;
+                         (now.tv_nsec - conn->start_time.tv_nsec) / 1e6;
     double duration_sec = duration_ms / 1000.0;
 
     /* Update metrics */
