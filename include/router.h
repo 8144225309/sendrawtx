@@ -20,6 +20,7 @@ typedef enum {
     ROUTE_READY,           /* /ready → readiness probe */
     ROUTE_ALIVE,           /* /alive → liveness probe */
     ROUTE_METRICS,         /* /metrics → Prometheus metrics */
+    ROUTE_VERSION,         /* /version → version info */
     ROUTE_ACME_CHALLENGE   /* /.well-known/acme-challenge/{token} */
 } RouteType;
 
@@ -27,6 +28,7 @@ typedef enum {
  * Determine route for a request path.
  *
  * Routing logic:
+ * - / → ROUTE_HOME
  * - /tx/{64-hex-chars} → ROUTE_RESULT
  * - /{64-hex-chars} → ROUTE_RESULT (bare txid)
  * - /{>64-hex-chars} → ROUTE_BROADCAST (raw tx)

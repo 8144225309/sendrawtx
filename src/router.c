@@ -30,6 +30,9 @@ RouteType route_request(const char *path, size_t path_len)
     if (content_len == 5 && strncmp(content, "ready", 5) == 0) {
         return ROUTE_READY;
     }
+    if (content_len == 7 && strncmp(content, "version", 7) == 0) {
+        return ROUTE_VERSION;
+    }
     if (content_len == 5 && strncmp(content, "alive", 5) == 0) {
         return ROUTE_ALIVE;
     }
