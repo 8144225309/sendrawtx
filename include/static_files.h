@@ -19,6 +19,7 @@ typedef struct StaticFile {
  * Each worker loads its own copy (no locking needed).
  */
 typedef struct StaticFiles {
+    StaticFile index;        /* index.html - home/welcome page */
     StaticFile broadcast;    /* broadcast.html - raw tx submission */
     StaticFile result;       /* result.html - txid status page */
     StaticFile error;        /* error.html - error page */

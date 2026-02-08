@@ -18,9 +18,9 @@ RouteType route_request(const char *path, size_t path_len)
     const char *content = path + 1;
     size_t content_len = path_len - 1;
 
-    /* Empty path after slash */
+    /* Empty path after slash = home page */
     if (content_len == 0) {
-        return ROUTE_ERROR;
+        return ROUTE_HOME;
     }
 
     /* Check for observability endpoints first */
