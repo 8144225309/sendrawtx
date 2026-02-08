@@ -71,10 +71,10 @@ H2Stream *h2_stream_new(H2Connection *h2, int32_t stream_id)
     stream->slot_acquired = false;
 
     /* Per-stream request tracking */
-    gettimeofday(&stream->start_time, NULL);
+    clock_gettime(CLOCK_MONOTONIC, &stream->start_time);
     snprintf(stream->request_id, sizeof(stream->request_id), "%d-%lx-%xs%d",
              h2->worker->worker_id,
-             (unsigned long)(stream->start_time.tv_sec * 1000000 + stream->start_time.tv_usec),
+             (unsigned long)(stream->start_time.tv_sec * 1000000 + stream->start_time.tv_nsec / 1000),
              h2_request_counter++, stream_id);
 
     /* Add to list */
@@ -350,10 +350,10 @@ static int h2_on_stream_close_callback(nghttp2_session *session,
         /* Access logging for HTTP/2 streams */
         if (stream->response_status > 0) {
             WorkerProcess *worker = h2->worker;
-            struct timeval now;
-            gettimeofday(&now, NULL);
+            struct timespec now;
+            clock_gettime(CLOCK_MONOTONIC, &now);
             double duration_ms = (now.tv_sec - stream->start_time.tv_sec) * 1000.0 +
-                                 (now.tv_usec - stream->start_time.tv_usec) / 1000.0;
+                                 (now.tv_nsec - stream->start_time.tv_nsec) / 1e6;
             double duration_sec = duration_ms / 1000.0;
 
             update_latency_histogram(worker, duration_sec);

@@ -72,7 +72,8 @@ typedef struct WorkerProcess {
     int active_connections;
 
     /* Process info (Phase 5 metrics) */
-    struct timeval start_time;         /* Worker start time for uptime */
+    struct timespec start_time;        /* Worker start time for uptime (monotonic) */
+    time_t start_wallclock;            /* Wall-clock epoch for Prometheus metrics */
 
     /* Request latency histogram (Phase 5)
      * Buckets: 1ms, 5ms, 10ms, 50ms, 100ms, 500ms, 1s, 5s, +Inf */

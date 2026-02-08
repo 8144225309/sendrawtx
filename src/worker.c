@@ -571,7 +571,8 @@ void worker_main(int worker_id, Config *config)
     worker.cpu_core = worker_id % get_num_cpus();
 
     /* Record start time for uptime metric */
-    gettimeofday(&worker.start_time, NULL);
+    clock_gettime(CLOCK_MONOTONIC, &worker.start_time);
+    worker.start_wallclock = time(NULL);
 
     /* Pin to CPU */
     if (pin_to_cpu(worker.cpu_core) == 0) {

@@ -58,8 +58,8 @@ static int get_max_fds(void)
 int generate_health_body(WorkerProcess *worker, char *buf, size_t bufsize)
 {
     /* Calculate uptime */
-    struct timeval now;
-    gettimeofday(&now, NULL);
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
     long uptime_sec = now.tv_sec - worker->start_time.tv_sec;
 
     /* Get FD counts */
@@ -73,7 +73,7 @@ int generate_health_body(WorkerProcess *worker, char *buf, size_t bufsize)
     int cert_days_remaining = 0;
     int cert_warning = 0;
     if (cert_expiry > 0) {
-        cert_days_remaining = (int)((cert_expiry - now.tv_sec) / 86400);
+        cert_days_remaining = (int)((cert_expiry - time(NULL)) / 86400);
         cert_warning = (cert_days_remaining < 30) ? 1 : 0;
     }
 
@@ -141,10 +141,10 @@ int generate_metrics_body(WorkerProcess *worker, char *buf, size_t bufsize)
     } while(0)
 
     /* Calculate uptime */
-    struct timeval now;
-    gettimeofday(&now, NULL);
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
     double uptime_sec = (now.tv_sec - worker->start_time.tv_sec) +
-                        (now.tv_usec - worker->start_time.tv_usec) / 1000000.0;
+                        (now.tv_nsec - worker->start_time.tv_nsec) / 1e9;
 
     /* Get FD counts */
     int open_fds = get_open_fds();
@@ -263,7 +263,7 @@ int generate_metrics_body(WorkerProcess *worker, char *buf, size_t bufsize)
         "# TYPE rawrelay_process_uptime_seconds gauge\n"
         "rawrelay_process_uptime_seconds{worker=\"%d\"} %.3f\n"
         "\n",
-        worker->worker_id, (long)worker->start_time.tv_sec,
+        worker->worker_id, (long)worker->start_wallclock,
         worker->worker_id, uptime_sec);
     METRICS_ADVANCE();
 
