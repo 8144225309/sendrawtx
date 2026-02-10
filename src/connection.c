@@ -898,9 +898,8 @@ static void process_request(Connection *conn)
             break;
         case ROUTE_ERROR:
         default:
-            file = &worker->static_files.error;
-            status_code = 400;
-            status_text = "Bad Request";
+            /* SPA fallback: serve index.html so React Router handles the path */
+            file = &worker->static_files.index;
             break;
     }
 

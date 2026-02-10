@@ -53,7 +53,7 @@ OBJS = $(SRCS:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 # Main target
 TARGET = rawrelay-server
 
-.PHONY: all clean valgrind help check-libevent install uninstall
+.PHONY: all clean valgrind help check-libevent install uninstall build-frontend
 
 all: check-libevent $(TARGET)
 
@@ -100,6 +100,13 @@ run1: $(TARGET)
 run: $(TARGET)
 	./$(TARGET)
 
+# Build React frontend and copy to static/
+build-frontend:
+	cd frontend && npm install && npm run build
+	cp frontend/dist/index.html static/index.html
+	cp frontend/dist/broadcast.html static/broadcast.html
+	cp frontend/dist/result.html static/result.html
+
 # Clean build artifacts
 clean:
 	rm -rf $(BUILD_DIR) $(TARGET)
@@ -139,6 +146,7 @@ help:
 	@echo "  run1             Run server with 1 worker (for debugging)"
 	@echo "  valgrind         Run config test with valgrind"
 	@echo "  deps             Install build dependencies (apt)"
+	@echo "  build-frontend   Build React frontend into static/"
 	@echo "  clean            Remove build artifacts"
 	@echo "  help             Show this help message"
 	@echo ""
