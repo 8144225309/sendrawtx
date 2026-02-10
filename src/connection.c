@@ -633,6 +633,36 @@ static void serve_ready(Connection *conn)
     bufferevent_enable(conn->bev, EV_WRITE);
 }
 
+
+/*
+* Serve /version endpoint - returns version info in JSON.
+* Returns 200 if healthy.
+*/
+static void serve_version(Connection *conn)
+{
+    struct evbuffer *output = bufferevent_get_output(conn->bev);
+    char body[256];
+    int body_len = snprintf(body, sizeof(body), "{\"version\":\"0.1.0\"}");
+
+    conn->state = CONN_STATE_WRITING_RESPONSE;
+
+    evbuffer_add_printf(output,
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: application/json\r\n"
+        "Content-Length: %d\r\n"
+        "Cache-Control: no-store\r\n"
+        "X-Request-ID: %s\r\n"
+        "Connection: %s\r\n"
+        "\r\n%s",
+        body_len, conn->request_id,
+        conn->keep_alive ? "keep-alive" : "close", body);
+
+    conn->response_status = 200;
+    conn->response_bytes = body_len;
+    conn->state = conn->keep_alive ? CONN_STATE_WRITING_RESPONSE : CONN_STATE_CLOSING;
+    bufferevent_enable(conn->bev, EV_WRITE);
+}
+
 /*
  * Serve /alive endpoint - liveness probe.
  * Always returns 200 if the process is running.
@@ -838,6 +868,9 @@ static void process_request(Connection *conn)
             return;
         case ROUTE_READY:
             serve_ready(conn);
+            return;
+        case ROUTE_VERSION:
+            serve_version(conn);
             return;
         case ROUTE_ALIVE:
             serve_alive(conn);
