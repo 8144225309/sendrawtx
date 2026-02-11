@@ -3032,7 +3032,11 @@ function updateStatusBar() {
 
   if (val.length === 0) {
     leftEl.innerHTML = '';
-    rightEl.innerHTML = '';
+    if (broadcastMode === 'broadcast') {
+      rightEl.innerHTML = '<button class="btn btn-primary" disabled><span>Broadcast</span> ' + icon('ArrowRight', 20, '#666') + '</button>';
+    } else {
+      rightEl.innerHTML = '';
+    }
     return;
   }
 
