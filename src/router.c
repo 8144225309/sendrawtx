@@ -40,6 +40,17 @@ RouteType route_request(const char *path, size_t path_len)
         return ROUTE_METRICS;
     }
 
+    /* Check for static page routes */
+    if (content_len == 4 && strncmp(content, "docs", 4) == 0) {
+        return ROUTE_DOCS;
+    }
+    if (content_len == 6 && strncmp(content, "status", 6) == 0) {
+        return ROUTE_STATUS;
+    }
+    if (content_len == 5 && strncmp(content, "logos", 5) == 0) {
+        return ROUTE_LOGOS;
+    }
+
     /* Check for ACME HTTP-01 challenge path */
     /* Format: /.well-known/acme-challenge/{token} */
     if (content_len > 27 && strncmp(content, ".well-known/acme-challenge/", 27) == 0) {

@@ -223,6 +223,27 @@ int static_files_load(StaticFiles *files, const char *dir, const Config *config)
         return -1;
     }
 
+    /* Load docs.html */
+    snprintf(path, sizeof(path), "%s/docs.html", dir);
+    if (load_file(&files->docs, path, "text/html; charset=utf-8") < 0) {
+        static_files_free(files);
+        return -1;
+    }
+
+    /* Load status.html */
+    snprintf(path, sizeof(path), "%s/status.html", dir);
+    if (load_file(&files->status, path, "text/html; charset=utf-8") < 0) {
+        static_files_free(files);
+        return -1;
+    }
+
+    /* Load logos.html */
+    snprintf(path, sizeof(path), "%s/logos.html", dir);
+    if (load_file(&files->logos, path, "text/html; charset=utf-8") < 0) {
+        static_files_free(files);
+        return -1;
+    }
+
     /* Inject network banner for non-mainnet chains */
     if (config && network_is_test_network(config->chain)) {
         log_info("Injecting %s banner into HTML files",
@@ -231,7 +252,10 @@ int static_files_load(StaticFiles *files, const char *dir, const Config *config)
         if (inject_banner_into_file(&files->index, config->chain) < 0 ||
             inject_banner_into_file(&files->broadcast, config->chain) < 0 ||
             inject_banner_into_file(&files->result, config->chain) < 0 ||
-            inject_banner_into_file(&files->error, config->chain) < 0) {
+            inject_banner_into_file(&files->error, config->chain) < 0 ||
+            inject_banner_into_file(&files->docs, config->chain) < 0 ||
+            inject_banner_into_file(&files->status, config->chain) < 0 ||
+            inject_banner_into_file(&files->logos, config->chain) < 0) {
             log_error("Failed to inject network banner");
             static_files_free(files);
             return -1;
@@ -247,4 +271,7 @@ void static_files_free(StaticFiles *files)
     free_file(&files->broadcast);
     free_file(&files->result);
     free_file(&files->error);
+    free_file(&files->docs);
+    free_file(&files->status);
+    free_file(&files->logos);
 }
