@@ -30,11 +30,25 @@ RouteType route_request(const char *path, size_t path_len)
     if (content_len == 5 && strncmp(content, "ready", 5) == 0) {
         return ROUTE_READY;
     }
+    if (content_len == 7 && strncmp(content, "version", 7) == 0) {
+        return ROUTE_VERSION;
+    }
     if (content_len == 5 && strncmp(content, "alive", 5) == 0) {
         return ROUTE_ALIVE;
     }
     if (content_len == 7 && strncmp(content, "metrics", 7) == 0) {
         return ROUTE_METRICS;
+    }
+
+    /* Check for static page routes */
+    if (content_len == 4 && strncmp(content, "docs", 4) == 0) {
+        return ROUTE_DOCS;
+    }
+    if (content_len == 6 && strncmp(content, "status", 6) == 0) {
+        return ROUTE_STATUS;
+    }
+    if (content_len == 5 && strncmp(content, "logos", 5) == 0) {
+        return ROUTE_LOGOS;
     }
 
     /* Check for ACME HTTP-01 challenge path */

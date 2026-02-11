@@ -273,10 +273,28 @@ static void h2_process_stream_request(Connection *conn, H2Stream *stream)
             h2_send_response(conn, stream->stream_id, status_code, file->content_type,
                              (const unsigned char *)file->content, file->length);
             break;
+        case ROUTE_DOCS:
+            file = &worker->static_files.docs;
+            body_len = file->length;
+            h2_send_response(conn, stream->stream_id, status_code, file->content_type,
+                             (const unsigned char *)file->content, file->length);
+            break;
+        case ROUTE_STATUS:
+            file = &worker->static_files.status;
+            body_len = file->length;
+            h2_send_response(conn, stream->stream_id, status_code, file->content_type,
+                             (const unsigned char *)file->content, file->length);
+            break;
+        case ROUTE_LOGOS:
+            file = &worker->static_files.logos;
+            body_len = file->length;
+            h2_send_response(conn, stream->stream_id, status_code, file->content_type,
+                             (const unsigned char *)file->content, file->length);
+            break;
         case ROUTE_ERROR:
         default:
+            status_code = 404;
             file = &worker->static_files.error;
-            status_code = 400;
             body_len = file->length;
             h2_send_response(conn, stream->stream_id, status_code, file->content_type,
                              (const unsigned char *)file->content, file->length);

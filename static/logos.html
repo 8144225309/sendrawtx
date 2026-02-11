@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Logo Concepts - sendrawtx</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:#0f0f0f;color:#e0e0e0;min-height:100vh;display:flex;flex-direction:column;
+  line-height:1.6;
+}
+a{color:#f7931a;text-decoration:none}
+a:hover{text-decoration:underline}
+code,.mono{font-family:'SF Mono',Consolas,'Liberation Mono',Menlo,monospace}
+.container{max-width:1152px;margin:0 auto;padding:0 16px;width:100%}
+@media(min-width:640px){.container{padding:0 24px}}
+
+/* Header */
+.header{position:sticky;top:0;z-index:50;background:rgba(15,15,15,.95);backdrop-filter:blur(8px);border-bottom:1px solid #1a1a1a}
+.header-inner{display:flex;align-items:center;justify-content:space-between;height:64px}
+.logo-link{display:flex;align-items:center;gap:8px}
+.logo-link:hover{text-decoration:none}
+.site-name{font-size:18px;font-weight:700;color:#fff;font-family:'SF Mono',Consolas,monospace}
+.logo-link:hover .site-name{color:#f7931a}
+nav{display:flex;align-items:center;gap:4px}
+.nav-link{display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:8px;font-size:14px;font-weight:500;color:#a0a0a0;transition:all .15s}
+.nav-link:hover{color:#fff;background:#1a1a1a;text-decoration:none}
+.nav-link.active{color:#fff;background:#1a1a1a}
+.nav-label{display:none}
+@media(min-width:640px){.nav-label{display:inline}}
+
+/* Logo grid */
+.logo-card{display:flex;flex-direction:column;align-items:center;gap:12px}
+.logo-box{width:96px;height:96px;border-radius:12px;background:#1a1a1a;border:1px solid #333;padding:12px;transition:border-color .2s}
+.logo-box:hover{border-color:#f7931a}
+.logo-box svg{width:100%;height:100%}
+.logo-name{font-size:12px;color:#666;text-align:center}
+.logo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px}
+@media(min-width:640px){.logo-grid{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:768px){.logo-grid{grid-template-columns:repeat(4,1fr)}}
+.section-title-lg{font-size:20px;font-weight:700;color:#fff;margin-top:48px;margin-bottom:24px;padding-bottom:12px;border-bottom:1px solid #252525}
+
+/* Footer */
+.footer{margin-top:auto;border-top:1px solid #1a1a1a;background:#0f0f0f;padding:32px 0}
+.footer-inner{display:flex;flex-direction:column;align-items:center;gap:16px}
+@media(min-width:640px){.footer-inner{flex-direction:row;justify-content:space-between}}
+.footer-links{display:flex;align-items:center;gap:16px}
+.footer-link{display:flex;align-items:center;gap:8px;font-size:14px;color:#a0a0a0;transition:color .15s}
+.footer-link:hover{color:#fff;text-decoration:none}
+.footer-credit{font-size:12px;color:#666;text-align:center;margin-top:24px;padding-top:24px;border-top:1px solid #1a1a1a}
+
+/* Network banner */
+.network-banner{padding:8px 16px;text-align:center;font-size:13px;font-weight:600;letter-spacing:0.5px}
+.network-banner-testnet{background:#7c3aed;color:#fff}
+.network-banner-signet{background:#2563eb;color:#fff}
+.network-banner-regtest{background:#059669;color:#fff}
+</style>
+</head>
+<body>
+<!-- NETWORK_BANNER -->
+
+<!-- Header -->
+<header class="header">
+<div class="container header-inner">
+  <a href="/" class="logo-link">
+    <svg viewBox="0 0 100 100" style="width:56px;height:56px">
+      <polygon points="50,2 93,26 93,74 50,98 7,74 7,26" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.1"/>
+      <polygon points="50,8 87,29 87,71 50,92 13,71 13,29" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.2"/>
+      <polygon points="50,14 81,32 81,68 50,86 19,68 19,32" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.35"/>
+      <polygon points="50,20 75,35 75,65 50,80 25,65 25,35" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.55"/>
+      <polygon points="50,26 69,38 69,62 50,74 31,62 31,38" fill="none" stroke="#f7931a" stroke-width="2.5" opacity="0.8"/>
+      <text x="50" y="58" text-anchor="middle" font-size="20" font-weight="bold" fill="#f7931a" font-family="Georgia,serif">TX</text>
+    </svg>
+    <span class="site-name" id="siteName"></span>
+  </a>
+  <nav>
+    <a href="/" class="nav-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span class="nav-label">Broadcast</span></a>
+    <a href="/docs" class="nav-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg><span class="nav-label">API Docs</span></a>
+    <a href="/status" class="nav-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="nav-label">Status</span></a>
+  </nav>
+</div>
+</header>
+
+<!-- Main Content -->
+<main style="flex:1">
+<div class="container" style="padding-top:32px;padding-bottom:64px">
+  <h1 style="font-size:30px;font-weight:700;color:#fff;margin-bottom:8px">Logo Concepts</h1>
+  <p style="color:#a0a0a0;margin-bottom:32px">Exploring logo options for a Bitcoin transaction broadcast service. Each logo is pure SVG &mdash; no external images.</p>
+  <div id="logos-grid"></div>
+</div>
+</main>
+
+<!-- Footer -->
+<footer class="footer">
+<div class="container">
+  <div class="footer-inner">
+    <div>
+      <p style="font-size:14px;color:#a0a0a0"><span style="color:#fff;font-weight:500" class="mono" id="footerSiteName"></span> - Bitcoin raw transaction broadcast service</p>
+      <p style="font-size:12px;color:#666;margin-top:4px">Specializing in non-standard transactions that other services reject</p>
+    </div>
+    <div class="footer-links">
+      <a href="https://github.com/8144225309/sendrawtx" target="_blank" rel="noopener noreferrer" class="footer-link">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        <span>GitHub</span>
+      </a>
+      <a href="https://mempool.space" target="_blank" rel="noopener noreferrer" class="footer-link">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        <span>mempool.space</span>
+      </a>
+    </div>
+  </div>
+  <div class="footer-credit">Built with Bitcoin Core, Knots, and Libre Relay</div>
+</div>
+</footer>
+
+<script>
+(function() {
+'use strict';
+
+var host = window.location.host.replace(/^www\./, '');
+document.getElementById('siteName').textContent = host;
+document.getElementById('footerSiteName').textContent = host;
+
+function esc(s) {
+  var d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function logoSvg(inner) {
+  return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' + inner + '</svg>';
+}
+
+function logoCard(name, svg) {
+  return '<div class="logo-card"><div class="logo-box">' + logoSvg(svg) + '</div><div class="logo-name">' + esc(name) + '</div></div>';
+}
+
+function gridSection(title, items) {
+  var h = '<h2 class="section-title-lg">' + esc(title) + '</h2><div class="logo-grid">';
+  for (var i = 0; i < items.length; i++) {
+    h += logoCard(items[i][0], items[i][1]);
+  }
+  return h + '</div>';
+}
+
+function hexPolygons(sw) {
+  sw = sw || '2';
+  return '<polygon points="50,2 93,26 93,74 50,98 7,74 7,26" fill="none" stroke="#f7931a" stroke-width="' + sw + '" opacity="0.1"/>' +
+    '<polygon points="50,8 87,29 87,71 50,92 13,71 13,29" fill="none" stroke="#f7931a" stroke-width="' + sw + '" opacity="0.2"/>' +
+    '<polygon points="50,14 81,32 81,68 50,86 19,68 19,32" fill="none" stroke="#f7931a" stroke-width="' + sw + '" opacity="0.35"/>' +
+    '<polygon points="50,20 75,35 75,65 50,80 25,65 25,35" fill="none" stroke="#f7931a" stroke-width="' + sw + '" opacity="0.55"/>' +
+    '<polygon points="50,26 69,38 69,62 50,74 31,62 31,38" fill="none" stroke="#f7931a" stroke-width="2.5" opacity="0.8"/>';
+}
+
+function filledHexPolygons() {
+  return '<polygon points="50,2 93,26 93,74 50,98 7,74 7,26" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.1"/>' +
+    '<polygon points="50,8 87,29 87,71 50,92 13,71 13,29" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.2"/>' +
+    '<polygon points="50,14 81,32 81,68 50,86 19,68 19,32" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.35"/>' +
+    '<polygon points="50,20 75,35 75,65 50,80 25,65 25,35" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.55"/>' +
+    '<polygon points="50,26 69,38 69,62 50,74 31,62 31,38" fill="#f7931a"/>';
+}
+
+var html = '';
+
+/* Initial Concepts (14 logos) */
+html += gridSection('Initial Concepts', [
+  ['Bitcoin + Broadcast', '<circle cx="50" cy="50" r="44" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.3"/><circle cx="50" cy="50" r="36" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.5"/><circle cx="50" cy="50" r="28" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.7"/><text x="50" y="56" text-anchor="middle" font-size="24" font-weight="bold" fill="#f7931a" font-family="Georgia,serif">B</text>'],
+  ['TX Hexagon', '<polygon points="50,5 90,27.5 90,72.5 50,95 10,72.5 10,27.5" fill="none" stroke="#f7931a" stroke-width="2"/><text x="50" y="58" text-anchor="middle" font-size="24" font-weight="bold" fill="#f7931a" font-family="monospace">TX</text>'],
+  ['Arrow Piercing', '<rect x="15" y="35" width="70" height="14" rx="2" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.5"/><rect x="15" y="52" width="70" height="14" rx="2" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.5"/><line x1="10" y1="50" x2="90" y2="50" stroke="#f7931a" stroke-width="3"/><polygon points="85,42 95,50 85,58" fill="#f7931a"/>'],
+  ['Radar Ping', '<circle cx="50" cy="50" r="8" fill="#f7931a"/><circle cx="50" cy="50" r="20" fill="none" stroke="#f7931a" stroke-width="1.5" opacity="0.6"/><circle cx="50" cy="50" r="32" fill="none" stroke="#f7931a" stroke-width="1.5" opacity="0.4"/><circle cx="50" cy="50" r="44" fill="none" stroke="#f7931a" stroke-width="1.5" opacity="0.2"/>'],
+  ['Paper Plane', '<polygon points="10,50 50,35 90,50 50,90" fill="none" stroke="#f7931a" stroke-width="2"/><line x1="50" y1="35" x2="50" y2="90" stroke="#f7931a" stroke-width="2" opacity="0.5"/><line x1="10" y1="50" x2="50" y2="90" stroke="#f7931a" stroke-width="2" opacity="0.5"/>'],
+  ['Node Mesh', '<circle cx="25" cy="30" r="6" fill="#f7931a" opacity="0.6"/><circle cx="75" cy="30" r="6" fill="#f7931a" opacity="0.6"/><circle cx="50" cy="70" r="6" fill="#f7931a" opacity="0.6"/><circle cx="50" cy="50" r="8" fill="#f7931a"/><line x1="50" y1="50" x2="25" y2="30" stroke="#f7931a" stroke-width="2" opacity="0.5"/><line x1="50" y1="50" x2="75" y2="30" stroke="#f7931a" stroke-width="2" opacity="0.5"/><line x1="50" y1="50" x2="50" y2="70" stroke="#f7931a" stroke-width="2" opacity="0.5"/>'],
+  ['Rocket', '<polygon points="50,10 35,70 50,60 65,70" fill="none" stroke="#f7931a" stroke-width="2"/><line x1="35" y1="70" x2="30" y2="80" stroke="#f7931a" stroke-width="2" opacity="0.5"/><line x1="65" y1="70" x2="70" y2="80" stroke="#f7931a" stroke-width="2" opacity="0.5"/><line x1="50" y1="60" x2="50" y2="90" stroke="#f7931a" stroke-width="2" opacity="0.3"/>'],
+  ['Target', '<circle cx="50" cy="50" r="40" fill="none" stroke="#f7931a" stroke-width="1.5" opacity="0.3"/><circle cx="50" cy="50" r="28" fill="none" stroke="#f7931a" stroke-width="1.5" opacity="0.5"/><circle cx="50" cy="50" r="16" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.7"/><circle cx="50" cy="50" r="4" fill="#f7931a"/>'],
+  ['Raw Diamond', '<polygon points="50,10 85,40 70,85 30,85 15,40" fill="none" stroke="#f7931a" stroke-width="2"/><line x1="15" y1="40" x2="85" y2="40" stroke="#f7931a" stroke-width="1.5" opacity="0.5"/><line x1="50" y1="10" x2="30" y2="85" stroke="#f7931a" stroke-width="1" opacity="0.3"/><line x1="50" y1="10" x2="70" y2="85" stroke="#f7931a" stroke-width="1" opacity="0.3"/>'],
+  ['Terminal', '<rect x="15" y="20" width="70" height="60" rx="6" fill="none" stroke="#f7931a" stroke-width="2"/><line x1="15" y1="32" x2="85" y2="32" stroke="#f7931a" stroke-width="1.5" opacity="0.5"/><text x="30" y="58" font-size="20" fill="#f7931a" font-family="monospace">&gt;_</text>'],
+  ['Lightning Bolt', '<polygon points="55,5 25,50 45,50 40,95 75,45 52,45" fill="none" stroke="#f7931a" stroke-width="2.5"/>'],
+  ['Send Arrow', '<line x1="15" y1="85" x2="80" y2="20" stroke="#f7931a" stroke-width="3"/><polyline points="55,18 82,18 82,45" fill="none" stroke="#f7931a" stroke-width="3"/>'],
+  ['Broadcast Tower', '<line x1="50" y1="90" x2="50" y2="40" stroke="#f7931a" stroke-width="3"/><line x1="35" y1="90" x2="65" y2="90" stroke="#f7931a" stroke-width="2"/><path d="M30,35 Q50,15 70,35" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.3"/><path d="M35,40 Q50,25 65,40" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.5"/><path d="M40,45 Q50,35 60,45" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.7"/>'],
+  ['B + Arrow', '<text x="35" y="65" font-size="40" font-weight="bold" fill="#f7931a" font-family="Georgia,serif">B</text><line x1="65" y1="50" x2="85" y2="35" stroke="#f7931a" stroke-width="2.5"/><polyline points="78,32 87,33 86,42" fill="none" stroke="#f7931a" stroke-width="2.5"/>'],
+]);
+
+/* TX + Broadcast Waves Series (15 logos) */
+html += gridSection('TX + Broadcast Waves Series', [
+  ['Classic', '<text x="36" y="58" text-anchor="middle" font-size="24" font-weight="bold" fill="#f7931a" font-family="monospace">TX</text><path d="M62,35 Q75,50 62,65" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.4"/><path d="M70,28 Q88,50 70,72" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.25"/><path d="M78,22 Q98,50 78,78" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.15"/>'],
+  ['Circled', '<circle cx="40" cy="50" r="22" fill="none" stroke="#f7931a" stroke-width="2"/><text x="40" y="57" text-anchor="middle" font-size="18" font-weight="bold" fill="#f7931a" font-family="monospace">TX</text><path d="M66,32 Q82,50 66,68" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.4"/><path d="M74,24 Q94,50 74,76" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.2"/>'],
+  ['Both Sides', '<path d="M28,65 Q15,50 28,35" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.3"/><path d="M20,72 Q2,50 20,28" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.15"/><text x="50" y="58" text-anchor="middle" font-size="24" font-weight="bold" fill="#f7931a" font-family="monospace">TX</text><path d="M72,35 Q85,50 72,65" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.3"/><path d="M80,28 Q98,50 80,72" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.15"/>'],
+  ['Diagonal', '<text x="50" y="58" text-anchor="middle" font-size="24" font-weight="bold" fill="#f7931a" font-family="monospace">TX</text><path d="M65,25 Q85,30 75,10" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.4"/><path d="M72,22 Q95,28 82,5" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.2"/>'],
+  ['Dotted', '<text x="36" y="58" text-anchor="middle" font-size="24" font-weight="bold" fill="#f7931a" font-family="monospace">TX</text><path d="M62,35 Q75,50 62,65" fill="none" stroke="#f7931a" stroke-width="2" stroke-dasharray="3 3" opacity="0.5"/><path d="M70,28 Q88,50 70,72" fill="none" stroke="#f7931a" stroke-width="2" stroke-dasharray="3 3" opacity="0.3"/><path d="M78,22 Q98,50 78,78" fill="none" stroke="#f7931a" stroke-width="2" stroke-dasharray="3 3" opacity="0.15"/>'],
+  ['Bold', '<text x="36" y="60" text-anchor="middle" font-size="28" font-weight="900" fill="#f7931a" font-family="monospace">TX</text><path d="M62,33 Q78,50 62,67" fill="none" stroke="#f7931a" stroke-width="3" opacity="0.5"/><path d="M72,25 Q92,50 72,75" fill="none" stroke="#f7931a" stroke-width="3" opacity="0.25"/>'],
+  ['Wave Stack', '<text x="50" y="58" text-anchor="middle" font-size="24" font-weight="bold" fill="#f7931a" font-family="monospace">TX</text><path d="M62,30 Q78,50 62,70" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.6"/><path d="M68,25 Q86,50 68,75" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.45"/><path d="M74,20 Q94,50 74,80" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.3"/><path d="M80,15 Q100,50 80,85" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.15"/>'],
+  ['Pulse', '<text x="38" y="58" text-anchor="middle" font-size="24" font-weight="bold" fill="#f7931a" font-family="monospace">TX</text><circle cx="38" cy="50" r="24" fill="none" stroke="#f7931a" stroke-width="1.5" opacity="0.15"/><path d="M66,32 Q82,50 66,68" fill="none" stroke="#f7931a" stroke-width="2.5" opacity="0.5"/><path d="M75,24 Q95,50 75,76" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.25"/>'],
+  ['Inverted', '<rect x="5" y="15" width="90" height="70" rx="12" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.15"/><text x="36" y="58" text-anchor="middle" font-size="22" font-weight="bold" fill="#f7931a" font-family="monospace">TX</text><path d="M62,35 Q75,50 62,65" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.5"/><path d="M70,28 Q88,50 70,72" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.3"/>'],
+  ['Underline', '<text x="50" y="52" text-anchor="middle" font-size="28" font-weight="bold" fill="#f7931a" font-family="monospace">TX</text><line x1="22" y1="62" x2="78" y2="62" stroke="#f7931a" stroke-width="2.5" opacity="0.6"/><line x1="28" y1="68" x2="72" y2="68" stroke="#f7931a" stroke-width="2" opacity="0.3"/>'],
+  ['Serif', '<text x="36" y="58" text-anchor="middle" font-size="24" font-weight="bold" fill="#f7931a" font-family="Georgia,serif">TX</text><path d="M62,35 Q75,50 62,65" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.4"/><path d="M70,28 Q88,50 70,72" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.2"/>'],
+  ['Sans', '<text x="36" y="58" text-anchor="middle" font-size="24" font-weight="900" fill="#f7931a" font-family="Arial,sans-serif">TX</text><path d="M62,35 Q75,50 62,65" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.4"/><path d="M70,28 Q88,50 70,72" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.2"/>'],
+  ['Thin Waves', '<text x="36" y="58" text-anchor="middle" font-size="24" font-weight="bold" fill="#f7931a" font-family="monospace">TX</text><path d="M62,35 Q75,50 62,65" fill="none" stroke="#f7931a" stroke-width="1" opacity="0.5"/><path d="M68,30 Q83,50 68,70" fill="none" stroke="#f7931a" stroke-width="1" opacity="0.35"/><path d="M74,25 Q92,50 74,75" fill="none" stroke="#f7931a" stroke-width="1" opacity="0.2"/><path d="M80,20 Q98,50 80,80" fill="none" stroke="#f7931a" stroke-width="1" opacity="0.1"/>'],
+  ['Filled Circle', '<circle cx="40" cy="50" r="22" fill="#f7931a"/><text x="40" y="57" text-anchor="middle" font-size="18" font-weight="bold" fill="#0f0f0f" font-family="monospace">TX</text><path d="M66,32 Q82,50 66,68" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.4"/><path d="M74,24 Q94,50 74,76" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.2"/>'],
+  ['Large Center', '<text x="50" y="62" text-anchor="middle" font-size="36" font-weight="bold" fill="#f7931a" font-family="monospace">TX</text><path d="M78,30 Q92,50 78,70" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.3"/><path d="M85,22 Q100,50 85,78" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.15"/>'],
+]);
+
+/* Relay Series (12 logos) */
+html += gridSection('Relay Series', [
+  ['Baton Handoff', '<circle cx="25" cy="50" r="12" fill="none" stroke="#f7931a" stroke-width="2"/><circle cx="75" cy="50" r="12" fill="none" stroke="#f7931a" stroke-width="2"/><line x1="37" y1="50" x2="63" y2="50" stroke="#f7931a" stroke-width="2" stroke-dasharray="4 3"/><circle cx="50" cy="50" r="4" fill="#f7931a"/>'],
+  ['Node to Node', '<circle cx="20" cy="50" r="8" fill="#f7931a" opacity="0.4"/><circle cx="50" cy="50" r="8" fill="#f7931a" opacity="0.7"/><circle cx="80" cy="50" r="8" fill="#f7931a"/><line x1="28" y1="50" x2="42" y2="50" stroke="#f7931a" stroke-width="2"/><line x1="58" y1="50" x2="72" y2="50" stroke="#f7931a" stroke-width="2"/>'],
+  ['Chain Relay', '<rect x="10" y="38" width="20" height="24" rx="4" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.5"/><rect x="40" y="38" width="20" height="24" rx="4" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.7"/><rect x="70" y="38" width="20" height="24" rx="4" fill="none" stroke="#f7931a" stroke-width="2"/><line x1="30" y1="50" x2="40" y2="50" stroke="#f7931a" stroke-width="2"/><line x1="60" y1="50" x2="70" y2="50" stroke="#f7931a" stroke-width="2"/>'],
+  ['Tower Relay', '<line x1="20" y1="80" x2="20" y2="40" stroke="#f7931a" stroke-width="2"/><path d="M12,35 Q20,25 28,35" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.5"/><line x1="80" y1="80" x2="80" y2="40" stroke="#f7931a" stroke-width="2"/><path d="M72,35 Q80,25 88,35" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.5"/><path d="M35,45 Q50,30 65,45" fill="none" stroke="#f7931a" stroke-width="2" stroke-dasharray="3 3" opacity="0.3"/>'],
+  ['Star Relay', '<circle cx="50" cy="50" r="10" fill="#f7931a"/><circle cx="20" cy="25" r="5" fill="#f7931a" opacity="0.4"/><circle cx="80" cy="25" r="5" fill="#f7931a" opacity="0.4"/><circle cx="80" cy="75" r="5" fill="#f7931a" opacity="0.4"/><circle cx="20" cy="75" r="5" fill="#f7931a" opacity="0.4"/><line x1="50" y1="50" x2="20" y2="25" stroke="#f7931a" stroke-width="1.5" opacity="0.3"/><line x1="50" y1="50" x2="80" y2="25" stroke="#f7931a" stroke-width="1.5" opacity="0.3"/><line x1="50" y1="50" x2="80" y2="75" stroke="#f7931a" stroke-width="1.5" opacity="0.3"/><line x1="50" y1="50" x2="20" y2="75" stroke="#f7931a" stroke-width="1.5" opacity="0.3"/>'],
+  ['Ripple Relay', '<circle cx="30" cy="50" r="6" fill="#f7931a"/><circle cx="30" cy="50" r="14" fill="none" stroke="#f7931a" stroke-width="1.5" opacity="0.4"/><circle cx="30" cy="50" r="22" fill="none" stroke="#f7931a" stroke-width="1.5" opacity="0.2"/><circle cx="70" cy="50" r="6" fill="#f7931a"/><circle cx="70" cy="50" r="14" fill="none" stroke="#f7931a" stroke-width="1.5" opacity="0.4"/>'],
+  ['Pipeline', '<line x1="10" y1="50" x2="90" y2="50" stroke="#f7931a" stroke-width="3" opacity="0.2"/><circle cx="20" cy="50" r="6" fill="#f7931a" opacity="0.3"/><circle cx="40" cy="50" r="6" fill="#f7931a" opacity="0.5"/><circle cx="60" cy="50" r="6" fill="#f7931a" opacity="0.7"/><circle cx="80" cy="50" r="6" fill="#f7931a"/>'],
+  ['Mesh Net', '<circle cx="50" cy="20" r="5" fill="#f7931a" opacity="0.5"/><circle cx="25" cy="50" r="5" fill="#f7931a" opacity="0.5"/><circle cx="75" cy="50" r="5" fill="#f7931a" opacity="0.5"/><circle cx="35" cy="80" r="5" fill="#f7931a" opacity="0.5"/><circle cx="65" cy="80" r="5" fill="#f7931a" opacity="0.5"/><line x1="50" y1="20" x2="25" y2="50" stroke="#f7931a" stroke-width="1" opacity="0.3"/><line x1="50" y1="20" x2="75" y2="50" stroke="#f7931a" stroke-width="1" opacity="0.3"/><line x1="25" y1="50" x2="35" y2="80" stroke="#f7931a" stroke-width="1" opacity="0.3"/><line x1="75" y1="50" x2="65" y2="80" stroke="#f7931a" stroke-width="1" opacity="0.3"/><line x1="25" y1="50" x2="75" y2="50" stroke="#f7931a" stroke-width="1" opacity="0.3"/><line x1="35" y1="80" x2="65" y2="80" stroke="#f7931a" stroke-width="1" opacity="0.3"/>'],
+  ['Bounce', '<circle cx="15" cy="70" r="8" fill="#f7931a" opacity="0.3"/><circle cx="40" cy="30" r="8" fill="#f7931a" opacity="0.5"/><circle cx="65" cy="60" r="8" fill="#f7931a" opacity="0.7"/><circle cx="85" cy="25" r="8" fill="#f7931a"/><line x1="15" y1="70" x2="40" y2="30" stroke="#f7931a" stroke-width="1.5" opacity="0.4"/><line x1="40" y1="30" x2="65" y2="60" stroke="#f7931a" stroke-width="1.5" opacity="0.5"/><line x1="65" y1="60" x2="85" y2="25" stroke="#f7931a" stroke-width="1.5" opacity="0.6"/>'],
+  ['Hop', '<circle cx="15" cy="50" r="6" fill="#f7931a" opacity="0.3"/><circle cx="50" cy="50" r="8" fill="#f7931a" opacity="0.6"/><circle cx="85" cy="50" r="6" fill="#f7931a"/><path d="M21,50 Q35,25 44,50" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.4"/><path d="M56,50 Q70,25 79,50" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.6"/>'],
+  ['Bridge', '<rect x="10" y="40" width="15" height="20" rx="3" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.5"/><rect x="75" y="40" width="15" height="20" rx="3" fill="none" stroke="#f7931a" stroke-width="2"/><path d="M25,45 Q50,20 75,45" fill="none" stroke="#f7931a" stroke-width="2.5" opacity="0.6"/><path d="M25,55 Q50,80 75,55" fill="none" stroke="#f7931a" stroke-width="2.5" opacity="0.3"/>'],
+  ['Fan Out', '<circle cx="15" cy="50" r="8" fill="#f7931a"/><line x1="23" y1="50" x2="75" y2="20" stroke="#f7931a" stroke-width="1.5" opacity="0.3"/><line x1="23" y1="50" x2="80" y2="40" stroke="#f7931a" stroke-width="1.5" opacity="0.4"/><line x1="23" y1="50" x2="82" y2="60" stroke="#f7931a" stroke-width="1.5" opacity="0.5"/><line x1="23" y1="50" x2="78" y2="80" stroke="#f7931a" stroke-width="1.5" opacity="0.6"/><circle cx="75" cy="20" r="4" fill="#f7931a" opacity="0.3"/><circle cx="80" cy="40" r="4" fill="#f7931a" opacity="0.4"/><circle cx="82" cy="60" r="4" fill="#f7931a" opacity="0.5"/><circle cx="78" cy="80" r="4" fill="#f7931a" opacity="0.6"/>'],
+]);
+
+/* Raw Series (20 logos) */
+html += gridSection('Raw Series', [
+  ['RAW Classic', '<text x="36" y="58" text-anchor="middle" font-size="20" font-weight="bold" fill="#f7931a" font-family="monospace">RAW</text><path d="M68,35 Q80,50 68,65" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.4"/><path d="M76,28 Q92,50 76,72" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.2"/>'],
+  ['RAW Circled', '<circle cx="42" cy="50" r="24" fill="none" stroke="#f7931a" stroke-width="2"/><text x="42" y="57" text-anchor="middle" font-size="16" font-weight="bold" fill="#f7931a" font-family="monospace">RAW</text><path d="M72,34 Q85,50 72,66" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.4"/>'],
+  ['RAW Both Sides', '<path d="M22,65 Q10,50 22,35" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.3"/><text x="50" y="58" text-anchor="middle" font-size="20" font-weight="bold" fill="#f7931a" font-family="monospace">RAW</text><path d="M78,35 Q90,50 78,65" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.3"/>'],
+  ['RAW Hexagon', '<polygon points="50,5 90,27.5 90,72.5 50,95 10,72.5 10,27.5" fill="none" stroke="#f7931a" stroke-width="2"/><text x="50" y="57" text-anchor="middle" font-size="18" font-weight="bold" fill="#f7931a" font-family="monospace">RAW</text>'],
+  ['RAW Boxed', '<rect x="10" y="25" width="80" height="50" rx="8" fill="none" stroke="#f7931a" stroke-width="2"/><text x="50" y="57" text-anchor="middle" font-size="18" font-weight="bold" fill="#f7931a" font-family="monospace">RAW</text>'],
+  ['RAW Underline', '<text x="50" y="52" text-anchor="middle" font-size="24" font-weight="bold" fill="#f7931a" font-family="monospace">RAW</text><line x1="18" y1="62" x2="82" y2="62" stroke="#f7931a" stroke-width="2.5" opacity="0.6"/>'],
+  ['RAW Diamond', '<polygon points="50,10 85,50 50,90 15,50" fill="none" stroke="#f7931a" stroke-width="2"/><text x="50" y="57" text-anchor="middle" font-size="16" font-weight="bold" fill="#f7931a" font-family="monospace">RAW</text>'],
+  ['RAW Bold', '<text x="50" y="60" text-anchor="middle" font-size="28" font-weight="900" fill="#f7931a" font-family="monospace">RAW</text>'],
+  ['RAW Serif', '<text x="50" y="58" text-anchor="middle" font-size="22" font-weight="bold" fill="#f7931a" font-family="Georgia,serif">RAW</text><path d="M78,35 Q90,50 78,65" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.3"/>'],
+  ['RAW Sans', '<text x="50" y="58" text-anchor="middle" font-size="22" font-weight="900" fill="#f7931a" font-family="Arial,sans-serif">RAW</text><path d="M78,35 Q90,50 78,65" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.3"/>'],
+  ['RAW Dotted', '<text x="50" y="58" text-anchor="middle" font-size="20" font-weight="bold" fill="#f7931a" font-family="monospace">RAW</text><path d="M76,32 Q90,50 76,68" fill="none" stroke="#f7931a" stroke-width="2" stroke-dasharray="3 3" opacity="0.4"/>'],
+  ['RAW Thick', '<text x="50" y="58" text-anchor="middle" font-size="22" font-weight="bold" fill="#f7931a" font-family="monospace">RAW</text><path d="M78,32 Q92,50 78,68" fill="none" stroke="#f7931a" stroke-width="4" opacity="0.3"/>'],
+  ['RAW Filled Hex', '<polygon points="50,5 90,27.5 90,72.5 50,95 10,72.5 10,27.5" fill="#f7931a"/><text x="50" y="57" text-anchor="middle" font-size="18" font-weight="bold" fill="#0f0f0f" font-family="monospace">RAW</text>'],
+  ['RAW Filled Circle', '<circle cx="50" cy="50" r="35" fill="#f7931a"/><text x="50" y="57" text-anchor="middle" font-size="18" font-weight="bold" fill="#0f0f0f" font-family="monospace">RAW</text>'],
+  ['RAW Filled Box', '<rect x="12" y="25" width="76" height="50" rx="8" fill="#f7931a"/><text x="50" y="57" text-anchor="middle" font-size="18" font-weight="bold" fill="#0f0f0f" font-family="monospace">RAW</text>'],
+  ['RAW Double Hex', '<polygon points="50,2 93,26 93,74 50,98 7,74 7,26" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.3"/><polygon points="50,15 80,32.5 80,67.5 50,85 20,67.5 20,32.5" fill="none" stroke="#f7931a" stroke-width="2"/><text x="50" y="57" text-anchor="middle" font-size="16" font-weight="bold" fill="#f7931a" font-family="monospace">RAW</text>'],
+  ['RAW Stacked', '<text x="50" y="45" text-anchor="middle" font-size="14" font-weight="bold" fill="#f7931a" font-family="monospace" opacity="0.3">RAW</text><text x="50" y="60" text-anchor="middle" font-size="18" font-weight="bold" fill="#f7931a" font-family="monospace" opacity="0.6">RAW</text><text x="50" y="75" text-anchor="middle" font-size="22" font-weight="bold" fill="#f7931a" font-family="monospace">RAW</text>'],
+  ['RAW Glitch', '<text x="48" y="56" text-anchor="middle" font-size="22" font-weight="bold" fill="#f7931a" font-family="monospace" opacity="0.2">RAW</text><text x="52" y="58" text-anchor="middle" font-size="22" font-weight="bold" fill="#f7931a" font-family="monospace" opacity="0.4">RAW</text><text x="50" y="57" text-anchor="middle" font-size="22" font-weight="bold" fill="#f7931a" font-family="monospace">RAW</text>'],
+  ['RAW Shadow', '<text x="52" y="60" text-anchor="middle" font-size="24" font-weight="bold" fill="#f7931a" font-family="monospace" opacity="0.15">RAW</text><text x="50" y="58" text-anchor="middle" font-size="24" font-weight="bold" fill="#f7931a" font-family="monospace">RAW</text>'],
+  ['RAW Badge', '<rect x="15" y="30" width="70" height="40" rx="20" fill="none" stroke="#f7931a" stroke-width="2"/><text x="50" y="57" text-anchor="middle" font-size="18" font-weight="bold" fill="#f7931a" font-family="monospace">RAW</text>'],
+]);
+
+/* Raw Pulse Series (10 representative logos) */
+html += gridSection('Raw Pulse Series', [
+  ['Single Ring', '<circle cx="50" cy="50" r="46" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.3"/><text x="50" y="56" text-anchor="middle" font-size="16" font-weight="bold" fill="#f7931a" font-family="monospace">RAW</text>'],
+  ['Double Ring', '<circle cx="50" cy="50" r="46" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.2"/><circle cx="50" cy="50" r="38" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.4"/><text x="50" y="56" text-anchor="middle" font-size="16" font-weight="bold" fill="#f7931a" font-family="monospace">RAW</text>'],
+  ['Triple Ring', '<circle cx="50" cy="50" r="46" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.15"/><circle cx="50" cy="50" r="38" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.3"/><circle cx="50" cy="50" r="30" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.5"/><text x="50" y="56" text-anchor="middle" font-size="14" font-weight="bold" fill="#f7931a" font-family="monospace">RAW</text>'],
+  ['Echo Pulse', '<circle cx="55" cy="45" r="40" fill="none" stroke="#f7931a" stroke-width="1.5" opacity="0.1"/><circle cx="53" cy="47" r="34" fill="none" stroke="#f7931a" stroke-width="1.5" opacity="0.2"/><circle cx="51" cy="49" r="28" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.35"/><circle cx="50" cy="50" r="22" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.6"/><text x="50" y="56" text-anchor="middle" font-size="14" font-weight="bold" fill="#f7931a" font-family="monospace">RAW</text>'],
+  ['Filled Center', '<circle cx="50" cy="50" r="46" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.2"/><circle cx="50" cy="50" r="40" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.35"/><circle cx="50" cy="50" r="30" fill="#f7931a"/><text x="50" y="56" text-anchor="middle" font-size="16" font-weight="bold" fill="#0f0f0f" font-family="monospace">RAW</text>'],
+  ['Dotted Rings', '<circle cx="50" cy="50" r="46" fill="none" stroke="#f7931a" stroke-width="2" stroke-dasharray="4 4" opacity="0.2"/><circle cx="50" cy="50" r="40" fill="none" stroke="#f7931a" stroke-width="2" stroke-dasharray="4 4" opacity="0.35"/><circle cx="50" cy="50" r="28" fill="#f7931a"/><text x="50" y="56" text-anchor="middle" font-size="15" font-weight="bold" fill="#0f0f0f" font-family="monospace">RAW</text>'],
+  ['Thick Close', '<circle cx="50" cy="50" r="44" fill="none" stroke="#f7931a" stroke-width="5" opacity="0.3"/><circle cx="50" cy="50" r="28" fill="#f7931a"/><text x="50" y="56" text-anchor="middle" font-size="15" font-weight="bold" fill="#0f0f0f" font-family="monospace">RAW</text>'],
+  ['Large Filled', '<circle cx="50" cy="50" r="46" fill="none" stroke="#f7931a" stroke-width="1.5" opacity="0.35"/><circle cx="50" cy="50" r="40" fill="#f7931a"/><text x="50" y="57" text-anchor="middle" font-size="22" font-weight="bold" fill="#0f0f0f" font-family="monospace">RAW</text>'],
+  ['3 Ring Filled', '<circle cx="50" cy="50" r="46" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.15"/><circle cx="50" cy="50" r="42" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.25"/><circle cx="50" cy="50" r="38" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.4"/><circle cx="50" cy="50" r="28" fill="#f7931a"/><text x="50" y="56" text-anchor="middle" font-size="15" font-weight="bold" fill="#0f0f0f" font-family="monospace">RAW</text>'],
+  ['Max Fill', '<circle cx="50" cy="50" r="46" fill="none" stroke="#f7931a" stroke-width="3" opacity="0.35"/><circle cx="50" cy="50" r="36" fill="#f7931a"/><text x="50" y="56" text-anchor="middle" font-size="19" font-weight="bold" fill="#0f0f0f" font-family="monospace">RAW</text>'],
+]);
+
+/* TX Hex Wave Series (10 representative logos) */
+html += gridSection('TX Hex Wave Series', [
+  ['Single Wave', '<polygon points="50,2 93,26 93,74 50,98 7,74 7,26" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.3"/><polygon points="50,15 80,32.5 80,67.5 50,85 20,67.5 20,32.5" fill="none" stroke="#f7931a" stroke-width="3"/><text x="50" y="56" text-anchor="middle" font-size="20" font-weight="bold" fill="#f7931a" font-family="monospace">TX</text>'],
+  ['Two Waves', '<polygon points="50,2 93,26 93,74 50,98 7,74 7,26" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.2"/><polygon points="50,10 85,30 85,70 50,90 15,70 15,30" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.4"/><polygon points="50,20 75,35 75,65 50,80 25,65 25,35" fill="none" stroke="#f7931a" stroke-width="3"/><text x="50" y="56" text-anchor="middle" font-size="18" font-weight="bold" fill="#f7931a" font-family="monospace">TX</text>'],
+  ['Three Waves', '<polygon points="50,2 93,26 93,74 50,98 7,74 7,26" fill="none" stroke="#f7931a" stroke-width="1.5" opacity="0.15"/><polygon points="50,10 85,30 85,70 50,90 15,70 15,30" fill="none" stroke="#f7931a" stroke-width="1.5" opacity="0.3"/><polygon points="50,18 77,34 77,66 50,82 23,66 23,34" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.5"/><polygon points="50,26 69,38 69,62 50,74 31,62 31,38" fill="none" stroke="#f7931a" stroke-width="2.5"/><text x="50" y="56" text-anchor="middle" font-size="14" font-weight="bold" fill="#f7931a" font-family="monospace">TX</text>'],
+  ['Filled Center', '<polygon points="50,5 90,27.5 90,72.5 50,95 10,72.5 10,27.5" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.25"/><polygon points="50,18 77,34 77,66 50,82 23,66 23,34" fill="#f7931a"/><text x="50" y="56" text-anchor="middle" font-size="16" font-weight="bold" fill="#0f0f0f" font-family="monospace">TX</text>'],
+  ['Dotted Wave', '<polygon points="50,5 90,27.5 90,72.5 50,95 10,72.5 10,27.5" fill="none" stroke="#f7931a" stroke-width="2" stroke-dasharray="4 3" opacity="0.3"/><polygon points="50,18 77,34 77,66 50,82 23,66 23,34" fill="none" stroke="#f7931a" stroke-width="3"/><text x="50" y="56" text-anchor="middle" font-size="16" font-weight="bold" fill="#f7931a" font-family="monospace">TX</text>'],
+  ['Thick Waves', '<polygon points="50,3 91,26.5 91,73.5 50,97 9,73.5 9,26.5" fill="none" stroke="#f7931a" stroke-width="4" opacity="0.2"/><polygon points="50,16 79,33 79,67 50,84 21,67 21,33" fill="none" stroke="#f7931a" stroke-width="4" opacity="0.5"/><text x="50" y="56" text-anchor="middle" font-size="18" font-weight="bold" fill="#f7931a" font-family="monospace">TX</text>'],
+  ['Large Tight', '<polygon points="50,5 90,27.5 90,72.5 50,95 10,72.5 10,27.5" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.35"/><polygon points="50,12 83,31 83,69 50,88 17,69 17,31" fill="#f7931a"/><text x="50" y="56" text-anchor="middle" font-size="20" font-weight="bold" fill="#0f0f0f" font-family="monospace">TX</text>'],
+  ['Small Wide', '<polygon points="50,3 92,26.5 92,73.5 50,97 8,73.5 8,26.5" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.35"/><polygon points="50,28 68,39 68,61 50,72 32,61 32,39" fill="#f7931a"/><text x="50" y="56" text-anchor="middle" font-size="12" font-weight="bold" fill="#0f0f0f" font-family="monospace">TX</text>'],
+  ['Max Filled', '<polygon points="50,3 92,26.5 92,73.5 50,97 8,73.5 8,26.5" fill="none" stroke="#f7931a" stroke-width="1.5" opacity="0.35"/><polygon points="50,10 85,30 85,70 50,90 15,70 15,30" fill="#f7931a"/><text x="50" y="57" text-anchor="middle" font-size="22" font-weight="bold" fill="#0f0f0f" font-family="monospace">TX</text>'],
+  ['Gradient 5', '<polygon points="50,2 93,26 93,74 50,98 7,74 7,26" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.1"/><polygon points="50,8 87,29 87,71 50,92 13,71 13,29" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.2"/><polygon points="50,14 81,32 81,68 50,86 19,68 19,32" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.35"/><polygon points="50,20 75,35 75,65 50,80 25,65 25,35" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.55"/><polygon points="50,26 69,38 69,62 50,74 31,62 31,38" fill="none" stroke="#f7931a" stroke-width="2.5" opacity="0.8"/><text x="50" y="56" text-anchor="middle" font-size="13" font-weight="bold" fill="#f7931a" font-family="monospace">TX</text>'],
+]);
+
+/* TX Hex Gradient Series (10 representative logos) */
+html += gridSection('TX Hex Gradient Series', [
+  ['Bigger TX', hexPolygons() + '<text x="50" y="57" text-anchor="middle" font-size="16" font-weight="bold" fill="#f7931a" font-family="monospace">TX</text>'],
+  ['Even Bigger', hexPolygons() + '<text x="50" y="58" text-anchor="middle" font-size="20" font-weight="bold" fill="#f7931a" font-family="monospace">TX</text>'],
+  ['Sans-Serif', hexPolygons() + '<text x="50" y="57" text-anchor="middle" font-size="16" font-weight="bold" fill="#f7931a" font-family="Arial, sans-serif">TX</text>'],
+  ['Sans Big Bold', hexPolygons() + '<text x="50" y="58" text-anchor="middle" font-size="20" font-weight="900" fill="#f7931a" font-family="Arial, sans-serif">TX</text>'],
+  ['Serif', hexPolygons() + '<text x="50" y="57" text-anchor="middle" font-size="16" font-weight="bold" fill="#f7931a" font-family="Georgia, serif">TX</text>'],
+  ['Filled Big', filledHexPolygons() + '<text x="50" y="57" text-anchor="middle" font-size="16" font-weight="bold" fill="#0f0f0f" font-family="monospace">TX</text>'],
+  ['Filled Sans', filledHexPolygons() + '<text x="50" y="58" text-anchor="middle" font-size="18" font-weight="900" fill="#0f0f0f" font-family="Arial, sans-serif">TX</text>'],
+  ['Thick Big', hexPolygons('3') + '<text x="50" y="58" text-anchor="middle" font-size="18" font-weight="bold" fill="#f7931a" font-family="monospace">TX</text>'],
+  ['System UI', hexPolygons() + '<text x="50" y="58" text-anchor="middle" font-size="20" font-weight="700" fill="#f7931a" font-family="system-ui, sans-serif">TX</text>'],
+  ['Max Bold', filledHexPolygons() + '<text x="50" y="58" text-anchor="middle" font-size="18" font-weight="900" fill="#0f0f0f" font-family="system-ui, sans-serif">TX</text>'],
+]);
+
+document.getElementById('logos-grid').innerHTML = html;
+
+// Make all logo grids responsive
+var updateGrids = function() {
+  var grids = document.querySelectorAll('#logos-grid .logo-grid');
+  var w = window.innerWidth;
+  var cols = w >= 768 ? 'repeat(4,1fr)' : w >= 640 ? 'repeat(3,1fr)' : 'repeat(2,1fr)';
+  for (var i = 0; i < grids.length; i++) {
+    grids[i].style.gridTemplateColumns = cols;
+  }
+};
+updateGrids();
+window.addEventListener('resize', updateGrids);
+
+})();
+</script>
+</body>
+</html>

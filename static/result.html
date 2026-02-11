@@ -1,277 +1,918 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transaction Status - sendrawtx.com</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
-            background: #0f0f0f;
-            color: #e0e0e0;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .container { text-align: center; padding: 2rem; max-width: 700px; }
-        .spinner {
-            width: 48px; height: 48px;
-            border: 3px solid #333;
-            border-top-color: #f7931a;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1.5rem;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        h1 { color: #f7931a; margin-bottom: 0.5rem; font-size: 1.5rem; }
-        .subtitle { color: #888; font-size: 0.9rem; margin-bottom: 1rem; }
-        .txid {
-            font-family: monospace;
-            color: #4ade80;
-            word-break: break-all;
-            font-size: 0.85rem;
-            background: #1a1a1a;
-            padding: 0.75rem;
-            border-radius: 4px;
-            margin: 1rem 0;
-        }
-        .status-box {
-            background: #1a1a1a;
-            padding: 1rem;
-            border-radius: 4px;
-            margin: 1rem 0;
-        }
-        .status-success { border-left: 3px solid #4ade80; }
-        .status-pending { border-left: 3px solid #f7931a; }
-        .status-error { border-left: 3px solid #ef4444; }
-        .status-label {
-            font-size: 0.85rem;
-            color: #888;
-            margin-bottom: 0.5rem;
-        }
-        .status-value {
-            font-size: 1.1rem;
-            font-weight: 500;
-        }
-        .success { color: #4ade80; }
-        .pending { color: #f7931a; }
-        .error { color: #ef4444; }
-        .details {
-            text-align: left;
-            margin-top: 1.5rem;
-        }
-        .detail-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #222;
-        }
-        .detail-label { color: #888; }
-        .detail-value { color: #e0e0e0; font-family: monospace; }
-        a { color: #f7931a; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        .hidden { display: none; }
-        .links {
-            margin-top: 1.5rem;
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        .link-btn {
-            background: #1a1a1a;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            font-size: 0.85rem;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div id="loading">
-            <div class="spinner"></div>
-            <h1>Loading Transaction Status</h1>
-            <p class="subtitle">Fetching broadcast results...</p>
-        </div>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Transaction Result - sendrawtx</title>
+  <meta name="description" content="Bitcoin transaction broadcast result"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        <div id="result" class="hidden">
-            <h1 id="resultTitle">Transaction Status</h1>
-            <div class="txid" id="txidDisplay"></div>
-
-            <div id="statusBox" class="status-box">
-                <div class="status-label">Broadcast Status</div>
-                <div class="status-value" id="statusText"></div>
-            </div>
-
-            <div id="details" class="details hidden">
-                <div class="detail-row" id="confirmRow">
-                    <span class="detail-label">Confirmations</span>
-                    <span class="detail-value" id="confirmations">-</span>
-                </div>
-                <div class="detail-row" id="nodeRow">
-                    <span class="detail-label">Broadcast Nodes</span>
-                    <span class="detail-value" id="nodeCount">-</span>
-                </div>
-                <div class="detail-row" id="timeRow">
-                    <span class="detail-label">Broadcast Time</span>
-                    <span class="detail-value" id="broadcastTime">-</span>
-                </div>
-            </div>
-
-            <div class="links">
-                <a href="#" id="mempoolLink" class="link-btn" target="_blank">View on mempool.space</a>
-                <a href="/" class="link-btn">Broadcast Another</a>
-            </div>
-        </div>
-
-        <div id="errorBox" class="hidden">
-            <h1 style="color: #ef4444;">Transaction Not Found</h1>
-            <div class="status-box status-error">
-                <p id="errorText">This transaction ID was not found in our broadcast history.</p>
-            </div>
-            <p style="margin-top: 1rem;"><a href="/">Broadcast a transaction</a></p>
-        </div>
-    </div>
-
-<!--
-================================================================================
-AI AGENT INSTRUCTIONS
-================================================================================
-
-This page displays the broadcast status for a transaction ID.
-
-URL FORMAT:
-    /tx/{txid}  where txid is a 64-character hex string
-
-API ENDPOINT:
-    GET /tx/{txid}
-    Accept: application/json
-
-RESPONSE FORMAT (JSON):
-    {
-        "txid": "abc123...",
-        "status": "success" | "pending" | "error",
-        "broadcast_results": {
-            "mempool_space": { "success": true, "response": "..." },
-            "blockstream": { "success": true, "response": "..." },
-            ...
-        },
-        "timestamp": "2024-01-01T00:00:00Z",
-        "confirmations": 0
+    body {
+      background: #0f0f0f;
+      color: #e0e0e0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
 
-HOW TO USE:
-    1. Extract txid from URL path: /tx/{txid}
-    2. Fetch /tx/{txid} with Accept: application/json header
-    3. Parse JSON response for broadcast status
+    a { color: #f7931a; text-decoration: none; }
+    a:hover { text-decoration: underline; }
 
-================================================================================
--->
+    /* Header */
+    .header{position:sticky;top:0;z-index:50;background:rgba(15,15,15,.95);backdrop-filter:blur(8px);border-bottom:1px solid #1a1a1a}
+    .header-inner{max-width:1152px;margin:0 auto;padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:64px}
+    @media(min-width:640px){.header-inner{padding:0 24px}}
+    .logo-link{display:flex;align-items:center;gap:8px;text-decoration:none}
+    .logo-link:hover{text-decoration:none}
+    .site-name{font-size:18px;font-weight:700;color:#fff;font-family:'SF Mono',Consolas,monospace}
+    .logo-link:hover .site-name{color:#f7931a}
+    .header-nav{display:flex;align-items:center;gap:4px}
+    .nav-link{display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:8px;font-size:14px;font-weight:500;color:#a0a0a0;transition:all .15s}
+    .nav-link:hover{color:#fff;background:#1a1a1a;text-decoration:none}
+    .nav-link.active{color:#fff;background:#1a1a1a}
+    .nav-label{display:none}
+    @media(min-width:640px){.nav-label{display:inline}}
+
+    /* Main */
+    .main-content {
+      flex: 1;
+      max-width: 1100px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+    }
+
+    /* Back link */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #a0a0a0;
+      font-size: 14px;
+      margin-bottom: 24px;
+      transition: color 0.15s;
+    }
+    .back-link:hover { color: #f7931a; text-decoration: none; }
+
+    /* Page header */
+    .page-header {
+      margin-bottom: 32px;
+    }
+    .page-header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .txid-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .txid-text {
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 14px;
+      color: #a0a0a0;
+      word-break: break-all;
+      background: #1a1a1a;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #333;
+      flex: 1;
+      min-width: 0;
+    }
+    .copy-btn {
+      background: none;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 8px;
+      cursor: pointer;
+      color: #a0a0a0;
+      transition: color 0.15s, border-color 0.15s;
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .copy-btn:hover { color: #f7931a; border-color: #f7931a; }
+    .copy-btn.copied { color: #22c55e; border-color: #22c55e; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .badge-success {
+      background: rgba(34, 197, 94, 0.15);
+      color: #22c55e;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+    .badge-error {
+      background: rgba(239, 68, 68, 0.15);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    /* Cards */
+    .card {
+      background: #252525;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 16px;
+    }
+
+    /* Acceptance bar */
+    .acceptance-bar-container {
+      margin-bottom: 20px;
+    }
+    .acceptance-bar-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #a0a0a0;
+    }
+    .acceptance-bar-track {
+      width: 100%;
+      height: 12px;
+      background: #444;
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+    }
+    .acceptance-bar-fill {
+      height: 100%;
+      background: #22c55e;
+      border-radius: 6px;
+      transition: width 0.6s ease;
+    }
+
+    /* Endpoint list */
+    .endpoint-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .endpoint-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: #1a1a1a;
+      border-radius: 6px;
+      border: 1px solid #2a2a2a;
+    }
+    .endpoint-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      flex: 1;
+    }
+    .endpoint-info {
+      min-width: 0;
+    }
+    .endpoint-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: #e0e0e0;
+    }
+    .endpoint-time {
+      font-size: 13px;
+      color: #666;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      flex-shrink: 0;
+      margin-left: 12px;
+    }
+    .endpoint-error {
+      font-size: 12px;
+      color: #ef4444;
+      margin-top: 2px;
+      max-width: 500px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Classification grid */
+    .class-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 700px) {
+      .class-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    .class-item {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 6px;
+      padding: 14px;
+    }
+    .class-item-label {
+      font-size: 12px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .class-item-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+    }
+    .difficulty-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+    .standard-yes { color: #22c55e; }
+    .standard-no { color: #ef4444; }
+
+    /* Non-standard features */
+    .features-list {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #333;
+    }
+    .features-label {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+    .feature-tag {
+      display: inline-block;
+      background: rgba(234, 179, 8, 0.12);
+      color: #eab308;
+      border: 1px solid rgba(234, 179, 8, 0.25);
+      border-radius: 4px;
+      padding: 3px 10px;
+      font-size: 12px;
+      margin: 0 6px 6px 0;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    /* Service comparison */
+    .advantage-text {
+      background: rgba(247, 147, 26, 0.08);
+      border: 1px solid rgba(247, 147, 26, 0.2);
+      border-radius: 6px;
+      padding: 12px 16px;
+      color: #f7931a;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    .service-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .service-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: #1a1a1a;
+      border-radius: 6px;
+      border: 1px solid #2a2a2a;
+    }
+    .service-item.rawrelay-highlight {
+      background: rgba(247, 147, 26, 0.08);
+      border-color: rgba(247, 147, 26, 0.25);
+    }
+    .service-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .service-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: #e0e0e0;
+    }
+    .service-reason {
+      font-size: 13px;
+      color: #666;
+      max-width: 400px;
+      text-align: right;
+    }
+
+    /* Timing grid */
+    .timing-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 700px) {
+      .timing-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    .timing-item {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 6px;
+      padding: 14px;
+    }
+    .timing-item-label {
+      font-size: 12px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .timing-item-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+      word-break: break-all;
+    }
+    .timing-item-value.small-text {
+      font-size: 14px;
+    }
+
+    /* External links */
+    .external-links {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .ext-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 18px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 6px;
+      color: #a0a0a0;
+      font-size: 14px;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .ext-link:hover {
+      border-color: #f7931a;
+      color: #f7931a;
+      text-decoration: none;
+    }
+
+    /* Footer */
+    .footer{margin-top:auto;border-top:1px solid #1a1a1a;background:#0f0f0f;padding:32px 0}
+    .footer-container{max-width:1152px;margin:0 auto;padding:0 16px}
+    @media(min-width:640px){.footer-container{padding:0 24px}}
+    .footer-inner{display:flex;flex-direction:column;align-items:center;gap:16px}
+    @media(min-width:640px){.footer-inner{flex-direction:row;justify-content:space-between}}
+    .footer-links{display:flex;align-items:center;gap:16px}
+    .footer-link{display:flex;align-items:center;gap:8px;font-size:14px;color:#a0a0a0;transition:color .15s}
+    .footer-link:hover{color:#fff;text-decoration:none}
+    .footer-credit{font-size:12px;color:#666;text-align:center;margin-top:24px;padding-top:24px;border-top:1px solid #1a1a1a}
+
+    /* Loading */
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 120px 24px;
+    }
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid #333;
+      border-top-color: #f7931a;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .loading-text {
+      margin-top: 16px;
+      color: #a0a0a0;
+      font-size: 14px;
+    }
+
+    /* Error */
+    .error-container {
+      display: flex;
+      justify-content: center;
+      padding: 80px 24px;
+    }
+    .error-card {
+      background: #252525;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 40px;
+      text-align: center;
+      max-width: 480px;
+      width: 100%;
+    }
+    .error-icon { margin-bottom: 16px; }
+    .error-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .error-message {
+      font-size: 14px;
+      color: #a0a0a0;
+      margin-bottom: 24px;
+    }
+    .error-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 20px;
+      background: #f7931a;
+      color: #000;
+      font-weight: 600;
+      font-size: 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .error-btn:hover {
+      background: #e8850f;
+      text-decoration: none;
+      color: #000;
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .page-header h1 { font-size: 22px; }
+      .card { padding: 16px; }
+      .txid-text { font-size: 12px; }
+      .class-item-value, .timing-item-value { font-size: 15px; }
+    }
+  </style>
+</head>
+<body>
+<!-- NETWORK_BANNER -->
+
+<header class="header">
+<div class="header-inner">
+  <a href="/" class="logo-link">
+    <svg viewBox="0 0 100 100" style="width:56px;height:56px">
+      <polygon points="50,2 93,26 93,74 50,98 7,74 7,26" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.1"/>
+      <polygon points="50,8 87,29 87,71 50,92 13,71 13,29" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.2"/>
+      <polygon points="50,14 81,32 81,68 50,86 19,68 19,32" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.35"/>
+      <polygon points="50,20 75,35 75,65 50,80 25,65 25,35" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.55"/>
+      <polygon points="50,26 69,38 69,62 50,74 31,62 31,38" fill="none" stroke="#f7931a" stroke-width="2.5" opacity="0.8"/>
+      <text x="50" y="58" text-anchor="middle" font-size="20" font-weight="bold" fill="#f7931a" font-family="Georgia,serif">TX</text>
+    </svg>
+    <span class="site-name" id="site-name"></span>
+  </a>
+  <nav class="header-nav">
+    <a href="/" class="nav-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span class="nav-label">Broadcast</span></a>
+    <a href="/docs" class="nav-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg><span class="nav-label">API Docs</span></a>
+    <a href="/status" class="nav-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="nav-label">Status</span></a>
+  </nav>
+</div>
+</header>
+
+<main class="main-content" id="app">
+</main>
+
+<footer class="footer">
+<div class="footer-container">
+  <div class="footer-inner">
+    <div>
+      <p style="font-size:14px;color:#a0a0a0"><span style="color:#fff;font-weight:500;font-family:'SF Mono',Consolas,monospace" id="footer-site-name"></span> - Bitcoin raw transaction broadcast service</p>
+      <p style="font-size:12px;color:#666;margin-top:4px">Specializing in non-standard transactions that other services reject</p>
+    </div>
+    <div class="footer-links">
+      <a href="https://github.com/8144225309/sendrawtx" target="_blank" rel="noopener noreferrer" class="footer-link">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        <span>GitHub</span>
+      </a>
+      <a href="https://mempool.space" target="_blank" rel="noopener noreferrer" class="footer-link">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        <span>mempool.space</span>
+      </a>
+    </div>
+  </div>
+  <div class="footer-credit">Built with Bitcoin Core, Knots, and Libre Relay</div>
+</div>
+</footer>
 
 <script>
 (function() {
-    'use strict';
+  'use strict';
 
-    function showError(message) {
-        document.getElementById('loading').classList.add('hidden');
-        document.getElementById('result').classList.add('hidden');
-        document.getElementById('errorBox').classList.remove('hidden');
-        document.getElementById('errorText').textContent = message;
+  var hostName = window.location.host || 'sendrawtx.com';
+  document.getElementById('site-name').textContent = hostName;
+  var footerName = document.getElementById('footer-site-name');
+  if (footerName) footerName.textContent = hostName;
+
+  var POOL_NAMES = {
+    core: 'Bitcoin Core',
+    knots: 'Bitcoin Knots',
+    libre: 'Libre Relay',
+    mempool_space: 'mempool.space',
+    blockstream: 'Blockstream',
+    blockcypher: 'BlockCypher'
+  };
+
+  var DIFFICULTY_COLORS = {
+    trivial: '#22c55e',
+    easy: '#22c55e',
+    moderate: '#eab308',
+    hard: '#f97316',
+    extreme: '#ef4444',
+    near_impossible: '#ef4444'
+  };
+
+  function iconCheckCircle(size, color) {
+    return '<svg viewBox="0 0 24 24" width="' + size + '" height="' + size + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+  }
+
+  function iconXCircle(size, color) {
+    return '<svg viewBox="0 0 24 24" width="' + size + '" height="' + size + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+  }
+
+  function iconCopy(size, color) {
+    return '<svg viewBox="0 0 24 24" width="' + size + '" height="' + size + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  }
+
+  function iconExternalLink(size, color) {
+    return '<svg viewBox="0 0 24 24" width="' + size + '" height="' + size + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
+  }
+
+  function iconArrowLeft(size, color) {
+    return '<svg viewBox="0 0 24 24" width="' + size + '" height="' + size + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>';
+  }
+
+  function iconAlertCircle(size, color) {
+    return '<svg viewBox="0 0 24 24" width="' + size + '" height="' + size + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+  }
+
+  function esc(str) {
+    if (str == null) return '';
+    var s = String(str);
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(s));
+    return div.innerHTML;
+  }
+
+  function parseTxid() {
+    var path = window.location.pathname;
+    var match = path.match(/\/tx\/([0-9a-fA-F]{64})/);
+    if (match) return match[1];
+    match = path.match(/\/([0-9a-fA-F]{64})(?:\/|$)/);
+    if (match) return match[1];
+    return null;
+  }
+
+  function poolName(key) {
+    return POOL_NAMES[key] || key;
+  }
+
+  function diffColor(difficulty) {
+    return DIFFICULTY_COLORS[difficulty] || '#a0a0a0';
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '-';
+    try {
+      var d = new Date(iso);
+      return d.toLocaleString();
+    } catch (e) {
+      return iso;
+    }
+  }
+
+  var app = document.getElementById('app');
+
+  function renderLoading() {
+    app.innerHTML =
+      '<div class="loading-container">' +
+        '<div class="spinner"></div>' +
+        '<div class="loading-text">Loading transaction result\u2026</div>' +
+      '</div>';
+  }
+
+  function renderError(message) {
+    app.innerHTML =
+      '<div class="error-container">' +
+        '<div class="error-card">' +
+          '<div class="error-icon">' + iconAlertCircle(48, '#ef4444') + '</div>' +
+          '<div class="error-title">Transaction Not Found</div>' +
+          '<div class="error-message">' + esc(message || 'Results expire after 1 hour.') + '</div>' +
+          '<a href="/" class="error-btn">' + iconArrowLeft(16, '#000') + ' Back to Broadcast</a>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function renderResult(data) {
+    var html = '';
+
+    /* 1. Back to Broadcast */
+    html += '<a href="/" class="back-link">' + iconArrowLeft(16, 'currentColor') + ' Back to Broadcast</a>';
+
+    /* 2. Header: title + txid + success/failed badge */
+    var successBadge = data.success
+      ? '<span class="badge badge-success">' + iconCheckCircle(14, '#22c55e') + ' Success</span>'
+      : '<span class="badge badge-error">' + iconXCircle(14, '#ef4444') + ' Failed</span>';
+
+    html += '<div class="page-header">';
+    html += '<h1>Transaction Result ' + successBadge + '</h1>';
+    html += '<div class="txid-row">';
+    html += '<span class="txid-text" id="txid-display">' + esc(data.txid) + '</span>';
+    html += '<button class="copy-btn" id="copy-btn" title="Copy TXID">' + iconCopy(16, 'currentColor') + '</button>';
+    html += '</div>';
+    html += '</div>';
+
+    /* 3. Endpoint Acceptance */
+    var results = data.broadcast_results || {};
+    var endpoints = Object.keys(results);
+    var totalEndpoints = endpoints.length;
+    var acceptedCount = 0;
+    for (var i = 0; i < endpoints.length; i++) {
+      if (results[endpoints[i]].success) acceptedCount++;
+    }
+    var pct = totalEndpoints > 0 ? Math.round((acceptedCount / totalEndpoints) * 100) : 0;
+
+    html += '<div class="card">';
+    html += '<div class="card-title">Endpoint Acceptance</div>';
+    html += '<div class="acceptance-bar-container">';
+    html += '<div class="acceptance-bar-label">';
+    html += '<span>' + acceptedCount + ' of ' + totalEndpoints + ' accepted</span>';
+    html += '<span>' + pct + '%</span>';
+    html += '</div>';
+    html += '<div class="acceptance-bar-track">';
+    html += '<div class="acceptance-bar-fill" style="width:' + pct + '%;background:' + (pct >= 80 ? '#22c55e' : pct >= 60 ? '#84cc16' : pct >= 40 ? '#eab308' : pct >= 20 ? '#f97316' : '#ef4444') + '"></div>';
+    html += '</div>';
+    html += '</div>';
+    html += '<div class="endpoint-list">';
+
+    for (var j = 0; j < endpoints.length; j++) {
+      var key = endpoints[j];
+      var r = results[key];
+      var eIcon = r.success ? iconCheckCircle(18, '#22c55e') : iconXCircle(18, '#ef4444');
+      var timeStr = (r.time_ms != null) ? r.time_ms + ' ms' : '';
+
+      html += '<div class="endpoint-item">';
+      html += '<div class="endpoint-left">';
+      html += eIcon;
+      html += '<div class="endpoint-info">';
+      html += '<div class="endpoint-name">' + esc(poolName(key)) + '</div>';
+      if (r.error) {
+        html += '<div class="endpoint-error" title="' + esc(r.error) + '">' + esc(r.error) + '</div>';
+      }
+      html += '</div>';
+      html += '</div>';
+      if (timeStr) {
+        html += '<span class="endpoint-time">' + esc(timeStr) + '</span>';
+      }
+      html += '</div>';
     }
 
-    function showResult(data) {
-        document.getElementById('loading').classList.add('hidden');
-        document.getElementById('errorBox').classList.add('hidden');
-        document.getElementById('result').classList.remove('hidden');
+    html += '</div>';
+    html += '</div>';
 
-        // Display txid
-        document.getElementById('txidDisplay').textContent = data.txid;
+    /* 4. Classification */
+    if (data.classification) {
+      var c = data.classification;
+      var dc = diffColor(c.difficulty_class);
+      var feeRate = (c.fee_rate_sat_vb != null) ? Number(c.fee_rate_sat_vb).toFixed(1) + ' sat/vB' : 'N/A';
+      var sizeVb = (c.size && c.size.vbytes != null) ? c.size.vbytes : '-';
+      var isStd = c.is_standard;
 
-        // Set mempool link
-        document.getElementById('mempoolLink').href = 'https://mempool.space/tx/' + data.txid;
+      html += '<div class="card">';
+      html += '<div class="card-title">Classification</div>';
+      html += '<div class="class-grid">';
 
-        // Status
-        const statusBox = document.getElementById('statusBox');
-        const statusText = document.getElementById('statusText');
+      html += '<div class="class-item">';
+      html += '<div class="class-item-label">Difficulty</div>';
+      html += '<div class="class-item-value"><span class="difficulty-badge" style="background:' + dc + '22;color:' + dc + ';border:1px solid ' + dc + '44">' + esc(c.difficulty_class || '-') + '</span></div>';
+      html += '</div>';
 
-        if (data.status === 'success') {
-            statusBox.className = 'status-box status-success';
-            statusText.className = 'status-value success';
-            statusText.textContent = 'Successfully Broadcast';
-        } else if (data.status === 'pending') {
-            statusBox.className = 'status-box status-pending';
-            statusText.className = 'status-value pending';
-            statusText.textContent = 'Broadcast Pending...';
+      html += '<div class="class-item">';
+      html += '<div class="class-item-label">Fee Rate</div>';
+      html += '<div class="class-item-value">' + esc(feeRate) + '</div>';
+      html += '</div>';
+
+      html += '<div class="class-item">';
+      html += '<div class="class-item-label">Size</div>';
+      html += '<div class="class-item-value">' + esc(String(sizeVb)) + ' <span style="font-size:13px;color:#666">vB</span></div>';
+      html += '</div>';
+
+      html += '<div class="class-item">';
+      html += '<div class="class-item-label">Standard</div>';
+      if (isStd) {
+        html += '<div class="class-item-value"><span class="standard-yes">Yes</span></div>';
+      } else {
+        html += '<div class="class-item-value"><span class="standard-no">No</span></div>';
+      }
+      html += '</div>';
+
+      html += '</div>';
+
+      if (c.non_standard_features && c.non_standard_features.length > 0) {
+        html += '<div class="features-list">';
+        html += '<div class="features-label">Non-Standard Features</div>';
+        for (var fi = 0; fi < c.non_standard_features.length; fi++) {
+          html += '<span class="feature-tag">' + esc(c.non_standard_features[fi]) + '</span>';
+        }
+        html += '</div>';
+      }
+
+      html += '</div>';
+    }
+
+    /* 5. Service Comparison */
+    if (data.comparison) {
+      var comp = data.comparison;
+
+      html += '<div class="card">';
+      html += '<div class="card-title">Service Comparison</div>';
+
+      if (comp.advantage) {
+        html += '<div class="advantage-text">' + esc(comp.advantage) + '</div>';
+      }
+
+      html += '<div class="service-list">';
+
+      if (comp.standard_services) {
+        var serviceKeys = Object.keys(comp.standard_services);
+        for (var si = 0; si < serviceKeys.length; si++) {
+          var sk = serviceKeys[si];
+          var svc = comp.standard_services[sk];
+          var svcIcon = svc.would_accept ? iconCheckCircle(18, '#22c55e') : iconXCircle(18, '#ef4444');
+
+          html += '<div class="service-item">';
+          html += '<div class="service-left">';
+          html += svcIcon;
+          html += '<span class="service-name">' + esc(poolName(sk)) + '</span>';
+          html += '</div>';
+          html += '<span class="service-reason">' + esc(svc.reason || '') + '</span>';
+          html += '</div>';
+        }
+      }
+
+      if (comp.rawrelay_routing) {
+        var rr = comp.rawrelay_routing;
+        var rrIcon = rr.path_found ? iconCheckCircle(18, '#f7931a') : iconXCircle(18, '#ef4444');
+        var rrAccepted = (rr.accepted_by || []).length;
+        var rrReason;
+        if (rr.path_found) {
+          rrReason = 'Accepted by ' + rrAccepted + ' endpoint' + (rrAccepted !== 1 ? 's' : '');
         } else {
-            statusBox.className = 'status-box status-error';
-            statusText.className = 'status-value error';
-            statusText.textContent = data.error || 'Broadcast Failed';
+          rrReason = 'Rejected by all endpoints';
         }
 
-        // Show details if available
-        if (data.broadcast_results || data.confirmations !== undefined || data.timestamp) {
-            document.getElementById('details').classList.remove('hidden');
+        html += '<div class="service-item rawrelay-highlight">';
+        html += '<div class="service-left">';
+        html += rrIcon;
+        html += '<span class="service-name" style="color:#f7931a;font-weight:600">sendrawtx (RawRelay)</span>';
+        html += '</div>';
+        html += '<span class="service-reason">' + esc(rrReason) + '</span>';
+        html += '</div>';
+      }
 
-            if (data.confirmations !== undefined) {
-                document.getElementById('confirmations').textContent =
-                    data.confirmations === 0 ? 'Unconfirmed' : data.confirmations;
-            }
-
-            if (data.broadcast_results) {
-                const successCount = Object.values(data.broadcast_results)
-                    .filter(r => r.success).length;
-                const totalCount = Object.keys(data.broadcast_results).length;
-                document.getElementById('nodeCount').textContent =
-                    successCount + '/' + totalCount + ' successful';
-            }
-
-            if (data.timestamp) {
-                const date = new Date(data.timestamp);
-                document.getElementById('broadcastTime').textContent =
-                    date.toLocaleString();
-            }
-        }
+      html += '</div>';
+      html += '</div>';
     }
 
-    async function main() {
+    /* 6. Timing */
+    if (data.meta) {
+      var m = data.meta;
+
+      html += '<div class="card">';
+      html += '<div class="card-title">Timing</div>';
+      html += '<div class="timing-grid">';
+
+      html += '<div class="timing-item">';
+      html += '<div class="timing-item-label">Processed</div>';
+      html += '<div class="timing-item-value small-text">' + esc(formatDate(m.processed_at)) + '</div>';
+      html += '</div>';
+
+      html += '<div class="timing-item">';
+      html += '<div class="timing-item-label">Processing Time</div>';
+      html += '<div class="timing-item-value">' + esc(String(m.processing_time_ms != null ? m.processing_time_ms : '-')) + ' <span style="font-size:13px;color:#666">ms</span></div>';
+      html += '</div>';
+
+      html += '<div class="timing-item">';
+      html += '<div class="timing-item-label">Endpoints Tried</div>';
+      html += '<div class="timing-item-value">' + esc(String(m.endpoints_attempted != null ? m.endpoints_attempted : '-')) + '</div>';
+      html += '</div>';
+
+      html += '<div class="timing-item">';
+      html += '<div class="timing-item-label">Accepted</div>';
+      html += '<div class="timing-item-value">' + esc(String(m.endpoints_accepted != null ? m.endpoints_accepted : '-')) + '</div>';
+      html += '</div>';
+
+      html += '</div>';
+      html += '</div>';
+    }
+
+    /* 7. External Links */
+    html += '<div class="card">';
+    html += '<div class="card-title">External Links</div>';
+    html += '<div class="external-links">';
+    html += '<a href="https://mempool.space/tx/' + esc(data.txid) + '" target="_blank" rel="noopener noreferrer" class="ext-link">' + iconExternalLink(16, 'currentColor') + ' mempool.space</a>';
+    html += '<a href="https://blockstream.info/tx/' + esc(data.txid) + '" target="_blank" rel="noopener noreferrer" class="ext-link">' + iconExternalLink(16, 'currentColor') + ' Blockstream</a>';
+    html += '</div>';
+    html += '</div>';
+
+    app.innerHTML = html;
+
+    /* Copy button handler */
+    var copyBtn = document.getElementById('copy-btn');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', function() {
+        function onCopied() {
+          copyBtn.classList.add('copied');
+          copyBtn.innerHTML = iconCheckCircle(16, '#22c55e');
+          setTimeout(function() {
+            copyBtn.classList.remove('copied');
+            copyBtn.innerHTML = iconCopy(16, 'currentColor');
+          }, 2000);
+        }
+
+        function fallbackCopy() {
+          var txidEl = document.getElementById('txid-display');
+          if (txidEl) {
+            var range = document.createRange();
+            range.selectNodeContents(txidEl);
+            var sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            try {
+              document.execCommand('copy');
+              onCopied();
+            } catch (e) { /* selection remains for manual copy */ }
+          }
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(data.txid).then(onCopied).catch(fallbackCopy);
+        } else {
+          fallbackCopy();
+        }
+      });
+    }
+  }
+
+  /* Main */
+  function init() {
+    var txid = parseTxid();
+
+    if (!txid) {
+      renderError('No valid transaction ID found in URL.');
+      return;
+    }
+
+    renderLoading();
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '/tx/' + txid, true);
+    xhr.setRequestHeader('Accept', 'application/json');
+
+    xhr.onload = function() {
+      if (xhr.status >= 200 && xhr.status < 300) {
         try {
-            // Get txid from URL
-            const path = window.location.pathname;
-            const match = path.match(/^\/tx\/([a-fA-F0-9]{64})$/);
-
-            if (!match) {
-                showError('Invalid transaction ID format. Expected 64 hex characters.');
-                return;
-            }
-
-            const txid = match[1].toLowerCase();
-
-            // Fetch status
-            const response = await fetch('/tx/' + txid, {
-                method: 'GET',
-                headers: { 'Accept': 'application/json' }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                showResult(data);
-            } else if (response.status === 404) {
-                showError('This transaction ID was not found in our broadcast history.');
-            } else {
-                showError('Failed to fetch transaction status. Please try again.');
-            }
+          var data = JSON.parse(xhr.responseText);
+          renderResult(data);
         } catch (e) {
-            showError('Error loading transaction status: ' + e.message);
+          renderError('Failed to parse response.');
         }
-    }
+      } else {
+        renderError('Results expire after 1 hour.');
+      }
+    };
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', main);
-    } else {
-        main();
-    }
+    xhr.onerror = function() {
+      renderError('Network error. Please try again.');
+    };
+
+    xhr.send();
+  }
+
+  init();
 })();
 </script>
 </body>

@@ -1,461 +1,3580 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>SendRawTx - Broadcast & Decode</title>
-        <style>
-        :root {
-            --bg-body: #0a0a0a;
-            --bg-card: #1c1c1c;
-            --bg-input: #2a2a2a;
-            --primary: #f7931a;
-            --primary-hover: #e07b1a;
-            --text-main: #ffffff;
-            --text-muted: #888888;
-            
-            /* Error Variables */
-            --error-red: #ff4444;
-            --error-bg: rgba(255, 68, 68, 0.05);
-        }
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>sendrawtx - Bitcoin Transaction Broadcast</title>
+<meta name="description" content="Broadcast raw Bitcoin transactions. Non-standard TX specialist with multi-endpoint routing.">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:#0f0f0f;color:#e0e0e0;min-height:100vh;display:flex;flex-direction:column;
+  line-height:1.6;-webkit-font-smoothing:antialiased;
+}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+code,pre,.mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',Menlo,monospace}
+.hidden{display:none!important}
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+/* Layout */
+.container{max-width:1152px;margin:0 auto;padding:0 16px}
+@media(min-width:640px){.container{padding:0 24px}}
+.flex{display:flex}.flex-col{flex-direction:column}.flex-1{flex:1}
+.items-center{align-items:center}.items-start{align-items:start}
+.justify-center{justify-content:center}.justify-between{justify-content:space-between}
+.gap-1{gap:4px}.gap-2{gap:8px}.gap-3{gap:12px}.gap-4{gap:16px}.gap-6{gap:24px}
+.flex-wrap{flex-wrap:wrap}.flex-shrink-0{flex-shrink:0}
+.w-full{width:100%}.mx-auto{margin-left:auto;margin-right:auto}
+.text-center{text-align:center}.text-left{text-align:left}
+.ml-auto{margin-left:auto}.mr-2{margin-right:8px}.ml-2{margin-left:8px}
+.mt-1{margin-top:4px}.mt-2{margin-top:8px}.mt-3{margin-top:12px}.mt-4{margin-top:16px}
+.mb-1{margin-bottom:4px}.mb-2{margin-bottom:8px}.mb-3{margin-bottom:12px}.mb-4{margin-bottom:16px}.mb-6{margin-bottom:24px}.mb-8{margin-bottom:32px}
+.pt-1{padding-top:4px}.pt-3{padding-top:12px}.pt-4{padding-top:16px}
+.p-1{padding:4px}.p-2{padding:8px}.p-3{padding:12px}.p-4{padding:16px}
+.px-2{padding-left:8px;padding-right:8px}.px-4{padding-left:16px;padding-right:16px}
+.py-1{padding-top:4px;padding-bottom:4px}.py-2{padding-top:8px;padding-bottom:8px}
+.py-8{padding-top:32px;padding-bottom:32px}.py-12{padding-top:48px;padding-bottom:48px}
+.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.break-all{word-break:break-all}.overflow-x-auto{overflow-x:auto}
+.max-w-2xl{max-width:672px}.max-w-4xl{max-width:896px}.max-w-6xl{max-width:1152px}.max-w-md{max-width:448px}
+.rounded{border-radius:6px}.rounded-lg{border-radius:8px}.rounded-xl{border-radius:12px}.rounded-full{border-radius:9999px}
+.rounded-md{border-radius:6px}
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: var(--bg-body);
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
+/* Grid */
+.grid{display:grid;gap:16px}
+.grid-cols-2{grid-template-columns:repeat(2,1fr)}
+.grid-cols-3{grid-template-columns:repeat(3,1fr)}
+@media(min-width:640px){.sm-grid-cols-3{grid-template-columns:repeat(3,1fr)}.sm-grid-cols-4{grid-template-columns:repeat(4,1fr)}}
+@media(min-width:768px){.md-grid-cols-4{grid-template-columns:repeat(4,1fr)}}
 
-        /* HEADER */
-        .header {
-            position: sticky;
-            top: 0;
-            width: 100%;
-            padding: 1rem 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: var(--bg-body);
-            z-index: 100;
-        }
+/* Text */
+.text-xs{font-size:12px;line-height:16px}
+.text-sm{font-size:14px;line-height:20px}
+.text-lg{font-size:18px;line-height:28px}
+.text-xl{font-size:20px;line-height:28px}
+.text-2xl{font-size:24px;line-height:32px}
+.text-3xl{font-size:30px;line-height:36px}
+.text-4xl{font-size:36px;line-height:40px}
+.text-white{color:#fff}
+.text-muted{color:#a0a0a0}
+.text-secondary{color:#666}
+.text-orange{color:#f7931a}
+.text-green{color:#22c55e}
+.text-red{color:#ef4444}
+.text-yellow{color:#eab308}
+.text-blue{color:#3b82f6}
+.font-medium{font-weight:500}.font-semibold{font-weight:600}.font-bold{font-weight:700}
+.capitalize{text-transform:capitalize}.uppercase{text-transform:uppercase}
+.italic{font-style:italic}
+@media(min-width:640px){.sm-text-5xl{font-size:48px;line-height:1}.sm-text-xl{font-size:20px;line-height:28px}.sm-inline{display:inline!important}}
 
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: 700;
-            font-size: 1.1rem;
-            color: #e0e0e0;
-        }
+/* Colors/Backgrounds */
+.bg-dark{background:#0f0f0f}.bg-card{background:#1a1a1a}.bg-card-alt{background:#252525}
+.bg-orange{background:#f7931a}
 
-        .logo-icon {
-            color: var(--primary);
-            font-size: 1.5rem;
-        }
+/* Card */
+.card{background:#1a1a1a;border:1px solid #252525;border-radius:8px}
+.card-bordered{background:#1a1a1a;border:1px solid #333;border-radius:8px}
+.card-header{padding:16px 16px 0}
+.card-title{font-size:16px;font-weight:600;color:#fff;display:flex;align-items:center;gap:8px}
+.card-content{padding:16px}
 
-        .nav-list {
-            list-style: none;
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-        }
+/* Badge */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:9999px;font-size:12px;font-weight:500}
+.badge-info{background:rgba(59,130,246,0.2);color:#3b82f6}
+.badge-success{background:rgba(34,197,94,0.2);color:#22c55e}
+.badge-warning{background:rgba(234,179,8,0.2);color:#eab308}
+.badge-error{background:rgba(239,68,68,0.2);color:#ef4444}
+.badge-sm{font-size:11px;padding:1px 6px}
 
-        .nav-item a {
-            text-decoration: none;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            transition: color 0.2s;
-        }
+/* Header */
+#site-header{
+  position:sticky;top:0;z-index:50;
+  background:rgba(15,15,15,0.95);backdrop-filter:blur(8px);
+  border-bottom:1px solid #1a1a1a;
+}
+#site-header .inner{display:flex;align-items:center;justify-content:space-between;height:64px}
+#site-header .logo-link{display:flex;align-items:center;gap:8px;transition:color 0.2s}
+#site-header .logo-link:hover .site-name{color:#f7931a}
+.site-name{font-size:18px;font-weight:700;color:#fff;font-family:'SF Mono',SFMono-Regular,Consolas,monospace;transition:color 0.2s}
+#site-header nav{display:flex;align-items:center;gap:4px}
+.nav-link{
+  display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:8px;
+  font-size:14px;font-weight:500;color:#a0a0a0;transition:all 0.2s;
+}
+.nav-link:hover{color:#fff;background:#1a1a1a}
+.nav-link.active{color:#fff;background:#1a1a1a}
+.nav-link .nav-label{display:none}
+@media(min-width:640px){.nav-link .nav-label{display:inline}}
 
-        .nav-item a:hover {
-            color: var(--text-main);
-        }
+/* Footer */
+#site-footer{margin-top:auto;border-top:1px solid #1a1a1a;background:#0f0f0f;padding:32px 0}
+#site-footer .footer-inner-wrap{display:flex;flex-direction:column;align-items:center;gap:16px}
+@media(min-width:640px){#site-footer .footer-inner-wrap{flex-direction:row;justify-content:space-between}}
+.footer-link{display:flex;align-items:center;gap:8px;font-size:14px;color:#a0a0a0;transition:color 0.2s}
+.footer-link:hover{color:#fff}
 
-        .nav-item.active a {
-            background-color: #1f1f1f;
-            padding: 6px 12px;
-            border-radius: 6px;
-            color: var(--text-main);
-        }
+/* Buttons */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;
+  transition:all 0.2s;cursor:pointer;border:none;
+}
+.btn-primary{background:#f7931a;color:#0f0f0f}
+.btn-primary:hover{background:#e8850f}
+.btn-primary:disabled{opacity:0.5;cursor:not-allowed}
+.btn-secondary{background:#252525;color:#a0a0a0;border:1px solid #333}
+.btn-secondary:hover{color:#fff;border-color:#555}
+.btn-secondary:disabled{opacity:0.5;cursor:not-allowed}
+.btn-lg{padding:12px 24px;font-size:16px}
 
-        /* MAIN CONTENT CONTAINER */
-        .container {
-            text-align: center;
-            padding: 4rem 1rem;
-            max-width: 800px;
-            margin: auto;
-            width: 100%;
-        }
+/* Textarea */
+.tx-textarea{
+  width:100%;padding:12px;border-radius:8px;border:1px solid #333;
+  background:#0f0f0f;color:#e0e0e0;font-family:'SF Mono',SFMono-Regular,Consolas,monospace;
+  font-size:13px;resize:vertical;outline:none;transition:border-color 0.2s;
+}
+.tx-textarea:focus{border-color:#f7931a}
+.tx-textarea::placeholder{color:#555}
+.tx-textarea.has-error{border-color:#ef4444}
 
-        h1.title {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            color: white;
-            letter-spacing: -0.5px;
-        }
+/* Mode Toggle */
+.mode-toggle{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:4px;background:#1a1a1a;border-radius:8px;margin-bottom:16px;
+}
+.mode-btn{
+  display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:6px;
+  font-size:14px;font-weight:500;color:#666;transition:all 0.2s;
+}
+.mode-btn:hover{color:#a0a0a0}
+.mode-btn.active-preview{background:#252525;color:#fff}
+.mode-btn.active-broadcast{background:#f7931a;color:#0f0f0f}
 
-        .subtitle {
-            color: var(--text-muted);
-            font-size: 1.1rem;
-            line-height: 1.6;
-            max-width: 650px;
-            margin: 0 auto 3rem auto;
-        }
-        
-        /* Highlight specific keywords in subtitle */
-        .subtitle strong {
-            color: #e0e0e0;
-            font-weight: 600;
-        }
+/* Progress Bar */
+.progress-bar{width:100%;background:#252525;border-radius:9999px;overflow:hidden}
+.progress-bar .fill{height:100%;border-radius:9999px;transition:width 0.3s}
+.progress-bar.h-2{height:8px}.progress-bar.h-2 .fill{height:8px}
+.progress-bar.h-3{height:12px}.progress-bar.h-3 .fill{height:12px}
 
-        /* TX CARD */
-        .tx-card {
-            background: var(--bg-card);
-            border-radius: 12px;
-            padding: 2rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-            text-align: left;
-        }
+/* Feature card icon */
+.feature-icon{
+  width:48px;height:48px;margin:0 auto 16px;border-radius:12px;
+  background:rgba(247,147,26,0.12);display:flex;align-items:center;justify-content:center;
+}
 
-        .tab-group {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
+/* Step numbers */
+.step-circle{
+  width:32px;height:32px;border-radius:50%;background:#f7931a;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  font-size:14px;font-weight:700;color:#0f0f0f;
+}
 
-        .tab-btn {
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.2s;
-        }
+/* Code block */
+.code-block{background:#0f0f0f;border-radius:8px;padding:16px;font-size:13px;overflow-x:auto}
+.code-sm{background:#0f0f0f;border-radius:8px;padding:12px;font-size:13px;overflow-x:auto}
 
-        .tab-btn.active {
-            background: var(--primary);
-            color: #000;
-            font-weight: 600;
-        }
+/* Section transitions */
 
-        /* INPUT AREA */
-        .input-area {
-            position: relative;
-            background: var(--bg-input);
-            border: 1px solid transparent;
-            border-radius: 8px;
-            padding: 1rem;
-            min-height: 200px;
-            display: flex;
-            flex-direction: column;
-            transition: all 0.2s ease;
-        }
+/* Animate spin */
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.animate-spin{animation:spin 1s linear infinite}
 
-        /* ERROR STATE */
-        .input-area.error-state {
-            background: var(--error-bg);
-            border-color: var(--error-red);
-        }
+/* Border */
+.border-t{border-top:1px solid #1a1a1a}
+.border-b{border-bottom:1px solid #333}
+.border{border:1px solid #333}
 
-        textarea {
-            width: 100%;
-            height: 150px;
-            background: transparent;
-            border: none;
-            color: var(--text-main);
-            font-family: "Courier New", monospace;
-            font-size: 0.95rem;
-            resize: none;
-            outline: none;
-            transition: color 0.2s;
-        }
+/* TransactionPreview */
+.tx-preview{background:#252525;border:1px solid #333;border-radius:8px;padding:16px}
+.tx-info-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(min-width:768px){.tx-info-grid{grid-template-columns:repeat(4,1fr)}}
+.tx-info-box{background:#1a1a1a;border-radius:8px;padding:12px}
+.tx-info-label{font-size:12px;color:#666;margin-bottom:4px;display:flex;align-items:center;gap:4px}
+.tx-info-value{font-size:14px;font-weight:500;color:#e0e0e0}
+.tx-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:12px;padding:4px 8px;border-radius:4px;
+}
+.input-row,.output-row{border:1px solid #333;border-radius:8px;padding:12px;background:#1a1a1a}
+.output-row.op-return{border-color:rgba(59,130,246,0.3);background:rgba(59,130,246,0.05)}
+.expand-header{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+.expand-detail{margin-top:12px;padding-top:12px;border-top:1px solid #333}
+.detail-row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px}
+.detail-label{color:#666}.detail-value{color:#a0a0a0}
+.copy-btn{color:#666;transition:color 0.2s;background:none;border:none;cursor:pointer;padding:2px}
+.copy-btn:hover{color:#a0a0a0}
 
-        /* Highlight text color in error state */
-        .input-area.error-state textarea {
-            color: var(--error-red);
-        }
+/* Scrollbar */
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:#1a1a1a}
+::-webkit-scrollbar-thumb{background:#333;border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:#555}
+</style>
+</head>
+<body>
+<!-- NETWORK_BANNER -->
 
-        textarea::placeholder {
-            color: #555;
-        }
+<!-- HEADER -->
+<header id="site-header">
+  <div class="container inner">
+    <a href="/" class="logo-link">
+      <div style="width:56px;height:56px;display:flex;align-items:center;justify-content:center">
+        <svg viewBox="0 0 100 100" style="width:56px;height:56px">
+          <polygon points="50,2 93,26 93,74 50,98 7,74 7,26" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.1"/>
+          <polygon points="50,8 87,29 87,71 50,92 13,71 13,29" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.2"/>
+          <polygon points="50,14 81,32 81,68 50,86 19,68 19,32" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.35"/>
+          <polygon points="50,20 75,35 75,65 50,80 25,65 25,35" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.55"/>
+          <polygon points="50,26 69,38 69,62 50,74 31,62 31,38" fill="none" stroke="#f7931a" stroke-width="2.5" opacity="0.8"/>
+          <text x="50" y="58" text-anchor="middle" font-size="20" font-weight="bold" fill="#f7931a" font-family="Georgia, serif">TX</text>
+        </svg>
+      </div>
+      <span class="site-name" id="site-name"></span>
+    </a>
+    <nav id="main-nav">
+      <a href="/" class="nav-link active">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        <span class="nav-label">Broadcast</span>
+      </a>
+      <a href="/docs" class="nav-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <span class="nav-label">API Docs</span>
+      </a>
+      <a href="/status" class="nav-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <span class="nav-label">Status</span>
+      </a>
+    </nav>
+  </div>
+</header>
 
-        /* FOOTER ACTIONS */
-        .broadcast-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            margin-top: 1rem;
-            height: 42px;
-        }
+<!-- MAIN CONTENT -->
+<main class="flex-1 flex flex-col">
 
-        .status-left {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            gap: 4px;
-            height: 100%;
-        }
+<!-- ==================== HOME ==================== -->
+  <section class="py-12" style="padding-top:48px;padding-bottom:80px">
+    <div class="max-w-4xl mx-auto text-center" style="padding:0 16px">
+      <h1 class="text-4xl font-bold text-white mb-4" style="font-size:36px;line-height:40px">Broadcast Raw Transactions</h1>
+      <p class="text-muted mb-8" style="font-size:18px;max-width:672px;margin:0 auto 32px">
+        The non-standard TX specialist. Route transactions through permissive nodes when standard services reject them.
+      </p>
 
-        .char-count {
-            font-size: 0.8rem;
-            color: #555;
-            font-family: monospace;
-        }
+      <!-- Broadcast Form Card -->
+      <div class="card-bordered max-w-2xl mx-auto text-left">
+        <div class="card-content">
+          <!-- Mode Toggle -->
+          <div class="mode-toggle">
+            <button class="mode-btn active-preview" id="btn-preview" onclick="setMode('preview')">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              Preview Only
+            </button>
+            <button class="mode-btn" id="btn-broadcast" onclick="setMode('broadcast')">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 010 8.49m-8.48-.01a6 6 0 010-8.49m11.31-2.82a10 10 0 010 14.14m-14.14 0a10 10 0 010-14.14"/></svg>
+              Broadcast
+            </button>
+          </div>
 
-        .error-message {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--error-red);
-            display: none; 
-        }
+          <textarea id="tx-input" class="tx-textarea" rows="6"
+            placeholder="Paste raw transaction hex or PSBT (hex or base64)..."
+            oninput="handleTxInput()"></textarea>
 
-        .input-area.error-state .error-message {
-            display: block; 
-            animation: fadeIn 0.2s ease-in;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(2px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* BUTTON STYLES */
-        .action-btn {
-            background: var(--primary);
-            color: #0f0f0f;
-            border: none;
-            padding: 10px 24px;
-            border-radius: 6px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s;
-            opacity: 1;
-        }
-
-        .action-btn:hover {
-            background: var(--primary-hover);
-        }
-
-        .action-btn:disabled {
-            background: #333;
-            color: #c2c1c1;
-            cursor: not-allowed;
-            opacity: 0.7;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .icon {
-            width: 16px;
-            height: 16px;
-            fill: currentColor;
-        }
-    </style>
-    </head>
-    <body>
-
-        <header class="header">
-            <div class="logo">
-                <svg class="logo-icon" width="24" height="24"
-                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2" stroke-linecap="round"
-                    stroke-linejoin="round">
-                    <path d="M12 2l9 4.9V17L12 22l-9-4.9V7z" />
-                    <text x="12" y="16" font-size="10" text-anchor="middle"
-                        fill="currentColor" stroke="none">TX</text>
-                </svg>
-                <span>SendRawTx</span>
+          <div id="tx-error" style="display:none;margin-top:8px;padding:12px;border-radius:8px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3)">
+            <div class="flex items-start gap-2">
+              <span class="text-red" style="flex-shrink:0;margin-top:2px" id="tx-error-icon"></span>
+              <span class="text-sm text-red" id="tx-error-msg"></span>
             </div>
-            <nav>
-                <ul class="nav-list">
-                    <li class="nav-item active"><a href="#">
-                            <svg class="icon" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2"><path
-                                    d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline
-                                    points="14 2 14 8 20 8"></polyline></svg>
-                            Broadcast</a></li>
-                    <li class="nav-item"><a href="#">
-                            <svg class="icon" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2"><path
-                                    d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline
-                                    points="14 2 14 8 20 8"></polyline><line
-                                    x1="16" y1="13" x2="8" y2="13"></line><line
-                                    x1="16" y1="17" x2="8"
-                                    y2="17"></line><polyline
-                                    points="10 9 9 9 8 9"></polyline></svg>
-                            API Docs</a></li>
-                    <li class="nav-item"><a href="#">
-                            <svg class="icon" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2"><polyline
-                                    points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-                            Status</a></li>
-                </ul>
-            </nav>
-        </header>
+          </div>
 
-        <div class="container">
-            <!-- UPDATED TEXT CONTENT -->
-            <h1 class="title">Broadcast & Decode Transactions</h1>
-            <p class="subtitle">
-                A dual-purpose Bitcoin tool. Paste a <strong>Transaction
-                    ID</strong> to view details,
-                or a <strong>Raw Transaction Hex</strong> to broadcast directly
-                to the network.
-            </p>
-
-            <form action="/broadcast" method="post" id="broadcastForm">
-                <div class="tx-card">
-                    <div class="tab-group">
-                        <button type="button" class="tab-btn" id="previewTab"
-                            onclick="switchTab('preview')">
-                            <svg class="icon" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2"><path
-                                    d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle
-                                    cx="12" cy="12" r="3"></circle></svg>
-                            Preview TX</button>
-                        <button type="button" class="tab-btn active"
-                            id="broadcastTab"
-                            onclick="switchTab('broadcast')">
-                            <svg class="icon" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2"><path
-                                    d="M5 12.55a11 11 0 0 1 14.08 0"></path><path
-                                    d="M1.42 9a16 16 0 0 1 21.16 0"></path><path
-                                    d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line
-                                    x1="12" y1="20" x2="12.01"
-                                    y2="20"></line></svg>
-                            Broadcast</button>
-                    </div>
-
-                    <div class="input-area" id="inputWrapper">
-                        <textarea
-                            name="tx"
-                            id="txInput"
-                            placeholder="Paste Transaction ID (TXID) or Raw Transaction Hex..."
-                            spellcheck="false"></textarea>
-
-                        <div class="broadcast-container">
-                            <div class="status-left">
-                                <span class="error-message"
-                                    id="errorDisplay">Invalid characters
-                                    detected</span>
-                                <span class="char-count" id="charCount">0
-                                    characters</span>
-                            </div>
-
-                            <button type="submit" class="action-btn"
-                                id="submitBtn" disabled>
-                                <span id="btnText">Broadcast</span>
-                                <svg class="icon" viewBox="0 0 24 24"
-                                    fill="none" stroke="currentColor"
-                                    stroke-width="2"><line x1="5" y1="12"
-                                        x2="19" y2="12"></line><polyline
-                                        points="12 5 19 12 12 19"></polyline></svg>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </form>
+          <div class="flex items-center justify-between" style="margin-top:16px">
+            <span class="text-sm text-secondary" id="tx-status-left"></span>
+            <span id="tx-status-right"></span>
+          </div>
         </div>
+      </div>
 
-        <script>
-        const previewTab = document.getElementById('previewTab');
-        const broadcastTab = document.getElementById('broadcastTab');
-        const txInput = document.getElementById('txInput');
-        const inputWrapper = document.getElementById('inputWrapper');
-        const charCount = document.getElementById('charCount');
-        const errorDisplay = document.getElementById('errorDisplay');
-        const submitBtn = document.getElementById('submitBtn');
-        const btnText = document.getElementById('btnText');
+      <!-- Transaction Preview Container -->
+      <div id="tx-preview-container" class="max-w-2xl mx-auto" style="margin-top:24px;display:none"></div>
+    </div>
+  </section>
 
-        function switchTab(mode) {
-            if (mode === 'preview') {
-                previewTab.classList.add('active');
-                broadcastTab.classList.remove('active');
-            } else {
-                broadcastTab.classList.add('active');
-                previewTab.classList.remove('active');
+  <!-- Features -->
+  <section class="py-12 border-t">
+    <div class="max-w-6xl mx-auto" style="padding:0 16px">
+      <div class="grid grid-cols-1" style="grid-template-columns:repeat(1,1fr);gap:24px">
+        <div class="card text-center"><div class="card-content">
+          <div class="feature-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#f7931a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+          <h3 class="text-lg font-semibold text-white mb-2">Non-Standard TX Support</h3>
+          <p class="text-sm text-muted">Broadcast transactions that other services reject</p>
+        </div></div>
+        <div class="card text-center"><div class="card-content">
+          <div class="feature-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#f7931a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
+          <h3 class="text-lg font-semibold text-white mb-2">Multi-Endpoint Routing</h3>
+          <p class="text-sm text-muted">Core, Knots, Libre Relay + external APIs</p>
+        </div></div>
+        <div class="card text-center"><div class="card-content">
+          <div class="feature-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#f7931a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          <h3 class="text-lg font-semibold text-white mb-2">Instant Analysis</h3>
+          <p class="text-sm text-muted">Client-side TX decode and preview before broadcast</p>
+        </div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section class="py-12 border-t">
+    <div class="max-w-4xl mx-auto" style="padding:0 16px">
+      <h2 class="text-2xl font-bold text-white text-center mb-8">How It Works</h2>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="flex items-start gap-4"><div class="step-circle">1</div><div class="pt-1 flex-1"><p class="text-muted">Paste your raw transaction hex</p></div></div>
+        <div class="flex items-start gap-4"><div class="step-circle">2</div><div class="pt-1 flex-1"><p class="text-muted">Preview the decoded transaction details</p></div></div>
+        <div class="flex items-start gap-4"><div class="step-circle">3</div><div class="pt-1 flex-1"><p class="text-muted">Click Broadcast to submit via GET /{hex}</p></div></div>
+        <div class="flex items-start gap-4"><div class="step-circle">4</div><div class="pt-1 flex-1"><p class="text-muted">View result with endpoint acceptance report</p></div></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- FOOTER -->
+<footer id="site-footer">
+  <div class="container">
+    <div class="footer-inner-wrap">
+      <div>
+        <p style="font-size:14px;color:#a0a0a0"><span style="color:#fff;font-weight:500" class="mono" id="footer-site-name"></span> - Bitcoin raw transaction broadcast service</p>
+        <p style="font-size:12px;color:#666;margin-top:4px">Specializing in non-standard transactions that other services reject</p>
+      </div>
+      <div class="flex items-center gap-4">
+        <a href="https://github.com/8144225309/sendrawtx" target="_blank" rel="noopener noreferrer" class="footer-link">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          <span>GitHub</span>
+        </a>
+        <a href="https://mempool.space" target="_blank" rel="noopener noreferrer" class="footer-link">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          <span>mempool.space</span>
+        </a>
+      </div>
+    </div>
+    <div style="margin-top:24px;padding-top:24px;border-top:1px solid #1a1a1a;text-align:center">
+      <p style="font-size:12px;color:#666">Built with Bitcoin Core, Knots, and Libre Relay</p>
+    </div>
+
+  </div>
+</footer>
+
+<script>
+/**
+ * Pure JavaScript Bitcoin Transaction Decoder
+ * No external dependencies - just byte parsing and math
+ * Converted from TypeScript - original had zero npm dependencies
+ */
+const TxDecoder = (function() {
+'use strict';
+
+// ============================================================================
+// Standard limits from Bitcoin Core policy.h
+// ============================================================================
+
+const LIMITS = {
+  MIN_TX_SIZE: 82,                    // Minimum non-witness size
+  MAX_STANDARD_TX_WEIGHT: 400000,     // 100 kvB
+  MAX_STANDARD_VERSION: 2,
+  MAX_OP_RETURN_RELAY: 83,            // OP_RETURN max size
+  MAX_OP_RETURN_COUNT: 1,             // Only 1 OP_RETURN allowed
+  MAX_SCRIPTSIG_SIZE: 1650,           // ~15-of-15 multisig
+  MAX_STANDARD_P2WSH_SCRIPT_SIZE: 3600,
+  MAX_STANDARD_P2WSH_STACK_ITEMS: 100,
+  MAX_BARE_MULTISIG_PUBKEYS: 3,
+  // Dust limits at 3000 sat/kvB
+  DUST_P2PKH: 546,
+  DUST_P2WPKH: 294,
+  DUST_P2TR: 330,
+  DUST_P2SH: 540,
+  DUST_P2WSH: 330,
+};
+
+// ============================================================================
+// Hex/Byte Utilities
+// ============================================================================
+
+class ByteReader {
+  constructor(hex) {
+    this.hex = hex.toLowerCase().replace(/\s/g, '');
+    this.pos = 0;
+  }
+
+  get position() {
+    return this.pos;
+  }
+
+  get remaining() {
+    return (this.hex.length - this.pos) / 2;
+  }
+
+  get totalBytes() {
+    return this.hex.length / 2;
+  }
+
+  readBytes(n) {
+    if (this.pos + n * 2 > this.hex.length) {
+      throw new Error(`Not enough bytes: need ${n}, have ${this.remaining}`);
+    }
+    const result = this.hex.slice(this.pos, this.pos + n * 2);
+    this.pos += n * 2;
+    return result;
+  }
+
+  readUInt8() {
+    return parseInt(this.readBytes(1), 16);
+  }
+
+  readUInt16LE() {
+    const bytes = this.readBytes(2);
+    return parseInt(bytes.slice(2, 4) + bytes.slice(0, 2), 16);
+  }
+
+  readUInt32LE() {
+    const bytes = this.readBytes(4);
+    return parseInt(
+      bytes.slice(6, 8) + bytes.slice(4, 6) +
+      bytes.slice(2, 4) + bytes.slice(0, 2),
+      16
+    );
+  }
+
+  readUInt64LE() {
+    const bytes = this.readBytes(8);
+    let result = 0n;
+    for (let i = 7; i >= 0; i--) {
+      result = result * 256n + BigInt(parseInt(bytes.slice(i * 2, i * 2 + 2), 16));
+    }
+    return result;
+  }
+
+  readVarInt() {
+    const first = this.readUInt8();
+    if (first < 0xfd) return first;
+    if (first === 0xfd) return this.readUInt16LE();
+    if (first === 0xfe) return this.readUInt32LE();
+    // 0xff - 8 byte int (rarely used for counts)
+    return Number(this.readUInt64LE());
+  }
+
+  readHash256() {
+    // Read 32 bytes and reverse for display (Bitcoin shows txids reversed)
+    const bytes = this.readBytes(32);
+    return reverseHex(bytes);
+  }
+
+  peek(n) {
+    return this.hex.slice(this.pos, this.pos + n * 2);
+  }
+}
+
+function reverseHex(hex) {
+  const bytes = hex.match(/.{2}/g) || [];
+  return bytes.reverse().join('');
+}
+
+function hexToAscii(hex) {
+  let result = '';
+  for (let i = 0; i < hex.length; i += 2) {
+    const code = parseInt(hex.slice(i, i + 2), 16);
+    // Only include printable ASCII characters
+    if (code >= 32 && code < 127) {
+      result += String.fromCharCode(code);
+    } else {
+      result += '.';
+    }
+  }
+  return result;
+}
+
+function satsToBtc(sats) {
+  return (sats / 100_000_000).toFixed(8);
+}
+
+// ============================================================================
+// Bech32/Bech32m Encoding (Pure math - no crypto needed)
+// ============================================================================
+
+const BECH32_CHARSET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
+
+const BECH32_GENERATOR = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
+
+function bech32Polymod(values) {
+  let chk = 1;
+  for (const v of values) {
+    const top = chk >> 25;
+    chk = ((chk & 0x1ffffff) << 5) ^ v;
+    for (let i = 0; i < 5; i++) {
+      if ((top >> i) & 1) {
+        chk ^= BECH32_GENERATOR[i];
+      }
+    }
+  }
+  return chk;
+}
+
+function bech32HrpExpand(hrp) {
+  const result = [];
+  for (const c of hrp) {
+    result.push(c.charCodeAt(0) >> 5);
+  }
+  result.push(0);
+  for (const c of hrp) {
+    result.push(c.charCodeAt(0) & 31);
+  }
+  return result;
+}
+
+function bech32CreateChecksum(hrp, data, isBech32m) {
+  const values = bech32HrpExpand(hrp).concat(data);
+  const CONST = isBech32m ? 0x2bc830a3 : 1;
+  const polymod = bech32Polymod(values.concat([0, 0, 0, 0, 0, 0])) ^ CONST;
+  const checksum = [];
+  for (let i = 0; i < 6; i++) {
+    checksum.push((polymod >> (5 * (5 - i))) & 31);
+  }
+  return checksum;
+}
+
+function convertBits(data, fromBits, toBits, pad) {
+  let acc = 0;
+  let bits = 0;
+  const result = [];
+  const maxv = (1 << toBits) - 1;
+
+  for (const value of data) {
+    if (value < 0 || value >> fromBits !== 0) return null;
+    acc = (acc << fromBits) | value;
+    bits += fromBits;
+    while (bits >= toBits) {
+      bits -= toBits;
+      result.push((acc >> bits) & maxv);
+    }
+  }
+
+  if (pad) {
+    if (bits > 0) {
+      result.push((acc << (toBits - bits)) & maxv);
+    }
+  } else if (bits >= fromBits || ((acc << (toBits - bits)) & maxv) !== 0) {
+    return null;
+  }
+
+  return result;
+}
+
+function encodeBech32(hrp, version, program, isBech32m) {
+  const data = [version].concat(convertBits(program, 8, 5, true) || []);
+  const checksum = bech32CreateChecksum(hrp, data, isBech32m);
+  let result = hrp + '1';
+  for (const d of data.concat(checksum)) {
+    result += BECH32_CHARSET[d];
+  }
+  return result;
+}
+
+function encodeSegwitAddress(hrp, version, program) {
+  const programBytes = [];
+  for (let i = 0; i < program.length; i += 2) {
+    programBytes.push(parseInt(program.slice(i, i + 2), 16));
+  }
+  // Bech32m for version 1+ (taproot), Bech32 for version 0
+  const isBech32m = version > 0;
+  return encodeBech32(hrp, version, programBytes, isBech32m);
+}
+
+// ============================================================================
+// Base58Check Encoding (needs SHA256 from browser crypto)
+// ============================================================================
+
+const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+
+function base58Encode(bytes) {
+  // Count leading zeros
+  let zeros = 0;
+  for (const b of bytes) {
+    if (b === 0) zeros++;
+    else break;
+  }
+
+  // Convert to base58
+  const digits = [0];
+  for (const byte of bytes) {
+    let carry = byte;
+    for (let i = 0; i < digits.length; i++) {
+      carry += digits[i] << 8;
+      digits[i] = carry % 58;
+      carry = Math.floor(carry / 58);
+    }
+    while (carry > 0) {
+      digits.push(carry % 58);
+      carry = Math.floor(carry / 58);
+    }
+  }
+
+  // Build string
+  let result = '';
+  for (let i = 0; i < zeros; i++) result += '1';
+  for (let i = digits.length - 1; i >= 0; i--) {
+    result += BASE58_ALPHABET[digits[i]];
+  }
+
+  return result;
+}
+
+async function sha256(data) {
+  // Create a fresh ArrayBuffer to avoid SharedArrayBuffer issues
+  let buffer;
+  if (data instanceof Uint8Array) {
+    buffer = new ArrayBuffer(data.length);
+    new Uint8Array(buffer).set(data);
+  } else {
+    buffer = data;
+  }
+  const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+  return new Uint8Array(hashBuffer);
+}
+
+async function doubleSha256(data) {
+  return sha256(await sha256(data));
+}
+
+async function encodeBase58Check(version, hash) {
+  const hashBytes = new Uint8Array(hash.length / 2);
+  for (let i = 0; i < hash.length; i += 2) {
+    hashBytes[i / 2] = parseInt(hash.slice(i, i + 2), 16);
+  }
+
+  const payload = new Uint8Array(1 + hashBytes.length);
+  payload[0] = version;
+  payload.set(hashBytes, 1);
+
+  const checksum = await doubleSha256(payload);
+
+  const result = new Uint8Array(payload.length + 4);
+  result.set(payload);
+  result.set(checksum.slice(0, 4), payload.length);
+
+  return base58Encode(result);
+}
+
+// ============================================================================
+// Script Analysis
+// ============================================================================
+
+function identifyScriptType(scriptPubKey) {
+  const len = scriptPubKey.length / 2;
+
+  // OP_RETURN (0x6a)
+  if (scriptPubKey.startsWith('6a')) {
+    return { type: 'op_return', data: scriptPubKey.slice(2) };
+  }
+
+  // P2PKH: OP_DUP OP_HASH160 <20 bytes> OP_EQUALVERIFY OP_CHECKSIG
+  // 76 a9 14 <pubkeyhash:20> 88 ac
+  if (len === 25 && scriptPubKey.startsWith('76a914') && scriptPubKey.endsWith('88ac')) {
+    return { type: 'p2pkh', data: scriptPubKey.slice(6, 46) };
+  }
+
+  // P2SH: OP_HASH160 <20 bytes> OP_EQUAL
+  // a9 14 <scripthash:20> 87
+  if (len === 23 && scriptPubKey.startsWith('a914') && scriptPubKey.endsWith('87')) {
+    return { type: 'p2sh', data: scriptPubKey.slice(4, 44) };
+  }
+
+  // P2WPKH: OP_0 <20 bytes>
+  // 00 14 <pubkeyhash:20>
+  if (len === 22 && scriptPubKey.startsWith('0014')) {
+    return { type: 'p2wpkh', data: scriptPubKey.slice(4) };
+  }
+
+  // P2WSH: OP_0 <32 bytes>
+  // 00 20 <scripthash:32>
+  if (len === 34 && scriptPubKey.startsWith('0020')) {
+    return { type: 'p2wsh', data: scriptPubKey.slice(4) };
+  }
+
+  // P2TR: OP_1 <32 bytes>
+  // 51 20 <tweaked_pubkey:32>
+  if (len === 34 && scriptPubKey.startsWith('5120')) {
+    return { type: 'p2tr', data: scriptPubKey.slice(4) };
+  }
+
+  // P2PK: <pubkey> OP_CHECKSIG
+  // Compressed: 21 <pubkey:33> ac
+  // Uncompressed: 41 <pubkey:65> ac
+  if ((len === 35 && scriptPubKey.startsWith('21') && scriptPubKey.endsWith('ac')) ||
+      (len === 67 && scriptPubKey.startsWith('41') && scriptPubKey.endsWith('ac'))) {
+    return { type: 'p2pk', data: scriptPubKey.slice(2, -2) };
+  }
+
+  // Check for bare multisig (starts with OP_1-OP_16, contains pubkeys, ends with OP_CHECKMULTISIG)
+  const firstByte = parseInt(scriptPubKey.slice(0, 2), 16);
+  if (firstByte >= 0x51 && firstByte <= 0x60 && scriptPubKey.endsWith('ae')) {
+    return { type: 'multisig' };
+  }
+
+  return { type: 'unknown' };
+}
+
+function parseOpReturnData(data) {
+  // Skip length prefix if present
+  let payload = data;
+  const firstByte = parseInt(data.slice(0, 2), 16);
+
+  // Handle push opcodes
+  if (firstByte <= 0x4b) {
+    // Direct push
+    payload = data.slice(2);
+  } else if (firstByte === 0x4c) {
+    // OP_PUSHDATA1
+    payload = data.slice(4);
+  } else if (firstByte === 0x4d) {
+    // OP_PUSHDATA2
+    payload = data.slice(6);
+  } else if (firstByte === 0x4e) {
+    // OP_PUSHDATA4
+    payload = data.slice(10);
+  }
+
+  return {
+    hex: payload,
+    ascii: hexToAscii(payload)
+  };
+}
+
+async function scriptToAddress(scriptType, data, isMainnet) {
+  if (isMainnet === undefined) isMainnet = true;
+  const hrp = isMainnet ? 'bc' : 'tb';
+
+  switch (scriptType) {
+    case 'p2wpkh':
+      return encodeSegwitAddress(hrp, 0, data);
+
+    case 'p2wsh':
+      return encodeSegwitAddress(hrp, 0, data);
+
+    case 'p2tr':
+      return encodeSegwitAddress(hrp, 1, data);
+
+    case 'p2pkh':
+      // Version 0x00 for mainnet, 0x6f for testnet
+      return encodeBase58Check(isMainnet ? 0x00 : 0x6f, data);
+
+    case 'p2sh':
+      // Version 0x05 for mainnet, 0xc4 for testnet
+      return encodeBase58Check(isMainnet ? 0x05 : 0xc4, data);
+
+    default:
+      return undefined;
+  }
+}
+
+function disassembleScript(script) {
+  const OPCODES = {
+    0x00: 'OP_0', 0x4c: 'OP_PUSHDATA1', 0x4d: 'OP_PUSHDATA2', 0x4e: 'OP_PUSHDATA4',
+    0x4f: 'OP_1NEGATE', 0x51: 'OP_1', 0x52: 'OP_2', 0x53: 'OP_3', 0x54: 'OP_4',
+    0x55: 'OP_5', 0x56: 'OP_6', 0x57: 'OP_7', 0x58: 'OP_8', 0x59: 'OP_9',
+    0x5a: 'OP_10', 0x5b: 'OP_11', 0x5c: 'OP_12', 0x5d: 'OP_13', 0x5e: 'OP_14',
+    0x5f: 'OP_15', 0x60: 'OP_16',
+    0x76: 'OP_DUP', 0x87: 'OP_EQUAL', 0x88: 'OP_EQUALVERIFY',
+    0xa9: 'OP_HASH160', 0xac: 'OP_CHECKSIG', 0xae: 'OP_CHECKMULTISIG',
+    0x6a: 'OP_RETURN', 0x75: 'OP_DROP',
+  };
+
+  const parts = [];
+  let i = 0;
+
+  while (i < script.length) {
+    const opcode = parseInt(script.slice(i, i + 2), 16);
+    i += 2;
+
+    if (opcode === 0) {
+      parts.push('OP_0');
+    } else if (opcode >= 1 && opcode <= 0x4b) {
+      // Direct push
+      const data = script.slice(i, i + opcode * 2);
+      i += opcode * 2;
+      parts.push(data);
+    } else if (opcode === 0x4c) {
+      // OP_PUSHDATA1
+      const len = parseInt(script.slice(i, i + 2), 16);
+      i += 2;
+      const data = script.slice(i, i + len * 2);
+      i += len * 2;
+      parts.push(data);
+    } else if (OPCODES[opcode]) {
+      parts.push(OPCODES[opcode]);
+    } else {
+      parts.push(`OP_UNKNOWN_${opcode.toString(16)}`);
+    }
+  }
+
+  return parts.join(' ');
+}
+
+// ============================================================================
+// LEB128 Varint Decoder (for Runes protocol)
+// ============================================================================
+
+/**
+ * Decode an unsigned LEB128 varint from a byte array
+ * Used by the Runes protocol for compact integer encoding
+ */
+function decodeLEB128(bytes, offset) {
+  let result = 0n;
+  let shift = 0n;
+  let bytesRead = 0;
+
+  while (offset + bytesRead < bytes.length) {
+    const byte = bytes[offset + bytesRead];
+    result |= BigInt(byte & 0x7f) << shift;
+    bytesRead++;
+    if ((byte & 0x80) === 0) break;
+    shift += 7n;
+  }
+
+  return { value: result, bytesRead };
+}
+
+/**
+ * Decode a sequence of LEB128 varints from a byte array
+ */
+function decodeAllLEB128(bytes) {
+  const values = [];
+  let offset = 0;
+
+  while (offset < bytes.length) {
+    const { value, bytesRead } = decodeLEB128(bytes, offset);
+    values.push(value);
+    offset += bytesRead;
+    if (bytesRead === 0) break; // Safety check
+  }
+
+  return values;
+}
+
+// ============================================================================
+// Ordinals Envelope Parser
+// ============================================================================
+
+/**
+ * Parse a hex string to Uint8Array
+ */
+function hexToBytes(hex) {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.slice(i, i + 2), 16);
+  }
+  return bytes;
+}
+
+/**
+ * Parse Ordinals envelope from witness data
+ *
+ * Envelope structure:
+ * OP_FALSE (0x00)
+ * OP_IF (0x63)
+ * "ord" (0x036f7264)
+ * [tag] [data]...
+ *   Tag 1 = content-type
+ *   Tag 3 = parent (TXID:INDEX)
+ *   Tag 5 = pointer
+ *   Tag 7 = metadata (CBOR)
+ *   Tag 9 = metaprotocol
+ *   Tag 0 = content (empty tag marks content start)
+ * OP_ENDIF (0x68)
+ */
+function parseOrdinalsEnvelope(witness) {
+  if (!witness || witness.length === 0) return null;
+
+  // Ordinals inscriptions are typically in the second-to-last witness item for taproot
+  // Look through all witness items for the envelope
+  for (const item of witness) {
+    const itemLower = item.toLowerCase();
+
+    // Look for the envelope marker: OP_FALSE OP_IF "ord"
+    // Pattern: 0063 + 03 + 6f7264 (OP_0 OP_IF PUSH3 "ord")
+    const envelopeStart = itemLower.indexOf('0063036f7264');
+    if (envelopeStart === -1) continue;
+
+    try {
+      const bytes = hexToBytes(itemLower);
+      const startOffset = envelopeStart / 2 + 6; // Skip OP_0 OP_IF PUSH3 "ord"
+
+      let contentType = '';
+      let content = new Uint8Array(0);
+      let pointer;
+      let parent;
+      let metaprotocol;
+      let metadata;
+
+      let i = startOffset;
+
+      // Parse tag-value pairs until we hit OP_ENDIF (0x68) or end
+      while (i < bytes.length) {
+        const opcode = bytes[i];
+
+        // OP_ENDIF marks the end
+        if (opcode === 0x68) break;
+
+        // OP_0 marks content start (tag 0)
+        if (opcode === 0x00) {
+          i++;
+          // Collect all remaining push data as content
+          const contentParts = [];
+          while (i < bytes.length && bytes[i] !== 0x68) {
+            const pushLen = bytes[i];
+            if (pushLen === 0x00) {
+              i++;
+              continue;
             }
+            if (pushLen <= 0x4b) {
+              // Direct push (1-75 bytes)
+              i++;
+              for (let j = 0; j < pushLen && i < bytes.length && bytes[i] !== 0x68; j++, i++) {
+                contentParts.push(bytes[i]);
+              }
+            } else if (pushLen === 0x4c) {
+              // OP_PUSHDATA1
+              const len = bytes[i + 1] || 0;
+              i += 2;
+              for (let j = 0; j < len && i < bytes.length && bytes[i] !== 0x68; j++, i++) {
+                contentParts.push(bytes[i]);
+              }
+            } else if (pushLen === 0x4d) {
+              // OP_PUSHDATA2
+              const len = (bytes[i + 1] || 0) | ((bytes[i + 2] || 0) << 8);
+              i += 3;
+              for (let j = 0; j < len && i < bytes.length && bytes[i] !== 0x68; j++, i++) {
+                contentParts.push(bytes[i]);
+              }
+            } else {
+              // Non-push opcode or OP_ENDIF - stop
+              break;
+            }
+          }
+          content = new Uint8Array(contentParts);
+          continue;
         }
 
-        function validateInput() {
-            const value = txInput.value;
-            
-            // Allow Alphanumeric + Base64 symbols
-            const invalidPattern = /[^a-zA-Z0-9+/=]/g;
-            const hasInvalidChars = invalidPattern.test(value);
-            const hasSpace = /\s/.test(value);
-
-            if (hasInvalidChars) {
-                // CASE: Error
-                inputWrapper.classList.add('error-state');
-                submitBtn.disabled = true;
-                if (hasSpace) {
-                    errorDisplay.textContent = "Error: Spaces or newlines detected";
-                } else {
-                    errorDisplay.textContent = "Error: Invalid symbols detected";
-                }
-            } else if (value.length === 0) {
-                // CASE: Empty
-                inputWrapper.classList.remove('error-state');
-                submitBtn.disabled = true; 
-                btnText.innerText = "Broadcast";
-            } else {
-                // CASE: Valid
-                inputWrapper.classList.remove('error-state');
-                submitBtn.disabled = false;
-                
-                // Smart Button Text Logic:
-                // TXIDs are exactly 64 characters (32 bytes hex).
-                // Raw transactions are rarely exactly 64 chars.
-                if (value.length === 64) {
-                    btnText.innerText = "View Details";
-                } else {
-                    btnText.innerText = "Broadcast";
-                }
-            }
-
-            // Update Byte Counter
-            const len = value.length;
-            charCount.textContent = `${len} characters${len > 0 && len % 2 === 0 ? ` (~${len / 2} bytes)` : ''}`;
+        // Read tag (small push)
+        let tag = 0;
+        if (opcode >= 0x01 && opcode <= 0x10) {
+          // OP_1 to OP_16
+          tag = opcode - 0x50;
+          i++;
+        } else if (opcode >= 0x51 && opcode <= 0x60) {
+          // OP_1 to OP_16 (alternative encoding)
+          tag = opcode - 0x50;
+          i++;
+        } else {
+          i++;
+          continue;
         }
 
-        txInput.addEventListener('input', validateInput);
+        // Read data push
+        if (i >= bytes.length) break;
+        const dataLen = bytes[i];
+        if (dataLen > 0x4b || i + 1 + dataLen > bytes.length) {
+          i++;
+          continue;
+        }
+        i++;
+        const data = bytes.slice(i, i + dataLen);
+        i += dataLen;
 
-        window.addEventListener('DOMContentLoaded', () => {
-            txInput.focus();
-            validateInput();
+        // Process tag
+        switch (tag) {
+          case 1: // content-type
+            contentType = new TextDecoder().decode(data);
+            break;
+          case 3: // parent
+            if (data.length >= 32) {
+              const parentTxid = Array.from(data.slice(0, 32))
+                .reverse()
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('');
+              const parentIndex = data.length > 32 ? data[32] : 0;
+              parent = `${parentTxid}i${parentIndex}`;
+            }
+            break;
+          case 5: // pointer
+            if (data.length > 0) {
+              pointer = data[0];
+              for (let j = 1; j < data.length; j++) {
+                pointer |= data[j] << (j * 8);
+              }
+            }
+            break;
+          case 7: // metadata (CBOR - just store raw for now)
+            // Basic CBOR parsing could be added here
+            break;
+          case 9: // metaprotocol
+            metaprotocol = new TextDecoder().decode(data);
+            break;
+        }
+      }
+
+      if (!contentType && content.length === 0) continue;
+
+      // Generate content preview
+      let contentPreview = '';
+      if (contentType.startsWith('text/') || contentType === 'application/json') {
+        // Text content - show as string
+        try {
+          const text = new TextDecoder().decode(content);
+          contentPreview = text.length > 200 ? text.slice(0, 200) + '...' : text;
+        } catch {
+          contentPreview = Array.from(content.slice(0, 64))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
+        }
+      } else {
+        // Binary content - show hex preview
+        contentPreview = Array.from(content.slice(0, 64))
+          .map(b => b.toString(16).padStart(2, '0'))
+          .join('');
+        if (content.length > 64) contentPreview += '...';
+      }
+
+      return {
+        contentType: contentType || 'application/octet-stream',
+        contentLength: content.length,
+        content,
+        contentPreview,
+        pointer,
+        parent,
+        metadata,
+        metaprotocol,
+      };
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
+}
+
+// ============================================================================
+// BRC-20 Parser
+// ============================================================================
+
+/**
+ * Parse and validate BRC-20 JSON operation
+ */
+function parseBRC20(json) {
+  try {
+    const obj = JSON.parse(json);
+
+    // Must have p = "brc-20"
+    if (obj.p !== 'brc-20') return null;
+
+    // Validate op
+    const validOps = ['deploy', 'mint', 'transfer'];
+    if (!validOps.includes(obj.op)) return null;
+
+    // Validate tick (should be 4 bytes for standard, but some use more)
+    if (!obj.tick || typeof obj.tick !== 'string' || obj.tick.length < 1) {
+      return null;
+    }
+
+    const result = {
+      op: obj.op,
+      tick: obj.tick,
+    };
+
+    // Validate and add optional fields
+    if (obj.amt !== undefined) {
+      // Amount should be a positive number string
+      if (typeof obj.amt === 'string' && /^\d+(\.\d+)?$/.test(obj.amt)) {
+        result.amt = obj.amt;
+      }
+    }
+
+    if (obj.max !== undefined && typeof obj.max === 'string') {
+      result.max = obj.max;
+    }
+
+    if (obj.lim !== undefined && typeof obj.lim === 'string') {
+      result.lim = obj.lim;
+    }
+
+    if (obj.dec !== undefined) {
+      result.dec = String(obj.dec);
+    }
+
+    return result;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Extract BRC-20 data from inscription content
+ */
+function detectBrc20FromInscription(inscription) {
+  // BRC-20 must have JSON content type
+  if (!inscription.contentType.includes('json') && !inscription.contentType.includes('text/plain')) {
+    return null;
+  }
+
+  try {
+    const text = new TextDecoder().decode(inscription.content);
+    return parseBRC20(text);
+  } catch {
+    return null;
+  }
+}
+
+// ============================================================================
+// Runes Protocol Decoder
+// ============================================================================
+
+// Runes Tag constants (from mempool.space implementation)
+const RuneTag = {
+  Body: 0,
+  Flags: 2,
+  Rune: 4,
+  Premine: 6,
+  Cap: 8,
+  Amount: 10,
+  HeightStart: 12,
+  HeightEnd: 14,
+  OffsetStart: 16,
+  OffsetEnd: 18,
+  Mint: 20,
+  Pointer: 22,
+  Cenotaph: 126,
+  // Odd tags
+  Divisibility: 1,
+  Spacers: 3,
+  Symbol: 5,
+  Nop: 127,
+};
+
+// Runes Flag bits
+const RuneFlag = {
+  ETCHING: 1n,
+  TERMS: 1n << 1n,
+  TURBO: 1n << 2n,
+  CENOTAPH: 1n << 127n,
+};
+
+// Runes alphabet for name encoding (A-Z)
+const RUNES_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+/**
+ * Decode a Rune name from its numeric representation
+ * Based on mempool.space implementation
+ */
+function decodeRuneName(rune) {
+  let name = '';
+  rune += 1n; // Add 1 first (mempool.space approach)
+  while (rune > 0n) {
+    name = RUNES_ALPHABET[Number((rune - 1n) % 26n)] + name;
+    rune = (rune - 1n) / 26n;
+  }
+  return name || 'A';
+}
+
+/**
+ * Apply spacers to a rune name using bitwise flags
+ * Based on mempool.space implementation
+ */
+function applySpacers(name, spacers) {
+  if (spacers === 0n) return name;
+
+  let result = '';
+  let spacerBits = spacers;
+  for (let i = 0; i < name.length; i++) {
+    result += name[i];
+    if (spacerBits & 1n) {
+      result += '\u2022';
+    }
+    if (spacerBits > 0n) {
+      spacerBits >>= 1n;
+    }
+  }
+  return result;
+}
+
+/**
+ * Parse tag-value pairs from LEB128 integers into a message structure
+ * Based on mempool.space implementation
+ */
+function integersToMessage(integers) {
+  const fields = new Map();
+  const edicts = [];
+  let inBody = false;
+  let i = 0;
+
+  while (i < integers.length) {
+    if (!inBody) {
+      const tag = Number(integers[i++]);
+      if (tag === RuneTag.Body) {
+        inBody = true;
+      } else if (i < integers.length) {
+        const value = integers[i++];
+        const existing = fields.get(tag);
+        if (existing) {
+          existing.push(value);
+        } else {
+          fields.set(tag, [value]);
+        }
+      }
+    } else {
+      // Edicts: block height, tx index, amount, output
+      if (i + 3 < integers.length) {
+        const height = integers[i++];
+        const txIndex = integers[i++];
+        const amount = integers[i++];
+        const output = Number(integers[i++]);
+        edicts.push({
+          id: { block: Number(height), tx: Number(txIndex) },
+          amount,
+          output,
         });
+      } else {
+        break;
+      }
+    }
+    // Safety limit
+    if (edicts.length > 100) break;
+  }
 
-        document.getElementById('broadcastForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            if (submitBtn.disabled) return;
+  return { fields, edicts };
+}
 
-            const action = btnText.innerText;
-            alert(`${action} initiated for:\n${txInput.value.substring(0,20)}...`);
+/**
+ * Parse Runes protocol payload from OP_RETURN data
+ * Based on mempool.space implementation
+ *
+ * Structure:
+ * OP_RETURN (0x6a)
+ * OP_13 (0x5d) - Runes magic number
+ * [payload as LEB128-encoded integers]
+ */
+function parseRunesPayload(opReturnData) {
+  try {
+    // Decode all LEB128 values
+    const integers = decodeAllLEB128(opReturnData);
+    if (integers.length === 0) return null;
+
+    // Parse into message structure
+    const message = integersToMessage(integers);
+    const fields = message.fields;
+
+    // Get flags
+    const flagsValue = fields.get(RuneTag.Flags)?.[0] ?? 0n;
+    const hasEtching = (flagsValue & RuneFlag.ETCHING) > 0n;
+    const hasTerms = (flagsValue & RuneFlag.TERMS) > 0n;
+    const hasTurbo = (flagsValue & RuneFlag.TURBO) > 0n;
+    const isCenotaph = fields.has(RuneTag.Cenotaph) || (flagsValue & RuneFlag.CENOTAPH) > 0n;
+
+    const result = {
+      type: hasEtching ? 'etching' : 'transfer',
+      edicts: message.edicts,
+      flags: Number(flagsValue),
+      cenotaph: isCenotaph || undefined,
+    };
+
+    // Parse etching if present
+    if (hasEtching) {
+      // Decode rune name
+      const runeValue = fields.get(RuneTag.Rune)?.[0];
+      if (runeValue !== undefined) {
+        result.runeName = decodeRuneName(runeValue);
+      }
+
+      // Divisibility
+      const divisibility = fields.get(RuneTag.Divisibility)?.[0];
+      if (divisibility !== undefined) {
+        result.divisibility = Number(divisibility);
+      }
+
+      // Premine
+      const premine = fields.get(RuneTag.Premine)?.[0];
+      if (premine !== undefined) {
+        result.premine = premine;
+      }
+
+      // Symbol
+      const symbolCode = fields.get(RuneTag.Symbol)?.[0];
+      if (symbolCode !== undefined && symbolCode > 0n && symbolCode < 0x10FFFFn) {
+        result.symbol = String.fromCodePoint(Number(symbolCode));
+      } else {
+        result.symbol = '\u00a4'; // Default symbol
+      }
+
+      // Spacers
+      const spacers = fields.get(RuneTag.Spacers)?.[0];
+      if (spacers !== undefined) {
+        result.spacers = Number(spacers);
+        if (result.runeName) {
+          result.spacedName = applySpacers(result.runeName, spacers);
+        }
+      } else {
+        result.spacedName = result.runeName;
+      }
+
+      // Turbo mode
+      result.turbo = hasTurbo;
+
+      // Parse terms if present
+      if (hasTerms) {
+        result.terms = {};
+
+        const cap = fields.get(RuneTag.Cap)?.[0];
+        if (cap !== undefined) result.terms.cap = cap;
+
+        const amount = fields.get(RuneTag.Amount)?.[0];
+        if (amount !== undefined) result.terms.amount = amount;
+
+        const heightStart = fields.get(RuneTag.HeightStart)?.[0];
+        const heightEnd = fields.get(RuneTag.HeightEnd)?.[0];
+        if (heightStart !== undefined || heightEnd !== undefined) {
+          result.terms.height = { start: heightStart, end: heightEnd };
+        }
+
+        const offsetStart = fields.get(RuneTag.OffsetStart)?.[0];
+        const offsetEnd = fields.get(RuneTag.OffsetEnd)?.[0];
+        if (offsetStart !== undefined || offsetEnd !== undefined) {
+          result.terms.offset = { start: offsetStart, end: offsetEnd };
+        }
+      }
+
+      // Calculate supply: (cap * amount) + premine
+      const termsCap = result.terms?.cap ?? 0n;
+      const termsAmount = result.terms?.amount ?? 0n;
+      const premineAmount = result.premine ?? 0n;
+      result.supply = (termsCap * termsAmount) + premineAmount;
+    }
+
+    // Check for mint operation
+    const mintField = fields.get(RuneTag.Mint);
+    if (mintField && mintField.length >= 2) {
+      result.runeId = { block: Number(mintField[0]), tx: Number(mintField[1]) };
+      if (!hasEtching) {
+        result.type = 'mint';
+      }
+    }
+
+    // Determine final type
+    if (hasEtching && result.runeName) {
+      result.type = 'etching';
+    } else if (result.runeId) {
+      result.type = 'mint';
+    } else if (result.edicts.length > 0) {
+      result.type = 'transfer';
+    }
+
+    return result;
+  } catch {
+    return null;
+  }
+}
+
+// ============================================================================
+// CAT-21 Detection
+// ============================================================================
+
+/**
+ * Detect CAT-21 from inscription content
+ * CAT-21 uses Ordinals inscriptions with JSON content containing "p": "cat-21"
+ */
+function detectCAT21(inscription) {
+  // CAT-21 uses JSON content type
+  if (!inscription.contentType.includes('json') && !inscription.contentType.includes('text/plain')) {
+    return null;
+  }
+
+  try {
+    const text = new TextDecoder().decode(inscription.content);
+    const obj = JSON.parse(text);
+
+    // Check for CAT-21 protocol marker
+    if (obj.p === 'cat-21' || obj.protocol === 'cat-21') {
+      return {
+        type: obj.op === 'mint' || obj.type === 'genesis' ? 'genesis' : 'transfer',
+        catId: obj.id || obj.catId,
+      };
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// ============================================================================
+// Atomicals Detection
+// ============================================================================
+
+/**
+ * Detect Atomicals protocol from witness data
+ * Atomicals use a specific envelope format with "atom" marker
+ */
+function detectAtomicals(witness) {
+  if (!witness || witness.length === 0) return null;
+
+  for (const item of witness) {
+    const itemLower = item.toLowerCase();
+
+    // Look for "atom" marker (61746f6d in hex)
+    if (itemLower.includes('61746f6d')) {
+      // Basic detection - more detailed parsing would require full Atomicals spec
+      const result = {
+        type: 'nft',
+      };
+
+      // Check for realm ($) or container (#) markers in the content
+      const ascii = hexToAscii(itemLower);
+      if (ascii.includes('"realm"') || ascii.includes('$')) {
+        result.type = 'realm';
+        // Try to extract realm name
+        const realmMatch = ascii.match(/"realm"\s*:\s*"([^"]+)"/);
+        if (realmMatch) {
+          result.realmName = realmMatch[1];
+        }
+      } else if (ascii.includes('"container"') || ascii.includes('#')) {
+        result.type = 'container';
+        const containerMatch = ascii.match(/"container"\s*:\s*"([^"]+)"/);
+        if (containerMatch) {
+          result.containerName = containerMatch[1];
+        }
+      } else if (ascii.includes('"ft"') || ascii.includes('"fungible"')) {
+        result.type = 'ft';
+      }
+
+      return result;
+    }
+  }
+
+  return null;
+}
+
+// ============================================================================
+// Protocol Detection
+// ============================================================================
+
+/**
+ * Detect protocols in OP_RETURN data
+ */
+function detectOpReturnProtocol(data) {
+  const dataLower = data.toLowerCase();
+
+  // Runes detection - two formats:
+  // 1. New format (post-launch): OP_13 (0x5d) marker
+  // 2. Old format: "R" (0x52) - note: push opcode already stripped by parseOpReturnData
+  const isNewRunesFormat = dataLower.startsWith('5d');
+  const isOldRunesFormat = dataLower.startsWith('52');
+
+  if (isNewRunesFormat || isOldRunesFormat) {
+    // Extract payload after marker (skip the 1-byte marker)
+    let payloadHex = data.slice(2);
+
+    // If there's a push opcode for the payload, skip it
+    if (payloadHex.length >= 2) {
+      const firstByte = parseInt(payloadHex.slice(0, 2), 16);
+      if (firstByte <= 0x4b && firstByte > 0) {
+        payloadHex = payloadHex.slice(2);
+      } else if (firstByte === 0x4c) {
+        payloadHex = payloadHex.slice(4);
+      } else if (firstByte === 0x4d) {
+        payloadHex = payloadHex.slice(6);
+      }
+    }
+
+    // Parse the Runes payload
+    const runesPayload = hexToBytes(payloadHex);
+    const runesDetails = parseRunesPayload(runesPayload);
+
+    return {
+      type: 'runes',
+      data,
+      details: runesDetails || undefined,
+    };
+  }
+
+  // Stamps: STAMP: prefix (5354414d503a in hex)
+  const stampsMarker = '5354414d503a';
+  if (dataLower.includes(stampsMarker)) {
+    return { type: 'stamps', data };
+  }
+
+  // Counterparty: CNTRPRTY prefix (434e545250525459 in hex)
+  const counterpartyMarker = '434e545250525459';
+  if (dataLower.includes(counterpartyMarker)) {
+    return { type: 'counterparty', data };
+  }
+
+  return null;
+}
+
+/**
+ * Detect Ordinals inscription in witness data
+ * Ordinals use taproot (P2TR) with envelope format:
+ * OP_FALSE OP_IF ... "ord" ... content-type ... OP_0 ... data ... OP_ENDIF
+ */
+function detectOrdinalsInWitness(witness) {
+  if (!witness || witness.length === 0) return null;
+
+  // Check for "ord" marker in any witness item
+  const ordMarker = '6f7264'; // "ord" in hex
+  let hasOrdMarker = false;
+
+  for (const item of witness) {
+    if (item.toLowerCase().includes(ordMarker)) {
+      hasOrdMarker = true;
+      break;
+    }
+  }
+
+  if (!hasOrdMarker) return null;
+
+  // Use the full envelope parser
+  const inscription = parseOrdinalsEnvelope(witness);
+
+  if (inscription) {
+    return {
+      type: 'ordinals',
+      contentType: inscription.contentType,
+      contentLength: inscription.contentLength,
+      inscription,
+    };
+  }
+
+  // Fallback: basic detection without full parsing
+  for (const item of witness) {
+    const itemLower = item.toLowerCase();
+    if (itemLower.includes(ordMarker)) {
+      // Try to extract content-type manually
+      let contentType;
+      let contentLength;
+
+      const ordPos = itemLower.indexOf(ordMarker);
+      if (ordPos !== -1) {
+        const afterOrd = itemLower.slice(ordPos + 6);
+
+        // Format: 01 (OP_1) + push_len + content-type + 00 (OP_0) + push_len + data + 68 (OP_ENDIF)
+        if (afterOrd.startsWith('01')) {
+          const ctLen = parseInt(afterOrd.slice(2, 4), 16);
+          if (ctLen > 0 && ctLen < 100) {
+            const ctHex = afterOrd.slice(4, 4 + ctLen * 2);
+            contentType = hexToAscii(ctHex).replace(/\./g, '');
+          }
+        }
+
+        const dataStart = afterOrd.indexOf('00');
+        if (dataStart !== -1) {
+          const remaining = afterOrd.slice(dataStart);
+          contentLength = Math.floor(remaining.length / 2) - 2;
+        }
+      }
+
+      return { type: 'ordinals', contentType, contentLength };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Detect BRC-20 token operation in inscription data
+ */
+function detectBrc20(witnessOrOpReturn) {
+  // BRC-20 inscriptions contain JSON: {"p":"brc-20","op":"...","tick":"...","amt":"..."}
+  const ascii = hexToAscii(witnessOrOpReturn);
+
+  // Look for BRC-20 JSON pattern
+  if (ascii.includes('"p":"brc-20"') || ascii.includes('"p": "brc-20"')) {
+    try {
+      // Try to find and parse the JSON
+      const jsonMatch = ascii.match(/\{[^{}]*"p"\s*:\s*"brc-20"[^{}]*\}/);
+      if (jsonMatch) {
+        const brc20Details = parseBRC20(jsonMatch[0]);
+        if (brc20Details) {
+          return {
+            type: 'brc20',
+            operation: brc20Details.op,
+            tick: brc20Details.tick,
+            amount: brc20Details.amt,
+            details: brc20Details,
+          };
+        }
+        // Fallback if parsing failed but pattern matched
+        const parsed = JSON.parse(jsonMatch[0]);
+        return {
+          type: 'brc20',
+          operation: parsed.op || 'unknown',
+          tick: parsed.tick,
+          amount: parsed.amt
+        };
+      }
+    } catch {
+      // JSON parse failed, but we still detected BRC-20 pattern
+      return { type: 'brc20', operation: 'unknown' };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Detect all protocols in a transaction
+ */
+function detectProtocols(inputs, outputs) {
+  const protocols = [];
+  const seenTypes = new Set();
+
+  // Check OP_RETURN outputs
+  for (const output of outputs) {
+    if (output.opReturnData) {
+      // Check for known OP_RETURN protocols
+      const protocol = detectOpReturnProtocol(output.opReturnData.hex);
+      if (protocol && !seenTypes.has(protocol.type)) {
+        protocols.push(protocol);
+        seenTypes.add(protocol.type);
+      }
+    }
+  }
+
+  // Check witness data for Ordinals/BRC-20/CAT-21/Atomicals
+  for (const input of inputs) {
+    if (input.witness && input.witness.length > 0) {
+      // Check for Ordinals
+      const ordinals = detectOrdinalsInWitness(input.witness);
+      if (ordinals && !seenTypes.has('ordinals')) {
+        protocols.push(ordinals);
+        seenTypes.add('ordinals');
+
+        // If we have a full inscription, check for BRC-20 and CAT-21
+        if (ordinals.type === 'ordinals' && ordinals.inscription) {
+          // Check for BRC-20
+          const brc20Details = detectBrc20FromInscription(ordinals.inscription);
+          if (brc20Details && !seenTypes.has('brc20')) {
+            protocols.push({
+              type: 'brc20',
+              operation: brc20Details.op,
+              tick: brc20Details.tick,
+              amount: brc20Details.amt,
+              details: brc20Details,
+            });
+            seenTypes.add('brc20');
+          }
+
+          // Check for CAT-21
+          const cat21 = detectCAT21(ordinals.inscription);
+          if (cat21 && !seenTypes.has('cat21')) {
+            protocols.push({
+              type: 'cat21',
+              details: cat21,
+            });
+            seenTypes.add('cat21');
+          }
+        } else {
+          // Fallback: check witness items directly for BRC-20
+          for (const item of input.witness) {
+            const brc20 = detectBrc20(item);
+            if (brc20 && !seenTypes.has('brc20')) {
+              protocols.push(brc20);
+              seenTypes.add('brc20');
+              break;
+            }
+          }
+        }
+      }
+
+      // Check for Atomicals (uses different envelope)
+      if (!seenTypes.has('atomicals')) {
+        const atomicals = detectAtomicals(input.witness);
+        if (atomicals) {
+          protocols.push({
+            type: 'atomicals',
+            details: atomicals,
+          });
+          seenTypes.add('atomicals');
+        }
+      }
+    }
+  }
+
+  return protocols;
+}
+
+// ============================================================================
+// Non-Standard Transaction Detection
+// ============================================================================
+
+/**
+ * Get dust limit for a given script type
+ */
+function getDustLimit(scriptType) {
+  switch (scriptType) {
+    case 'p2pkh': return LIMITS.DUST_P2PKH;
+    case 'p2wpkh': return LIMITS.DUST_P2WPKH;
+    case 'p2tr': return LIMITS.DUST_P2TR;
+    case 'p2sh': return LIMITS.DUST_P2SH;
+    case 'p2wsh': return LIMITS.DUST_P2WSH;
+    case 'op_return': return 0; // OP_RETURN must be 0
+    default: return LIMITS.DUST_P2PKH; // Conservative default
+  }
+}
+
+/**
+ * Detect non-standard transaction issues
+ * Based on Bitcoin Core policy.h and standardness rules
+ */
+function detectNonStandard(tx) {
+  const checks = [];
+
+  // -----------------------------------------------------------------------
+  // Category 1: Transaction Size/Weight
+  // -----------------------------------------------------------------------
+
+  if (tx.size < LIMITS.MIN_TX_SIZE) {
+    checks.push({
+      category: 'size',
+      code: 'tx-size-small',
+      severity: 'error',
+      message: 'Transaction too small',
+      details: 'Minimum non-witness size is 82 bytes (smallest valid P2WPKH)',
+      limit: `\u2265${LIMITS.MIN_TX_SIZE} bytes`,
+      actual: `${tx.size} bytes`,
+    });
+  }
+
+  if (tx.weight > LIMITS.MAX_STANDARD_TX_WEIGHT) {
+    checks.push({
+      category: 'size',
+      code: 'tx-size',
+      severity: 'error',
+      message: 'Transaction too large',
+      details: 'Exceeds MAX_STANDARD_TX_WEIGHT (100 kvB)',
+      limit: `\u2264${LIMITS.MAX_STANDARD_TX_WEIGHT} WU`,
+      actual: `${tx.weight} WU`,
+    });
+  }
+
+  // -----------------------------------------------------------------------
+  // Category 2: Transaction Version
+  // -----------------------------------------------------------------------
+
+  if (tx.version < 1 || tx.version > LIMITS.MAX_STANDARD_VERSION) {
+    checks.push({
+      category: 'version',
+      code: 'version',
+      severity: 'error',
+      message: `Non-standard version: ${tx.version}`,
+      details: 'Only version 1 and 2 are standard. Version 3 reserved for package relay.',
+      limit: '1 or 2',
+      actual: `${tx.version}`,
+    });
+  }
+
+  // -----------------------------------------------------------------------
+  // Category 9: Input Limits
+  // -----------------------------------------------------------------------
+
+  // Check for coinbase transaction (non-relayable)
+  const isCoinbase = tx.inputs.length === 1 &&
+    tx.inputs[0].txid === '0000000000000000000000000000000000000000000000000000000000000000' &&
+    tx.inputs[0].vout === 0xffffffff;
+
+  if (isCoinbase) {
+    checks.push({
+      category: 'input',
+      code: 'coinbase',
+      severity: 'error',
+      message: 'Coinbase transaction',
+      details: 'Coinbase transactions cannot be relayed - they are only valid in blocks',
+    });
+  }
+
+  for (let i = 0; i < tx.inputs.length; i++) {
+    const input = tx.inputs[i];
+
+    // ScriptSig size limit
+    const scriptSigSize = input.scriptSig.length / 2;
+    if (scriptSigSize > LIMITS.MAX_SCRIPTSIG_SIZE) {
+      checks.push({
+        category: 'input',
+        code: 'bad-txns-nonstandard-inputs',
+        severity: 'error',
+        message: `Input #${i}: scriptSig too large`,
+        details: 'ScriptSig exceeds maximum standard size (~15-of-15 multisig limit)',
+        limit: `\u2264${LIMITS.MAX_SCRIPTSIG_SIZE} bytes`,
+        actual: `${scriptSigSize} bytes`,
+      });
+    }
+
+    // Check for non-push-only scriptSig (basic check)
+    // Push-only means no opcodes other than data pushes
+    if (input.scriptSig && input.scriptSig.length > 0) {
+      const firstByte = parseInt(input.scriptSig.slice(0, 2), 16);
+      // Opcodes 0x01-0x4e are pushes, 0x00 is OP_0 (push empty), >0x60 are non-push
+      if (firstByte > 0x60 && firstByte !== 0x00) {
+        checks.push({
+          category: 'input',
+          code: 'bad-txns-nonstandard-inputs',
+          severity: 'warning',
+          message: `Input #${i}: scriptSig may contain non-push opcodes`,
+          details: 'ScriptSig must be push-only (no executable opcodes)',
         });
-    </script>
-    </body>
+      }
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Category 8: Witness Limits
+  // -----------------------------------------------------------------------
+
+  for (let i = 0; i < tx.inputs.length; i++) {
+    const input = tx.inputs[i];
+    if (input.witness && input.witness.length > 0) {
+      // Stack item count
+      if (input.witness.length > LIMITS.MAX_STANDARD_P2WSH_STACK_ITEMS) {
+        checks.push({
+          category: 'witness',
+          code: 'bad-witness-nonstandard',
+          severity: 'error',
+          message: `Input #${i}: too many witness stack items`,
+          limit: `\u2264${LIMITS.MAX_STANDARD_P2WSH_STACK_ITEMS}`,
+          actual: `${input.witness.length}`,
+        });
+      }
+
+      // Check each witness item size (80 bytes max for P2WSH)
+      for (let j = 0; j < input.witness.length; j++) {
+        const itemSize = input.witness[j].length / 2;
+        if (itemSize > 80 && j < input.witness.length - 1) {
+          // Last item can be the script which is allowed to be larger
+          checks.push({
+            category: 'witness',
+            code: 'bad-witness-nonstandard',
+            severity: 'warning',
+            message: `Input #${i}: witness item #${j} exceeds 80 bytes`,
+            details: 'P2WSH stack items (except script) limited to 80 bytes',
+            limit: '\u226480 bytes',
+            actual: `${itemSize} bytes`,
+          });
+        }
+      }
+
+      // Check last witness item (script) size for P2WSH
+      const lastItem = input.witness[input.witness.length - 1];
+      const scriptSize = lastItem.length / 2;
+      if (scriptSize > LIMITS.MAX_STANDARD_P2WSH_SCRIPT_SIZE) {
+        checks.push({
+          category: 'witness',
+          code: 'bad-witness-nonstandard',
+          severity: 'error',
+          message: `Input #${i}: P2WSH script too large`,
+          limit: `\u2264${LIMITS.MAX_STANDARD_P2WSH_SCRIPT_SIZE} bytes`,
+          actual: `${scriptSize} bytes`,
+        });
+      }
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Category 10: Output Limits
+  // -----------------------------------------------------------------------
+
+  // Multiple OP_RETURN outputs
+  if (tx.opReturnCount > LIMITS.MAX_OP_RETURN_COUNT) {
+    checks.push({
+      category: 'output',
+      code: 'multi-op-return',
+      severity: 'error',
+      message: 'Multiple OP_RETURN outputs',
+      details: 'Only one OP_RETURN data carrier output is standard',
+      limit: `\u2264${LIMITS.MAX_OP_RETURN_COUNT}`,
+      actual: `${tx.opReturnCount}`,
+    });
+  }
+
+  for (let i = 0; i < tx.outputs.length; i++) {
+    const output = tx.outputs[i];
+
+    // OP_RETURN size limit
+    if (output.scriptType === 'op_return') {
+      const opReturnSize = output.scriptPubKey.length / 2;
+      if (opReturnSize > LIMITS.MAX_OP_RETURN_RELAY) {
+        checks.push({
+          category: 'output',
+          code: 'scriptpubkey',
+          severity: 'error',
+          message: `Output #${i}: OP_RETURN too large`,
+          details: 'OP_RETURN data exceeds relay limit',
+          limit: `\u2264${LIMITS.MAX_OP_RETURN_RELAY} bytes`,
+          actual: `${opReturnSize} bytes`,
+        });
+      }
+      // OP_RETURN must have 0 value
+      if (output.value > 0) {
+        checks.push({
+          category: 'output',
+          code: 'dust',
+          severity: 'error',
+          message: `Output #${i}: OP_RETURN has non-zero value`,
+          details: 'OP_RETURN outputs must be unspendable (0 sats)',
+          limit: '0 sats',
+          actual: `${output.value} sats`,
+        });
+      }
+      continue;
+    }
+
+    // Unknown/non-standard output types
+    if (output.scriptType === 'unknown' || output.scriptType === 'nonstandard') {
+      checks.push({
+        category: 'output',
+        code: 'scriptpubkey',
+        severity: 'error',
+        message: `Output #${i}: non-standard script type`,
+        details: 'Output script does not match any standard template',
+      });
+    }
+
+    // Bare multisig check
+    if (output.scriptType === 'multisig') {
+      checks.push({
+        category: 'output',
+        code: 'bare-multisig',
+        severity: 'warning',
+        message: `Output #${i}: bare multisig output`,
+        details: 'Bare multisig is non-standard by default (use P2SH-wrapped instead)',
+      });
+    }
+
+    // Dust check (skip OP_RETURN)
+    const dustLimit = getDustLimit(output.scriptType);
+    if (output.value > 0 && output.value < dustLimit) {
+      checks.push({
+        category: 'output',
+        code: 'dust',
+        severity: 'error',
+        message: `Output #${i}: dust output`,
+        details: `Value below economic spend threshold for ${output.scriptType.toUpperCase()}`,
+        limit: `\u2265${dustLimit} sats`,
+        actual: `${output.value} sats`,
+      });
+    }
+  }
+
+  // Build summary
+  const isStandard = checks.length === 0;
+  const errorCount = checks.filter(c => c.severity === 'error').length;
+  const warningCount = checks.filter(c => c.severity === 'warning').length;
+
+  let summary;
+  if (isStandard) {
+    summary = 'Transaction passes all standard policy checks';
+  } else if (errorCount > 0 && warningCount > 0) {
+    summary = `${errorCount} policy violation${errorCount > 1 ? 's' : ''}, ${warningCount} warning${warningCount > 1 ? 's' : ''}`;
+  } else if (errorCount > 0) {
+    summary = `${errorCount} policy violation${errorCount > 1 ? 's' : ''} - will be rejected by default nodes`;
+  } else {
+    summary = `${warningCount} warning${warningCount > 1 ? 's' : ''} - may be rejected by some nodes`;
+  }
+
+  return { isStandard, checks, summary };
+}
+
+// ============================================================================
+// Main Decoder
+// ============================================================================
+
+async function decodeTransaction(hexInput) {
+  // Sanitize input to ensure accurate size calculation
+  const hex = hexInput.replace(/\s+/g, '');
+  const reader = new ByteReader(hex);
+  const warnings = [];
+
+  // Version (4 bytes)
+  const version = reader.readUInt32LE();
+  if (version !== 1 && version !== 2) {
+    warnings.push(`Unusual version: ${version}`);
+  }
+
+  // Check for SegWit marker
+  let isSegwit = false;
+  const marker = reader.peek(1); // Peek 1 byte (2 hex chars)
+  if (marker === '00') {
+    reader.readUInt8(); // marker
+    const flag = reader.readUInt8();
+    if (flag !== 1) {
+      throw new Error(`Invalid SegWit flag: ${flag}`);
+    }
+    isSegwit = true;
+  }
+
+  // Input count
+  const inputCount = reader.readVarInt();
+  if (inputCount === 0 && !isSegwit) {
+    throw new Error('Transaction has no inputs');
+  }
+
+  // Inputs
+  const inputs = [];
+  let isRbfSignaled = false;
+
+  for (let i = 0; i < inputCount; i++) {
+    const txid = reader.readHash256();
+    const vout = reader.readUInt32LE();
+    const scriptSigLen = reader.readVarInt();
+    const scriptSig = reader.readBytes(scriptSigLen);
+    const sequence = reader.readUInt32LE();
+
+    const isRbfEnabled = sequence < 0xfffffffe;
+    if (isRbfEnabled) isRbfSignaled = true;
+
+    inputs.push({
+      txid,
+      vout,
+      scriptSig,
+      scriptSigAsm: scriptSig ? disassembleScript(scriptSig) : '(empty)',
+      sequence,
+      isRbfEnabled,
+    });
+  }
+
+  // Output count
+  const outputCount = reader.readVarInt();
+
+  // Outputs
+  const outputs = [];
+  let totalOutputSats = 0;
+  let hasOpReturn = false;
+  let opReturnCount = 0;
+
+  for (let i = 0; i < outputCount; i++) {
+    const value = Number(reader.readUInt64LE());
+    totalOutputSats += value;
+
+    const scriptPubKeyLen = reader.readVarInt();
+    const scriptPubKey = reader.readBytes(scriptPubKeyLen);
+
+    const { type: scriptType, data } = identifyScriptType(scriptPubKey);
+
+    const output = {
+      value,
+      valueBtc: satsToBtc(value),
+      scriptPubKey,
+      scriptType,
+    };
+
+    // Get address for standard types
+    if (data && scriptType !== 'op_return') {
+      output.address = await scriptToAddress(scriptType, data);
+    }
+
+    // Handle OP_RETURN
+    if (scriptType === 'op_return') {
+      hasOpReturn = true;
+      opReturnCount++;
+      if (data) {
+        output.opReturnData = parseOpReturnData(data);
+      }
+    }
+
+    outputs.push(output);
+  }
+
+  // Witness data (if SegWit)
+  if (isSegwit) {
+    for (let i = 0; i < inputCount; i++) {
+      const witnessCount = reader.readVarInt();
+      const witness = [];
+      for (let j = 0; j < witnessCount; j++) {
+        const itemLen = reader.readVarInt();
+        witness.push(reader.readBytes(itemLen));
+      }
+      inputs[i].witness = witness;
+    }
+  }
+
+  // Locktime (4 bytes)
+  const locktime = reader.readUInt32LE();
+  let locktimeType = 'none';
+  let locktimeValue = 'None (immediately spendable)';
+
+  if (locktime > 0) {
+    if (locktime < 500_000_000) {
+      locktimeType = 'block';
+      locktimeValue = `Block ${locktime.toLocaleString()}`;
+    } else {
+      locktimeType = 'timestamp';
+      const date = new Date(locktime * 1000);
+      locktimeValue = date.toISOString();
+    }
+  }
+
+  // Calculate sizes
+  const size = hex.length / 2;
+  let weight;
+  let vsize;
+
+  if (isSegwit) {
+    // For SegWit, we need to calculate non-witness and witness sizes
+    // This is an approximation - for exact, we'd need to track positions
+    const baseSize = size - (isSegwit ? 2 : 0); // Subtract marker+flag
+    // Rough witness discount calculation
+    weight = baseSize * 3 + size;
+    vsize = Math.ceil(weight / 4);
+  } else {
+    weight = size * 4;
+    vsize = size;
+  }
+
+  // Calculate TXID
+  const txid = await calculateTxid(hex, isSegwit);
+
+  // Sanity checks
+  if (reader.remaining > 0) {
+    warnings.push(`${reader.remaining} bytes remaining after parsing`);
+  }
+
+  if (totalOutputSats > 21_000_000 * 100_000_000) {
+    warnings.push('Total output exceeds 21M BTC!');
+  }
+
+  // Detect protocols (Ordinals, BRC-20, Runes, etc.)
+  const detectedProtocols = detectProtocols(inputs, outputs);
+
+  // Detect non-standard policy issues
+  const nonStandardReport = detectNonStandard({
+    version,
+    size,
+    weight,
+    inputs,
+    outputs,
+    opReturnCount,
+  });
+
+  return {
+    txid,
+    version,
+    isSegwit,
+    inputs,
+    outputs,
+    locktime,
+    locktimeType,
+    locktimeValue,
+    size,
+    vsize,
+    weight,
+    totalOutputSats,
+    totalOutputBtc: satsToBtc(totalOutputSats),
+    hasOpReturn,
+    opReturnCount,
+    isRbfSignaled,
+    detectedProtocols,
+    nonStandardReport,
+    warnings,
+  };
+}
+
+async function calculateTxid(hex, isSegwit) {
+  let txForHash = hex;
+
+  if (isSegwit) {
+    // For SegWit, TXID is calculated without witness data
+    // This is a simplified approach - strip marker, flag, and witness
+    const reader = new ByteReader(hex);
+
+    // Version
+    const version = reader.readBytes(4);
+    reader.readBytes(2); // Skip marker+flag
+
+    // Count inputs
+    const inputCount = reader.readVarInt();
+    const inputCountHex = inputCount < 0xfd ?
+      inputCount.toString(16).padStart(2, '0') :
+      'fd' + inputCount.toString(16).padStart(4, '0');
+
+    let inputsHex = '';
+    for (let i = 0; i < inputCount; i++) {
+      inputsHex += reader.readBytes(32); // txid (unreversed in raw)
+      inputsHex += reader.readBytes(4);  // vout
+      const scriptLen = reader.readVarInt();
+      const scriptLenHex = scriptLen < 0xfd ?
+        scriptLen.toString(16).padStart(2, '0') :
+        'fd' + scriptLen.toString(16).padStart(4, '0');
+      inputsHex += scriptLenHex;
+      inputsHex += reader.readBytes(scriptLen); // scriptSig
+      inputsHex += reader.readBytes(4); // sequence
+    }
+
+    // Count outputs
+    const outputCount = reader.readVarInt();
+    const outputCountHex = outputCount < 0xfd ?
+      outputCount.toString(16).padStart(2, '0') :
+      'fd' + outputCount.toString(16).padStart(4, '0');
+
+    let outputsHex = '';
+    for (let i = 0; i < outputCount; i++) {
+      outputsHex += reader.readBytes(8); // value
+      const scriptLen = reader.readVarInt();
+      const scriptLenHex = scriptLen < 0xfd ?
+        scriptLen.toString(16).padStart(2, '0') :
+        'fd' + scriptLen.toString(16).padStart(4, '0');
+      outputsHex += scriptLenHex;
+      outputsHex += reader.readBytes(scriptLen); // scriptPubKey
+    }
+
+    // Skip witness data, get locktime
+    for (let i = 0; i < inputCount; i++) {
+      const witnessCount = reader.readVarInt();
+      for (let j = 0; j < witnessCount; j++) {
+        const itemLen = reader.readVarInt();
+        reader.readBytes(itemLen);
+      }
+    }
+
+    const locktime = reader.readBytes(4);
+
+    txForHash = version + inputCountHex + inputsHex + outputCountHex + outputsHex + locktime;
+  }
+
+  // Convert to bytes
+  const bytes = new Uint8Array(txForHash.length / 2);
+  for (let i = 0; i < txForHash.length; i += 2) {
+    bytes[i / 2] = parseInt(txForHash.slice(i, i + 2), 16);
+  }
+
+  // Double SHA256
+  const hash = await doubleSha256(bytes);
+
+  // Reverse for display
+  return Array.from(hash).reverse().map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// ============================================================================
+// Quick validation (synchronous, for form validation)
+// ============================================================================
+
+function isValidTransactionHex(hex) {
+  if (!hex || hex.length === 0) {
+    return { valid: false, error: 'Empty input' };
+  }
+
+  const cleaned = hex.trim().toLowerCase();
+
+  if (!/^[0-9a-f]+$/.test(cleaned)) {
+    return { valid: false, error: 'Invalid hex characters' };
+  }
+
+  if (cleaned.length % 2 !== 0) {
+    return { valid: false, error: 'Odd number of hex characters' };
+  }
+
+  if (cleaned.length < 20) {
+    return { valid: false, error: 'Too short to be a valid transaction' };
+  }
+
+  // Check version (first 4 bytes, little-endian)
+  const version = parseInt(cleaned.slice(6, 8) + cleaned.slice(4, 6) + cleaned.slice(2, 4) + cleaned.slice(0, 2), 16);
+  if (version !== 1 && version !== 2) {
+    // Could still be valid but unusual
+  }
+
+  return { valid: true };
+}
+
+// ============================================================================
+// PSBT (BIP-174) Decoder
+// ============================================================================
+
+// PSBT key types
+const PSBT_GLOBAL_UNSIGNED_TX = 0x00;
+const PSBT_GLOBAL_XPUB = 0x01;
+const PSBT_GLOBAL_VERSION = 0xfb;
+
+const PSBT_IN_NON_WITNESS_UTXO = 0x00;
+const PSBT_IN_WITNESS_UTXO = 0x01;
+const PSBT_IN_PARTIAL_SIG = 0x02;
+const PSBT_IN_SIGHASH_TYPE = 0x03;
+const PSBT_IN_REDEEM_SCRIPT = 0x04;
+const PSBT_IN_WITNESS_SCRIPT = 0x05;
+const PSBT_IN_BIP32_DERIVATION = 0x06;
+const PSBT_IN_FINAL_SCRIPTSIG = 0x07;
+const PSBT_IN_FINAL_SCRIPTWITNESS = 0x08;
+
+const PSBT_OUT_REDEEM_SCRIPT = 0x00;
+const PSBT_OUT_WITNESS_SCRIPT = 0x01;
+const PSBT_OUT_BIP32_DERIVATION = 0x02;
+
+function parseBip32Path(data) {
+  // First 4 bytes are master fingerprint, rest are path components (4 bytes each)
+  const parts = ['m'];
+  for (let i = 8; i < data.length; i += 8) {
+    const index = parseInt(
+      data.slice(i + 6, i + 8) + data.slice(i + 4, i + 6) +
+      data.slice(i + 2, i + 4) + data.slice(i, i + 2),
+      16
+    );
+    if (index >= 0x80000000) {
+      parts.push((index - 0x80000000).toString() + "'");
+    } else {
+      parts.push(index.toString());
+    }
+  }
+  return parts.join('/');
+}
+
+function isPSBT(data) {
+  const cleaned = data.trim().toLowerCase();
+  // Check for hex PSBT magic
+  if (cleaned.startsWith('70736274ff')) {
+    return true;
+  }
+  // Check for base64 PSBT (starts with "cHNidP8" which is base64 for "psbt\xff")
+  if (data.trim().startsWith('cHNidP8')) {
+    return true;
+  }
+  return false;
+}
+
+function base64ToHex(base64) {
+  const binary = atob(base64);
+  let hex = '';
+  for (let i = 0; i < binary.length; i++) {
+    hex += binary.charCodeAt(i).toString(16).padStart(2, '0');
+  }
+  return hex;
+}
+
+async function decodePSBT(dataInput) {
+  // Sanitize input - remove all whitespace
+  const data = dataInput.replace(/\s+/g, '');
+  let hex = data.toLowerCase();
+
+  // Convert base64 to hex if needed
+  if (data.startsWith('cHNidP8')) {
+    hex = base64ToHex(data);
+  }
+
+  const reader = new ByteReader(hex);
+  const warnings = [];
+
+  // Check magic bytes (0x70736274ff = "psbt" + separator)
+  const magic = reader.readBytes(5);
+  if (magic !== '70736274ff') {
+    throw new Error('Invalid PSBT magic bytes');
+  }
+
+  // Parse global section
+  let unsignedTxHex;
+  let psbtVersion = 0;
+  const globalXpubs = [];
+  const unknownGlobals = [];
+
+  while (true) {
+    const keyLen = reader.readVarInt();
+    if (keyLen === 0) break; // End of global section
+
+    const key = reader.readBytes(keyLen);
+    const keyType = parseInt(key.slice(0, 2), 16);
+    const keyData = key.slice(2);
+
+    const valueLen = reader.readVarInt();
+    const value = reader.readBytes(valueLen);
+
+    switch (keyType) {
+      case PSBT_GLOBAL_UNSIGNED_TX:
+        unsignedTxHex = value;
+        break;
+      case PSBT_GLOBAL_XPUB:
+        globalXpubs.push({
+          xpub: keyData,
+          masterFingerprint: value.slice(0, 8),
+          path: parseBip32Path(value),
+        });
+        break;
+      case PSBT_GLOBAL_VERSION:
+        psbtVersion = parseInt(value, 16);
+        break;
+      default:
+        unknownGlobals.push({ key, value });
+    }
+  }
+
+  if (!unsignedTxHex) {
+    throw new Error('PSBT missing unsigned transaction');
+  }
+
+  // Decode the unsigned transaction
+  const unsignedTx = await decodeTransaction(unsignedTxHex);
+
+  // Parse input sections
+  const psbtInputs = [];
+  let totalInputValue = 0;
+  let inputsWithValue = 0;
+
+  for (let i = 0; i < unsignedTx.inputs.length; i++) {
+    const input = {
+      index: i,
+      partialSigs: [],
+      bip32Derivation: [],
+      hasAllSignatures: false,
+    };
+
+    while (true) {
+      const keyLen = reader.readVarInt();
+      if (keyLen === 0) break;
+
+      const key = reader.readBytes(keyLen);
+      const keyType = parseInt(key.slice(0, 2), 16);
+      const keyData = key.slice(2);
+
+      const valueLen = reader.readVarInt();
+      const value = reader.readBytes(valueLen);
+
+      switch (keyType) {
+        case PSBT_IN_NON_WITNESS_UTXO:
+          input.nonWitnessUtxo = value;
+          break;
+
+        case PSBT_IN_WITNESS_UTXO: {
+          // Parse witness UTXO: value (8 bytes) + scriptPubKey
+          const utxoReader = new ByteReader(value);
+          const utxoValue = Number(utxoReader.readUInt64LE());
+          const scriptLen = utxoReader.readVarInt();
+          const scriptPubKey = utxoReader.readBytes(scriptLen);
+          const { type: scriptType, data: scriptData } = identifyScriptType(scriptPubKey);
+
+          input.witnessUtxo = {
+            value: utxoValue,
+            valueBtc: satsToBtc(utxoValue),
+            scriptPubKey,
+            scriptType,
+            address: scriptData ? await scriptToAddress(scriptType, scriptData) : undefined,
+          };
+
+          totalInputValue += utxoValue;
+          inputsWithValue++;
+          break;
+        }
+
+        case PSBT_IN_PARTIAL_SIG:
+          input.partialSigs.push({
+            pubkey: keyData,
+            signature: value,
+          });
+          break;
+
+        case PSBT_IN_SIGHASH_TYPE:
+          input.sighashType = parseInt(value, 16);
+          break;
+
+        case PSBT_IN_REDEEM_SCRIPT:
+          input.redeemScript = value;
+          break;
+
+        case PSBT_IN_WITNESS_SCRIPT:
+          input.witnessScript = value;
+          break;
+
+        case PSBT_IN_BIP32_DERIVATION:
+          input.bip32Derivation.push({
+            pubkey: keyData,
+            masterFingerprint: value.slice(0, 8),
+            path: parseBip32Path(value),
+          });
+          break;
+
+        case PSBT_IN_FINAL_SCRIPTSIG:
+          input.finalScriptSig = value;
+          input.hasAllSignatures = true;
+          break;
+
+        case PSBT_IN_FINAL_SCRIPTWITNESS: {
+          // Parse witness stack
+          const witnessReader = new ByteReader(value);
+          const witnessCount = witnessReader.readVarInt();
+          input.finalScriptWitness = [];
+          for (let w = 0; w < witnessCount; w++) {
+            const itemLen = witnessReader.readVarInt();
+            input.finalScriptWitness.push(witnessReader.readBytes(itemLen));
+          }
+          input.hasAllSignatures = true;
+          break;
+        }
+      }
+    }
+
+    // Check if has signatures (either finalized or partial)
+    if (input.partialSigs.length > 0) {
+      input.hasAllSignatures = true; // Simplified - real check would need to know required sigs
+    }
+
+    psbtInputs.push(input);
+  }
+
+  // Parse output sections
+  const psbtOutputs = [];
+
+  for (let i = 0; i < unsignedTx.outputs.length; i++) {
+    const output = {
+      index: i,
+      bip32Derivation: [],
+    };
+
+    while (true) {
+      const keyLen = reader.readVarInt();
+      if (keyLen === 0) break;
+
+      const key = reader.readBytes(keyLen);
+      const keyType = parseInt(key.slice(0, 2), 16);
+      const keyData = key.slice(2);
+
+      const valueLen = reader.readVarInt();
+      const value = reader.readBytes(valueLen);
+
+      switch (keyType) {
+        case PSBT_OUT_REDEEM_SCRIPT:
+          output.redeemScript = value;
+          break;
+        case PSBT_OUT_WITNESS_SCRIPT:
+          output.witnessScript = value;
+          break;
+        case PSBT_OUT_BIP32_DERIVATION:
+          output.bip32Derivation.push({
+            pubkey: keyData,
+            masterFingerprint: value.slice(0, 8),
+            path: parseBip32Path(value),
+          });
+          break;
+      }
+    }
+
+    psbtOutputs.push(output);
+  }
+
+  // Calculate totals and fee
+  const totalOutputValue = unsignedTx.totalOutputSats;
+  let fee;
+  let feeBtc;
+  let feeRate;
+
+  if (inputsWithValue === unsignedTx.inputs.length && totalInputValue > 0) {
+    fee = totalInputValue - totalOutputValue;
+    feeBtc = satsToBtc(fee);
+    feeRate = Math.round(fee / unsignedTx.vsize * 100) / 100;
+
+    if (fee < 0) {
+      warnings.push('Negative fee! Outputs exceed inputs.');
+    } else if (feeRate > 1000) {
+      warnings.push(`Very high fee rate: ${feeRate} sat/vB`);
+    } else if (feeRate < 1) {
+      warnings.push(`Very low fee rate: ${feeRate} sat/vB - may not confirm`);
+    } else if (feeRate < 5) {
+      warnings.push(`Low fee rate: ${feeRate} sat/vB - may take a long time to confirm`);
+    }
+  }
+
+  // Signing progress
+  const signedInputs = psbtInputs.filter(i => i.hasAllSignatures).length;
+  const signingProgress = `${signedInputs}/${unsignedTx.inputs.length} inputs signed`;
+  const isFullySigned = signedInputs === unsignedTx.inputs.length;
+
+  return {
+    isPsbt: true,
+    version: psbtVersion,
+    unsignedTx,
+    inputs: psbtInputs,
+    outputs: psbtOutputs,
+    globalXpubs,
+    unknownGlobals,
+    totalInputValue,
+    totalInputBtc: satsToBtc(totalInputValue),
+    totalOutputValue,
+    totalOutputBtc: satsToBtc(totalOutputValue),
+    fee,
+    feeBtc,
+    feeRate,
+    isFullySigned,
+    signingProgress,
+    warnings,
+  };
+}
+
+// ============================================================================
+// Unified decode function - handles both raw TX and PSBT
+// ============================================================================
+
+/**
+ * Sanitize input by removing all whitespace (spaces, tabs, newlines, etc.)
+ * This allows users to paste hex with formatting
+ */
+function sanitizeHexInput(input) {
+  return input.replace(/\s+/g, '');
+}
+
+async function decodeAny(input) {
+  // Strip ALL whitespace to handle formatted/indented input
+  const cleaned = sanitizeHexInput(input);
+
+  if (isPSBT(cleaned)) {
+    return { type: 'psbt', data: await decodePSBT(cleaned) };
+  }
+
+  return { type: 'transaction', data: await decodeTransaction(cleaned) };
+}
+
+// Helper to detect input type without full decode
+
+function detectInputType(input) {
+  // Strip ALL whitespace (spaces, newlines, tabs, etc.)
+  const cleaned = sanitizeHexInput(input);
+
+  if (!cleaned) return 'invalid';
+
+  // Check for PSBT (base64 or hex)
+  if (isPSBT(cleaned)) return 'psbt';
+
+  // Check for valid hex
+  if (/^[0-9a-fA-F]+$/.test(cleaned) && cleaned.length >= 20) {
+    return 'transaction';
+  }
+
+  return 'invalid';
+}
+
+// ============================================================================
+// PSBT Finalization & Transaction Extraction
+// ============================================================================
+
+/**
+ * Check if a PSBT can be finalized (all inputs have final scripts)
+ */
+function canFinalizePSBT(psbt) {
+  for (let i = 0; i < psbt.inputs.length; i++) {
+    const input = psbt.inputs[i];
+
+    // Check if input already has final scripts
+    if (input.finalScriptSig || input.finalScriptWitness) {
+      continue; // Already finalized
+    }
+
+    // Check if we have partial signatures
+    if (input.partialSigs.length === 0) {
+      return {
+        canFinalize: false,
+        reason: `Input #${i} has no signatures`
+      };
+    }
+
+    // For now, we only support simple single-sig finalization
+    // Multisig would need additional logic to determine if we have enough sigs
+  }
+
+  return { canFinalize: true };
+}
+
+/**
+ * Helper to encode a varint
+ */
+function encodeVarInt(n) {
+  if (n < 0xfd) {
+    return n.toString(16).padStart(2, '0');
+  } else if (n <= 0xffff) {
+    return 'fd' +
+      (n & 0xff).toString(16).padStart(2, '0') +
+      ((n >> 8) & 0xff).toString(16).padStart(2, '0');
+  } else if (n <= 0xffffffff) {
+    return 'fe' +
+      (n & 0xff).toString(16).padStart(2, '0') +
+      ((n >> 8) & 0xff).toString(16).padStart(2, '0') +
+      ((n >> 16) & 0xff).toString(16).padStart(2, '0') +
+      ((n >> 24) & 0xff).toString(16).padStart(2, '0');
+  }
+  throw new Error('VarInt too large');
+}
+
+/**
+ * Extract raw transaction hex from a finalized PSBT
+ *
+ * This takes a PSBT where inputs have finalScriptSig and/or finalScriptWitness
+ * and constructs the complete raw transaction that can be broadcast.
+ */
+function extractTransactionFromPSBT(psbt) {
+  // First check if we can finalize
+  const { canFinalize, reason } = canFinalizePSBT(psbt);
+  if (!canFinalize) {
+    return { success: false, error: reason || 'PSBT cannot be finalized' };
+  }
+
+  // Check if any input needs witness (determines if we use SegWit serialization)
+  let needsWitness = false;
+  for (const input of psbt.inputs) {
+    if (input.finalScriptWitness && input.finalScriptWitness.length > 0) {
+      needsWitness = true;
+      break;
+    }
+    // Also check if witnessUtxo suggests SegWit
+    if (input.witnessUtxo?.scriptType === 'p2wpkh' ||
+        input.witnessUtxo?.scriptType === 'p2wsh' ||
+        input.witnessUtxo?.scriptType === 'p2tr') {
+      needsWitness = true;
+      break;
+    }
+  }
+
+  try {
+    let txHex = '';
+
+    // Version (4 bytes LE)
+    const version = psbt.unsignedTx.version;
+    txHex += (version & 0xff).toString(16).padStart(2, '0');
+    txHex += ((version >> 8) & 0xff).toString(16).padStart(2, '0');
+    txHex += ((version >> 16) & 0xff).toString(16).padStart(2, '0');
+    txHex += ((version >> 24) & 0xff).toString(16).padStart(2, '0');
+
+    // SegWit marker + flag
+    if (needsWitness) {
+      txHex += '00'; // marker
+      txHex += '01'; // flag
+    }
+
+    // Input count
+    txHex += encodeVarInt(psbt.unsignedTx.inputs.length);
+
+    // Inputs
+    for (let i = 0; i < psbt.unsignedTx.inputs.length; i++) {
+      const txInput = psbt.unsignedTx.inputs[i];
+      const psbtInput = psbt.inputs[i];
+
+      // Previous output txid (32 bytes, reversed for internal representation)
+      // The txid in DecodedInput is already in display format, we need to reverse it
+      const txidBytes = txInput.txid.match(/.{2}/g)?.reverse().join('') || '';
+      txHex += txidBytes;
+
+      // Previous output index (4 bytes LE)
+      const vout = txInput.vout;
+      txHex += (vout & 0xff).toString(16).padStart(2, '0');
+      txHex += ((vout >> 8) & 0xff).toString(16).padStart(2, '0');
+      txHex += ((vout >> 16) & 0xff).toString(16).padStart(2, '0');
+      txHex += ((vout >> 24) & 0xff).toString(16).padStart(2, '0');
+
+      // ScriptSig
+      let scriptSig = '';
+      if (psbtInput.finalScriptSig) {
+        scriptSig = psbtInput.finalScriptSig;
+      } else if (!needsWitness && psbtInput.partialSigs.length > 0) {
+        // For legacy P2PKH, construct scriptSig from signature + pubkey
+        // <sig> <pubkey>
+        const sig = psbtInput.partialSigs[0].signature;
+        const pubkey = psbtInput.partialSigs[0].pubkey;
+        const sigLen = sig.length / 2;
+        const pubkeyLen = pubkey.length / 2;
+        scriptSig = sigLen.toString(16).padStart(2, '0') + sig +
+                    pubkeyLen.toString(16).padStart(2, '0') + pubkey;
+      }
+
+      txHex += encodeVarInt(scriptSig.length / 2);
+      txHex += scriptSig;
+
+      // Sequence (4 bytes LE)
+      const seq = txInput.sequence;
+      txHex += (seq & 0xff).toString(16).padStart(2, '0');
+      txHex += ((seq >> 8) & 0xff).toString(16).padStart(2, '0');
+      txHex += ((seq >> 16) & 0xff).toString(16).padStart(2, '0');
+      txHex += ((seq >> 24) & 0xff).toString(16).padStart(2, '0');
+    }
+
+    // Output count
+    txHex += encodeVarInt(psbt.unsignedTx.outputs.length);
+
+    // Outputs
+    for (const output of psbt.unsignedTx.outputs) {
+      // Value (8 bytes LE)
+      let value = output.value;
+      for (let j = 0; j < 8; j++) {
+        txHex += (value & 0xff).toString(16).padStart(2, '0');
+        value = Math.floor(value / 256);
+      }
+
+      // ScriptPubKey
+      txHex += encodeVarInt(output.scriptPubKey.length / 2);
+      txHex += output.scriptPubKey;
+    }
+
+    // Witness data (if SegWit)
+    if (needsWitness) {
+      for (let i = 0; i < psbt.inputs.length; i++) {
+        const psbtInput = psbt.inputs[i];
+
+        if (psbtInput.finalScriptWitness && psbtInput.finalScriptWitness.length > 0) {
+          // Use final witness directly
+          txHex += encodeVarInt(psbtInput.finalScriptWitness.length);
+          for (const item of psbtInput.finalScriptWitness) {
+            txHex += encodeVarInt(item.length / 2);
+            txHex += item;
+          }
+        } else if (psbtInput.partialSigs.length > 0) {
+          // Construct witness from partial sigs (P2WPKH: <sig> <pubkey>)
+          const sig = psbtInput.partialSigs[0].signature;
+          const pubkey = psbtInput.partialSigs[0].pubkey;
+          txHex += '02'; // 2 witness items
+          txHex += encodeVarInt(sig.length / 2);
+          txHex += sig;
+          txHex += encodeVarInt(pubkey.length / 2);
+          txHex += pubkey;
+        } else {
+          // Empty witness
+          txHex += '00';
+        }
+      }
+    }
+
+    // Locktime (4 bytes LE)
+    const locktime = psbt.unsignedTx.locktime;
+    txHex += (locktime & 0xff).toString(16).padStart(2, '0');
+    txHex += ((locktime >> 8) & 0xff).toString(16).padStart(2, '0');
+    txHex += ((locktime >> 16) & 0xff).toString(16).padStart(2, '0');
+    txHex += ((locktime >> 24) & 0xff).toString(16).padStart(2, '0');
+
+    return { success: true, txHex };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to extract transaction'
+    };
+  }
+}
+
+// ============================================================================
+// Helper Functions for Display
+// ============================================================================
+
+/**
+ * Format sighash type for human-readable display
+ */
+function formatSighashType(sighashType) {
+  const SIGHASH_ALL = 0x01;
+  const SIGHASH_NONE = 0x02;
+  const SIGHASH_SINGLE = 0x03;
+  const SIGHASH_ANYONECANPAY = 0x80;
+
+  const baseType = sighashType & 0x1f;
+  const anyoneCanPay = (sighashType & SIGHASH_ANYONECANPAY) !== 0;
+
+  let name;
+  switch (baseType) {
+    case SIGHASH_ALL:
+      name = 'SIGHASH_ALL';
+      break;
+    case SIGHASH_NONE:
+      name = 'SIGHASH_NONE';
+      break;
+    case SIGHASH_SINGLE:
+      name = 'SIGHASH_SINGLE';
+      break;
+    default:
+      name = `UNKNOWN(0x${baseType.toString(16)})`;
+  }
+
+  if (anyoneCanPay) {
+    name += '|ANYONECANPAY';
+  }
+
+  return name;
+}
+
+// Public API
+return {
+  decodeTransaction: decodeTransaction,
+  decodePSBT: decodePSBT,
+  decodeAny: decodeAny,
+  isPSBT: isPSBT,
+  isValidTransactionHex: isValidTransactionHex,
+  sanitizeHexInput: sanitizeHexInput,
+  detectInputType: detectInputType,
+  canFinalizePSBT: canFinalizePSBT,
+  extractTransactionFromPSBT: extractTransactionFromPSBT,
+  formatSighashType: formatSighashType,
+  ByteReader: ByteReader
+};
+})();
+var decodeAny = TxDecoder.decodeAny;
+var detectInputType = TxDecoder.detectInputType;
+var isPSBT = TxDecoder.isPSBT;
+var canFinalizePSBT = TxDecoder.canFinalizePSBT;
+var extractTransactionFromPSBT = TxDecoder.extractTransactionFromPSBT;
+var formatSighashType = TxDecoder.formatSighashType;
+
+</script>
+<script>
+/* ============================================================
+   ICON HELPER
+   ============================================================ */
+function icon(name, size, color) {
+  var s = size || 16, c = color || 'currentColor';
+  var a = ' viewBox="0 0 24 24" width="'+s+'" height="'+s+'" fill="none" stroke="'+c+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">';
+  var icons = {
+    CheckCircle: '<svg'+a+'<path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+    XCircle: '<svg'+a+'<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+    Copy: '<svg'+a+'<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>',
+    ExternalLink: '<svg'+a+'<path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>',
+    ArrowLeft: '<svg'+a+'<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>',
+    ArrowRight: '<svg'+a+'<line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>',
+    AlertCircle: '<svg'+a+'<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+    AlertTriangle: '<svg'+a+'<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+    Zap: '<svg'+a+'<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+    Shield: '<svg'+a+'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+    Clock: '<svg'+a+'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+    Eye: '<svg'+a+'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+    Radio: '<svg'+a+'<circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 010 8.49m-8.48-.01a6 6 0 010-8.49m11.31-2.82a10 10 0 010 14.14m-14.14 0a10 10 0 010-14.14"/></svg>',
+    Hash: '<svg'+a+'<line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>',
+    FileText: '<svg'+a+'<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>',
+    Activity: '<svg'+a+'<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
+    Loader2: '<svg'+a+'<path d="M21 12a9 9 0 11-6.219-8.56"/></svg>',
+    ChevronDown: '<svg'+a+'<polyline points="6 9 12 15 18 9"/></svg>',
+    ChevronRight: '<svg'+a+'<polyline points="9 18 15 12 9 6"/></svg>',
+    Lock: '<svg'+a+'<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>',
+    Unlock: '<svg'+a+'<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 019.9-1"/></svg>',
+    Key: '<svg'+a+'<path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>',
+    Download: '<svg'+a+'<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+    Check: '<svg'+a+'<polyline points="20 6 9 17 4 12"/></svg>',
+    Tag: '<svg'+a+'<path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>',
+    HelpCircle: '<svg'+a+'<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+    ShieldAlert: '<svg'+a+'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+    Info: '<svg'+a+'<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+    RefreshCw: '<svg'+a+'<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>',
+    Server: '<svg'+a+'<rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>',
+    Cpu: '<svg'+a+'<rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>',
+    Home: '<svg'+a+'<path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+    Github: '<svg viewBox="0 0 24 24" width="'+s+'" height="'+s+'" fill="'+c+'"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>'
+  };
+  return icons[name] || '';
+}
+
+// Init
+document.addEventListener('DOMContentLoaded', function() {
+  var name = window.location.host.replace(/^www\./, '');
+  document.getElementById('site-name').textContent = name;
+  document.getElementById('footer-site-name').textContent = name;
+
+  // Make features grid responsive
+  var featGrid = document.querySelector('.grid.grid-cols-1');
+  if (featGrid && window.innerWidth >= 640) {
+    featGrid.style.gridTemplateColumns = 'repeat(3,1fr)';
+  }
+  window.addEventListener('resize', function() {
+    if (featGrid) {
+      featGrid.style.gridTemplateColumns = window.innerWidth >= 640 ? 'repeat(3,1fr)' : 'repeat(1,1fr)';
+    }
+  });
+});
+
+/* ============================================================
+   HOME: BROADCAST FORM
+   ============================================================ */
+var lastDecodedResult = null;
+var broadcastMode = 'broadcast';
+var txValid = false;
+var txCanBroadcast = false;
+var debounceTimer = null;
+
+function setMode(mode) {
+  broadcastMode = mode;
+  var btnP = document.getElementById('btn-preview');
+  var btnB = document.getElementById('btn-broadcast');
+  if (mode === 'preview') {
+    btnP.className = 'mode-btn active-preview';
+    btnB.className = 'mode-btn';
+  } else {
+    btnP.className = 'mode-btn';
+    btnB.className = 'mode-btn active-broadcast';
+  }
+  updateStatusBar();
+}
+
+function handleTxInput() {
+  var el = document.getElementById('tx-input');
+  var val = el.value;
+  document.getElementById('tx-error').style.display = 'none';
+  el.classList.remove('has-error');
+  updateStatusBar();
+
+  // Debounce decode
+  clearTimeout(debounceTimer);
+  if (!val.trim()) {
+    document.getElementById('tx-preview-container').style.display = 'none';
+    document.getElementById('tx-preview-container').innerHTML = '';
+    txValid = false;
+    txCanBroadcast = false;
+    updateStatusBar();
+    return;
+  }
+  debounceTimer = setTimeout(function() { decodeTxPreview(val); }, 300);
+}
+
+function showTxError(msg) {
+  var errEl = document.getElementById('tx-error');
+  document.getElementById('tx-error-icon').innerHTML = icon('AlertTriangle', 16, '#ef4444');
+  document.getElementById('tx-error-msg').textContent = msg;
+  errEl.style.display = 'block';
+  document.getElementById('tx-input').classList.add('has-error');
+}
+
+function updateStatusBar() {
+  var val = document.getElementById('tx-input').value.trim();
+  var leftEl = document.getElementById('tx-status-left');
+  var rightEl = document.getElementById('tx-status-right');
+
+  if (val.length === 0) {
+    leftEl.innerHTML = '';
+    rightEl.innerHTML = '';
+    return;
+  }
+
+  var isPsbt = typeof isPSBT === 'function' && isPSBT(val);
+  var leftHtml = isPsbt ? 'PSBT' : Math.floor(val.length / 2) + ' bytes';
+  if (txValid) {
+    leftHtml += ' <span style="color:#22c55e;margin-left:8px">Valid</span>';
+  }
+  leftEl.innerHTML = leftHtml;
+
+  if (broadcastMode === 'broadcast') {
+    var disabled = !val || !txCanBroadcast;
+    rightEl.innerHTML = '<button class="btn btn-primary' + (disabled ? '' : '') + '" onclick="handleBroadcast()"' + (disabled ? ' disabled' : '') + '><span>Broadcast</span> ' + icon('ArrowRight', 20, disabled ? '#666' : '#0f0f0f') + '</button>';
+  } else {
+    rightEl.innerHTML = '<span class="text-sm text-secondary italic">Preview mode - decoding only</span>';
+  }
+}
+
+function handleBroadcast() {
+  var hex = document.getElementById('tx-input').value.trim();
+  if (!hex) {
+    showTxError('Please enter a raw transaction');
+    return;
+  }
+  if (typeof isPSBT === 'function' && isPSBT(hex)) {
+    showTxError('Cannot broadcast PSBT directly. Please finalize it first.');
+    return;
+  }
+  if (!/^[0-9a-fA-F]+$/.test(hex)) {
+    showTxError('Invalid hex - transaction must be hexadecimal');
+    return;
+  }
+  window.location.href = '/' + hex;
+}
+
+/* ============================================================
+   TRANSACTION PREVIEW
+   ============================================================ */
+function decodeTxPreview(rawTx) {
+  var container = document.getElementById('tx-preview-container');
+  if (!rawTx.trim()) {
+    container.style.display = 'none';
+    container.innerHTML = '';
+    return;
+  }
+
+  // Show loading
+  container.style.display = 'block';
+  container.innerHTML = '<div class="tx-preview"><div class="flex items-center justify-center gap-3 text-muted" style="padding:24px">' + '<span class="animate-spin" style="display:inline-block">' + icon('Loader2', 20) + '</span> Decoding transaction...</div></div>';
+
+  // Check if txDecoder is available
+  if (typeof decodeAny !== 'function') {
+    container.innerHTML = '<div class="tx-preview"><div class="flex items-center gap-2 text-muted" style="padding:16px">' + icon('Info', 16, '#666') + ' <span class="text-sm">Transaction decoder not loaded (txDecoder.js)</span></div></div>';
+    txValid = false;
+    txCanBroadcast = false;
+    updateStatusBar();
+    return;
+  }
+
+  var inputType = typeof detectInputType === 'function' ? detectInputType(rawTx) : 'unknown';
+  if (inputType === 'invalid') {
+    container.innerHTML = '<div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:16px"><div class="flex items-start gap-2">' + icon('AlertTriangle', 16, '#ef4444') + ' <span class="text-sm text-red">Invalid input - must be hex transaction or PSBT</span></div></div>';
+    txValid = false;
+    txCanBroadcast = false;
+    updateStatusBar();
+    return;
+  }
+
+  decodeAny(rawTx).then(function(result) {
+    lastDecodedResult = result;
+    txValid = true;
+    txCanBroadcast = result.type === 'transaction' || (result.type === 'psbt' && result.data.isFullySigned);
+    updateStatusBar();
+    renderDecodeResult(container, result);
+  }).catch(function(err) {
+    txValid = false;
+    txCanBroadcast = false;
+    updateStatusBar();
+    container.innerHTML = '<div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:16px"><div class="flex items-start gap-2">' + icon('AlertTriangle', 16, '#ef4444') + ' <span class="text-sm text-red">' + escapeHtml(err.message || 'Failed to decode transaction') + '</span></div></div>';
+  });
+}
+
+function escapeHtml(s) {
+  var d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function truncateStr(str, start, end) {
+  start = start || 8; end = end || 8;
+  if (str.length <= start + end + 3) return str;
+  return str.slice(0, start) + '...' + str.slice(-end);
+}
+
+function formatScriptType(type) {
+  var names = {p2pkh:'P2PKH (Legacy)',p2sh:'P2SH',p2wpkh:'P2WPKH (Native SegWit)',p2wsh:'P2WSH',p2tr:'P2TR (Taproot)',op_return:'OP_RETURN',p2pk:'P2PK (Legacy)',multisig:'Bare Multisig',unknown:'Unknown'};
+  return names[type] || type.toUpperCase();
+}
+
+function copyText(text) {
+  if (navigator.clipboard) navigator.clipboard.writeText(text);
+}
+
+function renderDecodeResult(container, result) {
+  var html = '<div class="tx-preview">';
+  html += '<div class="flex items-center justify-between mb-4" style="padding-bottom:12px;border-bottom:1px solid #333">';
+  html += '<div class="flex items-center gap-2">' + icon('CheckCircle', 16, '#22c55e') + ' <span class="text-sm font-medium">' + (result.type === 'psbt' ? 'PSBT' : 'Transaction') + ' Decoded</span></div>';
+  html += '<span class="text-xs" style="padding:4px 8px;border-radius:4px;background:#333;color:#a0a0a0">' + (result.type === 'psbt' ? 'PSBT v' + result.data.version : 'Raw TX') + '</span>';
+  html += '</div>';
+
+  if (result.type === 'psbt') {
+    html += renderPSBTContent(result.data);
+  } else {
+    html += renderTxContent(result.data);
+  }
+
+  html += '</div>';
+  container.innerHTML = html;
+  container.style.display = 'block';
+}
+
+function renderTxContent(tx) {
+  var h = '';
+
+  // Warnings
+  if (tx.warnings && tx.warnings.length > 0) {
+    h += '<div style="background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.3);border-radius:8px;padding:12px;margin-bottom:16px">';
+    h += '<div class="flex items-start gap-2">' + icon('AlertTriangle', 16, '#eab308');
+    h += '<div class="text-sm text-yellow">';
+    for (var i = 0; i < tx.warnings.length; i++) h += '<div>' + escapeHtml(tx.warnings[i]) + '</div>';
+    h += '</div></div></div>';
+  }
+
+  // Non-standard report
+  if (tx.nonStandardReport && !tx.nonStandardReport.isStandard) {
+    h += renderNonStandardReport(tx.nonStandardReport);
+  }
+
+  // Protocols
+  if (tx.detectedProtocols && tx.detectedProtocols.length > 0) {
+    h += renderProtocols(tx.detectedProtocols);
+  }
+
+  // Info grid
+  h += '<div class="tx-info-grid" style="margin-bottom:16px">';
+  h += '<div class="tx-info-box"><div class="tx-info-label">Version</div><div class="tx-info-value">' + tx.version + '</div></div>';
+  h += '<div class="tx-info-box"><div class="tx-info-label">Size</div><div class="tx-info-value">' + tx.size + ' bytes</div></div>';
+  h += '<div class="tx-info-box"><div class="tx-info-label">Virtual Size</div><div class="tx-info-value">' + tx.vsize + ' vB</div></div>';
+  h += '<div class="tx-info-box"><div class="tx-info-label">Weight</div><div class="tx-info-value">' + tx.weight + ' WU</div></div>';
+  h += '</div>';
+
+  // Status badges
+  h += '<div class="flex flex-wrap gap-2" style="margin-bottom:16px">';
+  if (tx.isSegwit) h += '<span class="tx-badge" style="background:rgba(34,197,94,0.2);color:#22c55e">SegWit</span>';
+  if (tx.isRbfSignaled) h += '<span class="tx-badge" style="background:rgba(247,147,26,0.2);color:#f7931a">' + icon('Zap', 12, '#f7931a') + ' RBF Enabled</span>';
+  if (tx.hasOpReturn) h += '<span class="tx-badge" style="background:rgba(59,130,246,0.2);color:#3b82f6">' + tx.opReturnCount + ' OP_RETURN</span>';
+  if (tx.locktimeType && tx.locktimeType !== 'none') h += '<span class="tx-badge" style="background:rgba(102,102,102,0.2);color:#a0a0a0">' + icon('Clock', 12) + ' ' + escapeHtml(String(tx.locktimeValue)) + '</span>';
+  h += '</div>';
+
+  // TXID
+  h += '<div class="tx-info-box" style="margin-bottom:16px"><div class="flex items-center justify-between"><div class="tx-info-label">' + icon('Hash', 12, '#666') + ' Transaction ID (TXID)</div>';
+  h += '<button class="copy-btn" onclick="copyText(\'' + tx.txid + '\')">' + icon('Copy', 12) + '</button></div>';
+  h += '<code class="text-xs mono text-orange break-all">' + tx.txid + '</code></div>';
+
+  // Inputs
+  h += '<div style="margin-bottom:16px"><div class="flex items-center gap-2 mb-2">' + icon('ArrowRight', 16, '#ef4444') + ' <span class="text-sm font-medium">Inputs (' + tx.inputs.length + ')</span></div>';
+  h += '<div style="display:flex;flex-direction:column;gap:8px">';
+  for (var i = 0; i < tx.inputs.length; i++) {
+    h += renderInput(tx.inputs[i], i);
+  }
+  h += '</div></div>';
+
+  // Outputs
+  h += '<div><div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2">' + icon('ArrowLeft', 16, '#22c55e') + ' <span class="text-sm font-medium">Outputs (' + tx.outputs.length + ')</span></div>';
+  h += '<span class="text-sm text-muted">Total: ' + tx.totalOutputBtc + ' <span class="text-orange">BTC</span></span></div>';
+  h += '<div style="display:flex;flex-direction:column;gap:8px">';
+  for (var i = 0; i < tx.outputs.length; i++) {
+    h += renderOutput(tx.outputs[i], i);
+  }
+  h += '</div></div>';
+
+  return h;
+}
+
+function renderInput(input, idx) {
+  var id = 'input-' + idx + '-' + Math.random().toString(36).slice(2,8);
+  var h = '<div class="input-row">';
+  h += '<div class="expand-header" onclick="toggleExpand(\'' + id + '\')">';
+  h += '<span id="' + id + '-chevron">' + icon('ChevronRight', 16, '#666') + '</span>';
+  h += '<span class="text-secondary text-sm">#' + idx + '</span>';
+  h += '<code class="text-xs text-muted mono flex-1 truncate">' + truncateStr(input.txid, 12, 12) + ':' + input.vout + '</code>';
+  h += '<button class="copy-btn" onclick="event.stopPropagation();copyText(\'' + input.txid + ':' + input.vout + '\')">' + icon('Copy', 12) + '</button>';
+  if (input.isRbfEnabled) {
+    h += '<span class="text-xs" style="padding:2px 6px;border-radius:4px;background:rgba(247,147,26,0.2);color:#f7931a">RBF</span>';
+  } else {
+    h += '<span class="text-xs" style="padding:2px 6px;border-radius:4px;background:#333;color:#666">Final</span>';
+  }
+  h += '</div>';
+  h += '<div id="' + id + '" class="expand-detail" style="display:none">';
+  h += '<div class="detail-row"><span class="detail-label">Previous TXID:</span><code class="detail-value mono">' + input.txid + '</code></div>';
+  h += '<div class="detail-row"><span class="detail-label">Output Index:</span><span class="detail-value">' + input.vout + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Sequence:</span><code class="detail-value mono">0x' + input.sequence.toString(16).padStart(8, '0') + '</code></div>';
+  if (input.scriptSig) {
+    h += '<div style="margin-bottom:8px"><span class="detail-label">ScriptSig:</span><code style="display:block;margin-top:4px;color:#a0a0a0;font-size:10px;word-break:break-all;background:#252525;padding:8px;border-radius:4px">' + escapeHtml(input.scriptSigAsm || input.scriptSig) + '</code></div>';
+  }
+  if (input.witness && input.witness.length > 0) {
+    h += '<div><span class="detail-label">Witness (' + input.witness.length + ' items):</span><div style="margin-top:4px;display:flex;flex-direction:column;gap:4px">';
+    for (var w = 0; w < input.witness.length; w++) {
+      h += '<code style="display:block;color:#a0a0a0;font-size:10px;word-break:break-all;background:#252525;padding:4px;border-radius:4px">' + truncateStr(input.witness[w], 20, 20) + '</code>';
+    }
+    h += '</div></div>';
+  }
+  h += '</div></div>';
+  return h;
+}
+
+function renderOutput(output, idx) {
+  var id = 'output-' + idx + '-' + Math.random().toString(36).slice(2,8);
+  var isOp = output.scriptType === 'op_return';
+  var h = '<div class="' + (isOp ? 'output-row op-return' : 'output-row') + '">';
+  h += '<div class="expand-header" onclick="toggleExpand(\'' + id + '\')">';
+  h += '<span id="' + id + '-chevron">' + icon('ChevronRight', 16, '#666') + '</span>';
+  h += '<span class="text-secondary text-sm">#' + idx + '</span>';
+  if (isOp) {
+    h += '<span class="text-xs" style="padding:2px 6px;border-radius:4px;background:rgba(59,130,246,0.2);color:#3b82f6">OP_RETURN</span>';
+  } else {
+    h += '<code class="text-xs text-muted mono flex-1 truncate">' + escapeHtml(output.address || 'Unknown address') + '</code>';
+  }
+  h += '<span class="text-sm font-medium text-white ml-auto">';
+  if (isOp) {
+    h += '<span class="text-secondary">' + (output.scriptPubKey.length / 2 - 1) + ' bytes</span>';
+  } else {
+    h += output.valueBtc + ' <span class="text-orange">BTC</span>';
+  }
+  h += '</span></div>';
+
+  h += '<div id="' + id + '" class="expand-detail" style="display:none">';
+  h += '<div class="detail-row"><span class="detail-label">Type:</span><span class="detail-value">' + formatScriptType(output.scriptType) + '</span></div>';
+  if (output.address) {
+    h += '<div class="detail-row" style="align-items:center"><span class="detail-label">Address:</span><div class="flex items-center gap-1"><code class="detail-value mono" style="font-size:10px">' + escapeHtml(output.address) + '</code><button class="copy-btn" onclick="event.stopPropagation();copyText(\'' + escapeHtml(output.address) + '\')">' + icon('Copy', 12) + '</button></div></div>';
+  }
+  if (!isOp) {
+    h += '<div class="detail-row"><span class="detail-label">Value (sats):</span><span class="detail-value">' + (output.value ? output.value.toLocaleString() : '0') + '</span></div>';
+  }
+  if (output.opReturnData) {
+    h += '<div style="margin-bottom:8px"><span class="detail-label">OP_RETURN Data:</span><code style="display:block;margin-top:4px;color:#a0a0a0;font-size:10px;word-break:break-all;background:#252525;padding:8px;border-radius:4px">' + escapeHtml(output.opReturnData.hex) + '</code>';
+    if (output.opReturnData.ascii) h += '<div class="text-blue mt-1" style="font-size:12px">ASCII: "' + escapeHtml(output.opReturnData.ascii) + '"</div>';
+    h += '</div>';
+  }
+  h += '<div><span class="detail-label">ScriptPubKey:</span><code style="display:block;margin-top:4px;color:#a0a0a0;font-size:10px;word-break:break-all;background:#252525;padding:8px;border-radius:4px">' + escapeHtml(output.scriptPubKey) + '</code></div>';
+  h += '</div></div>';
+  return h;
+}
+
+function renderProtocols(protocols) {
+  if (!protocols || protocols.length === 0) return '';
+  var id = 'protocols-' + Math.random().toString(36).slice(2,8);
+  var h = '<div style="background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:12px;margin-bottom:16px">';
+  h += '<div class="expand-header" onclick="toggleExpand(\'' + id + '\')">';
+  h += '<span id="' + id + '-chevron">' + icon('ChevronRight', 16, '#666') + '</span>';
+  h += '<span class="text-sm font-medium text-muted">Detected Protocols (' + protocols.length + ')</span>';
+  h += '<div class="flex gap-2 ml-2 flex-wrap">';
+  for (var i = 0; i < protocols.length; i++) {
+    var info = getProtocolDisplayInfo(protocols[i]);
+    h += '<span class="text-xs" style="padding:2px 8px;border-radius:4px;background:' + info.color + '20;color:' + info.color + '">' + info.label + '</span>';
+  }
+  h += '</div></div>';
+  h += '<div id="' + id + '" class="expand-detail" style="display:none">';
+  for (var i = 0; i < protocols.length; i++) {
+    var p = protocols[i];
+    var info = getProtocolDisplayInfo(protocols[i]);
+    h += '<div style="padding:12px;border-radius:8px;background:' + info.color + '10;border:1px solid ' + info.color + '30;margin-bottom:8px">';
+    h += '<div class="text-sm font-medium mb-2" style="color:' + info.color + '">' + info.label + '</div>';
+
+    // Protocol-specific details
+    if (p.type === 'ordinals' && p.inscription) {
+      h += '<div class="detail-row"><span class="detail-label">Content Type:</span><span class="detail-value">' + escapeHtml(p.inscription.contentType || 'unknown') + '</span></div>';
+      h += '<div class="detail-row"><span class="detail-label">Content Length:</span><span class="detail-value">' + (p.inscription.contentLength || 0) + ' bytes</span></div>';
+      if (p.inscription.parent) h += '<div class="detail-row"><span class="detail-label">Parent:</span><code class="detail-value mono" style="font-size:10px">' + escapeHtml(p.inscription.parent) + '</code></div>';
+      if (p.inscription.pointer !== undefined) h += '<div class="detail-row"><span class="detail-label">Pointer:</span><span class="detail-value">' + p.inscription.pointer + '</span></div>';
+      if (p.inscription.metaprotocol) h += '<div class="detail-row"><span class="detail-label">Metaprotocol:</span><span class="detail-value">' + escapeHtml(p.inscription.metaprotocol) + '</span></div>';
+      if (p.inscription.contentPreview) h += '<div style="margin-top:8px"><span class="detail-label">Content Preview:</span><code style="display:block;margin-top:4px;color:#a0a0a0;font-size:10px;word-break:break-all;background:#252525;padding:8px;border-radius:4px;max-height:100px;overflow-y:auto">' + escapeHtml(p.inscription.contentPreview) + '</code></div>';
+    } else if (p.type === 'brc20' && p.details) {
+      if (p.operation) h += '<div class="detail-row"><span class="detail-label">Operation:</span><span class="detail-value">' + escapeHtml(p.operation) + '</span></div>';
+      if (p.details.tick) h += '<div class="detail-row"><span class="detail-label">Tick:</span><span class="detail-value">' + escapeHtml(p.details.tick) + '</span></div>';
+      if (p.details.amt) h += '<div class="detail-row"><span class="detail-label">Amount:</span><span class="detail-value">' + escapeHtml(p.details.amt) + '</span></div>';
+      if (p.details.max) h += '<div class="detail-row"><span class="detail-label">Max:</span><span class="detail-value">' + escapeHtml(p.details.max) + '</span></div>';
+      if (p.details.lim) h += '<div class="detail-row"><span class="detail-label">Limit:</span><span class="detail-value">' + escapeHtml(p.details.lim) + '</span></div>';
+      if (p.details.dec) h += '<div class="detail-row"><span class="detail-label">Decimals:</span><span class="detail-value">' + escapeHtml(p.details.dec) + '</span></div>';
+    } else if (p.type === 'runes' && p.details) {
+      var d = p.details;
+      if (d.type) h += '<div class="detail-row"><span class="detail-label">Type:</span><span class="detail-value">' + escapeHtml(d.type) + '</span></div>';
+      if (d.spacedName) h += '<div class="detail-row"><span class="detail-label">Name:</span><span class="detail-value">' + escapeHtml(d.spacedName) + '</span></div>';
+      if (d.symbol) h += '<div class="detail-row"><span class="detail-label">Symbol:</span><span class="detail-value">' + escapeHtml(d.symbol) + '</span></div>';
+      if (d.divisibility !== undefined) h += '<div class="detail-row"><span class="detail-label">Divisibility:</span><span class="detail-value">' + d.divisibility + '</span></div>';
+      if (d.turbo) h += '<div class="detail-row"><span class="detail-label">Turbo:</span><span class="detail-value">Yes</span></div>';
+      if (d.premine) h += '<div class="detail-row"><span class="detail-label">Premine:</span><span class="detail-value">' + escapeHtml(String(d.premine)) + '</span></div>';
+      if (d.supply) h += '<div class="detail-row"><span class="detail-label">Supply:</span><span class="detail-value">' + escapeHtml(String(d.supply)) + '</span></div>';
+      if (d.edicts && d.edicts.length > 0) h += '<div class="detail-row"><span class="detail-label">Edicts:</span><span class="detail-value">' + d.edicts.length + '</span></div>';
+    } else if (p.type === 'cat21' && p.details) {
+      if (p.details.type) h += '<div class="detail-row"><span class="detail-label">Type:</span><span class="detail-value">' + escapeHtml(p.details.type) + '</span></div>';
+      if (p.details.catId) h += '<div class="detail-row"><span class="detail-label">Cat ID:</span><code class="detail-value mono" style="font-size:10px">' + escapeHtml(p.details.catId) + '</code></div>';
+    } else if (p.type === 'atomicals' && p.details) {
+      if (p.details.type) h += '<div class="detail-row"><span class="detail-label">Type:</span><span class="detail-value">' + escapeHtml(p.details.type) + '</span></div>';
+      if (p.details.realm) h += '<div class="detail-row"><span class="detail-label">Realm:</span><span class="detail-value">' + escapeHtml(p.details.realm) + '</span></div>';
+      if (p.details.container) h += '<div class="detail-row"><span class="detail-label">Container:</span><span class="detail-value">' + escapeHtml(p.details.container) + '</span></div>';
+    } else {
+      h += '<div class="text-xs text-muted">' + escapeHtml(info.description) + '</div>';
+    }
+
+    h += '</div>';
+  }
+  h += '</div></div>';
+  return h;
+}
+
+function getProtocolDisplayInfo(protocol) {
+  switch(protocol.type) {
+    case 'ordinals': return { label: 'Ordinals', color: '#f97316', description: protocol.inscription ? protocol.inscription.contentType + ' (' + protocol.inscription.contentLength + ' bytes)' : 'Ordinals Inscription detected' };
+    case 'brc20': return { label: 'BRC-20', color: '#eab308', description: 'BRC-20 ' + (protocol.operation || 'operation') };
+    case 'runes': return { label: protocol.details && protocol.details.cenotaph ? 'Runes (Invalid)' : 'Runes', color: protocol.details && protocol.details.cenotaph ? '#ef4444' : '#8b5cf6', description: 'Runes protocol detected' };
+    case 'cat21': return { label: 'CAT-21', color: '#10b981', description: 'CAT-21 token detected' };
+    case 'atomicals': return { label: 'Atomicals', color: '#0ea5e9', description: 'Atomicals detected' };
+    case 'stamps': return { label: 'Stamps', color: '#ec4899', description: 'Bitcoin Stamps data detected' };
+    case 'counterparty': return { label: 'Counterparty', color: '#06b6d4', description: 'Counterparty protocol data detected' };
+    default: return { label: 'Unknown', color: '#666', description: 'Unknown protocol data' };
+  }
+}
+
+function renderNonStandardReport(report) {
+  if (!report || report.isStandard) return '';
+  var id = 'ns-' + Math.random().toString(36).slice(2,8);
+  var errorCount = 0, warningCount = 0;
+  for (var i = 0; i < report.checks.length; i++) {
+    if (report.checks[i].severity === 'error') errorCount++;
+    else warningCount++;
+  }
+  var h = '<div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:16px;margin-bottom:16px">';
+  h += '<div class="expand-header" onclick="toggleExpand(\'' + id + '\')">';
+  h += '<span id="' + id + '-chevron">' + icon('ChevronRight', 16, '#ef4444') + '</span>';
+  h += icon('ShieldAlert', 20, '#ef4444');
+  h += '<div class="flex-1"><div class="font-medium text-red">Non-Standard Transaction</div><div class="text-xs" style="color:rgba(239,68,68,0.7)">' + escapeHtml(report.summary) + '</div></div>';
+  h += '<div class="flex gap-2">';
+  if (errorCount > 0) h += '<span class="text-xs" style="padding:2px 8px;border-radius:4px;background:rgba(239,68,68,0.2);color:#ef4444">' + errorCount + ' error' + (errorCount > 1 ? 's' : '') + '</span>';
+  if (warningCount > 0) h += '<span class="text-xs" style="padding:2px 8px;border-radius:4px;background:rgba(234,179,8,0.2);color:#eab308">' + warningCount + ' warning' + (warningCount > 1 ? 's' : '') + '</span>';
+  h += '</div></div>';
+  h += '<div id="' + id + '" class="expand-detail" style="display:none">';
+  for (var i = 0; i < report.checks.length; i++) {
+    var chk = report.checks[i];
+    var isErr = chk.severity === 'error';
+    h += '<div style="padding:12px;border-radius:8px;background:' + (isErr ? 'rgba(239,68,68,0.1)' : 'rgba(234,179,8,0.1)') + ';border:1px solid ' + (isErr ? 'rgba(239,68,68,0.2)' : 'rgba(234,179,8,0.2)') + ';margin-bottom:8px">';
+    h += '<div class="flex items-start gap-2">' + (isErr ? icon('XCircle', 16, '#ef4444') : icon('AlertTriangle', 16, '#eab308'));
+    h += '<div class="flex-1"><span class="text-sm font-medium" style="color:' + (isErr ? '#ef4444' : '#eab308') + '">' + escapeHtml(chk.message) + '</span>';
+    if (chk.details) h += '<div class="text-xs text-muted mt-1">' + escapeHtml(chk.details) + '</div>';
+    h += '</div></div></div>';
+  }
+  h += '</div></div>';
+  return h;
+}
+
+function renderPSBTContent(psbt) {
+  var h = '';
+
+  // Warnings
+  if (psbt.warnings && psbt.warnings.length > 0) {
+    h += '<div style="background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.3);border-radius:8px;padding:12px;margin-bottom:16px">';
+    h += '<div class="flex items-start gap-2">' + icon('AlertTriangle', 16, '#eab308');
+    h += '<div class="text-sm text-yellow">';
+    for (var i = 0; i < psbt.warnings.length; i++) h += '<div>' + escapeHtml(psbt.warnings[i]) + '</div>';
+    h += '</div></div></div>';
+  }
+
+  // PSBT Status
+  var isSigned = psbt.isFullySigned;
+  h += '<div style="border-radius:8px;padding:16px;margin-bottom:16px;' + (isSigned ? 'background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3)' : 'background:rgba(247,147,26,0.1);border:1px solid rgba(247,147,26,0.3)') + '">';
+  h += '<div class="flex items-center gap-3">';
+  if (isSigned) {
+    h += icon('Unlock', 20, '#22c55e');
+    h += '<div><div class="font-medium text-green">Fully Signed</div><div class="text-xs" style="color:rgba(34,197,94,0.7)">Ready to finalize and broadcast</div></div>';
+  } else {
+    h += icon('Lock', 20, '#f7931a');
+    h += '<div><div class="font-medium text-orange">Partially Signed Bitcoin Transaction</div><div class="text-xs" style="color:rgba(247,147,26,0.7)">' + escapeHtml(psbt.signingProgress || '') + '</div></div>';
+  }
+  h += '</div></div>';
+
+  // PSBT Extract Raw TX button (when fully signed)
+  if (isSigned) {
+    h += '<div style="margin-bottom:16px">';
+    var extractId = 'extract-' + Math.random().toString(36).slice(2,8);
+    h += '<button onclick="handleExtractRawTx(\'' + extractId + '\')" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;background:#22c55e;color:#0f0f0f;border:none;cursor:pointer;transition:all 0.2s">';
+    h += icon('Download', 16, '#0f0f0f') + ' Extract Raw TX</button>';
+    h += '<div id="' + extractId + '" style="display:none;margin-top:12px"></div>';
+    h += '</div>';
+  } else {
+    // Cannot extract message
+    var finCheck = typeof canFinalizePSBT === 'function' ? canFinalizePSBT(psbt) : { canFinalize: false, reason: 'Not all inputs are signed' };
+    if (!finCheck.canFinalize) {
+      h += '<div style="display:flex;align-items:center;gap:8px;padding:12px;border-radius:8px;background:rgba(102,102,102,0.1);border:1px solid rgba(102,102,102,0.3);margin-bottom:16px">';
+      h += icon('Lock', 16, '#666');
+      h += '<span class="text-sm text-muted">Cannot extract transaction: ' + escapeHtml(finCheck.reason || 'Not all inputs are signed') + '</span>';
+      h += '</div>';
+    }
+  }
+
+  // Fee info
+  if (psbt.fee !== undefined) {
+    h += '<div class="tx-info-grid" style="margin-bottom:16px">';
+    h += '<div class="tx-info-box"><div class="tx-info-label">Total Input</div><div class="tx-info-value">' + psbt.totalInputBtc + ' <span class="text-orange">BTC</span></div></div>';
+    h += '<div class="tx-info-box"><div class="tx-info-label">Total Output</div><div class="tx-info-value">' + psbt.totalOutputBtc + ' <span class="text-orange">BTC</span></div></div>';
+    h += '<div class="tx-info-box"><div class="tx-info-label">Fee</div><div class="tx-info-value">' + psbt.feeBtc + ' <span class="text-orange">BTC</span></div></div>';
+    h += '<div class="tx-info-box"><div class="tx-info-label">Fee Rate</div><div class="tx-info-value">' + psbt.feeRate + ' sat/vB</div></div>';
+    h += '</div>';
+  }
+
+  // Unsigned TX
+  h += '<div style="border-top:1px solid #333;padding-top:16px">';
+  h += '<div class="text-sm font-medium mb-3 flex items-center gap-2">' + icon('FileText', 16, '#666') + ' Unsigned Transaction</div>';
+  h += renderTxContent(psbt.unsignedTx);
+  h += '</div>';
+
+  // PSBT Input Details
+  var hasInputMeta = false;
+  if (psbt.inputs) {
+    for (var i = 0; i < psbt.inputs.length; i++) {
+      var inp = psbt.inputs[i];
+      if (inp.sighashType !== undefined || inp.redeemScript || inp.witnessScript || inp.witnessUtxo || (inp.partialSigs && inp.partialSigs.length > 0)) {
+        hasInputMeta = true; break;
+      }
+    }
+  }
+  if (hasInputMeta) {
+    h += '<div style="border-top:1px solid #333;padding-top:16px;margin-top:16px">';
+    h += '<div class="text-sm font-medium mb-3 flex items-center gap-2">' + icon('Key', 16, '#666') + ' PSBT Input Details</div>';
+    h += '<div style="display:flex;flex-direction:column;gap:8px">';
+    for (var i = 0; i < psbt.inputs.length; i++) {
+      h += renderPSBTInputMeta(psbt.inputs[i], i);
+    }
+    h += '</div></div>';
+  }
+
+  // Global XPubs
+  if (psbt.globalXpubs && psbt.globalXpubs.length > 0) {
+    h += '<div style="border-top:1px solid #333;padding-top:16px;margin-top:16px">';
+    h += '<div class="text-sm font-medium mb-3 flex items-center gap-2">' + icon('Key', 16, '#666') + ' Global XPubs (' + psbt.globalXpubs.length + ')</div>';
+    for (var i = 0; i < psbt.globalXpubs.length; i++) {
+      var xp = psbt.globalXpubs[i];
+      h += '<div class="tx-info-box" style="margin-bottom:8px"><div class="detail-row"><span class="detail-label">Path:</span><code class="detail-value mono">' + escapeHtml(xp.path) + '</code></div>';
+      h += '<div class="detail-row"><span class="detail-label">Fingerprint:</span><code class="detail-value mono">' + escapeHtml(xp.masterFingerprint) + '</code></div></div>';
+    }
+    h += '</div>';
+  }
+
+  return h;
+}
+
+function renderPSBTInputMeta(input, idx) {
+  var hasMeta = input.sighashType !== undefined || input.redeemScript || input.witnessScript || input.witnessUtxo || (input.partialSigs && input.partialSigs.length > 0);
+  if (!hasMeta) return '';
+  var id = 'psbt-inp-' + idx + '-' + Math.random().toString(36).slice(2,8);
+  var h = '<div class="input-row">';
+  h += '<div class="expand-header" onclick="toggleExpand(\'' + id + '\')">';
+  h += '<span id="' + id + '-chevron">' + icon('ChevronRight', 16, '#666') + '</span>';
+  h += icon('Key', 16, '#666');
+  h += '<span class="text-sm text-muted">Input #' + idx + ' Metadata</span>';
+  h += '<div class="flex gap-1 ml-auto">';
+  if (input.hasAllSignatures) h += '<span class="text-xs" style="padding:2px 6px;border-radius:4px;background:rgba(34,197,94,0.2);color:#22c55e">Signed</span>';
+  if (input.witnessUtxo) h += '<span class="text-xs" style="padding:2px 6px;border-radius:4px;background:rgba(59,130,246,0.2);color:#3b82f6">' + input.witnessUtxo.valueBtc + ' BTC</span>';
+  h += '</div></div>';
+  h += '<div id="' + id + '" class="expand-detail" style="display:none">';
+  if (input.witnessUtxo) {
+    h += '<div style="background:#252525;padding:8px;border-radius:4px;margin-bottom:8px"><div class="detail-label mb-1">Witness UTXO:</div>';
+    h += '<div class="detail-row"><span class="detail-label">Value:</span><span class="detail-value">' + (input.witnessUtxo.value ? input.witnessUtxo.value.toLocaleString() : '0') + ' sats</span></div>';
+    if (input.witnessUtxo.address) h += '<div class="detail-row"><span class="detail-label">Address:</span><code class="detail-value mono" style="font-size:10px">' + escapeHtml(input.witnessUtxo.address) + '</code></div>';
+    h += '</div>';
+  }
+  if (input.sighashType !== undefined) {
+    var sht = typeof formatSighashType === 'function' ? formatSighashType(input.sighashType) : String(input.sighashType);
+    h += '<div class="detail-row"><span class="detail-label">Sighash Type:</span><code class="detail-value mono">' + escapeHtml(sht) + '</code></div>';
+  }
+  if (input.partialSigs && input.partialSigs.length > 0) {
+    h += '<div style="margin-bottom:8px"><span class="detail-label">Partial Signatures (' + input.partialSigs.length + '):</span>';
+    for (var i = 0; i < input.partialSigs.length; i++) {
+      h += '<div style="background:#252525;padding:8px;border-radius:4px;margin-top:4px"><div class="detail-label" style="font-size:10px">Pubkey:</div><code class="detail-value mono break-all" style="font-size:10px">' + escapeHtml(input.partialSigs[i].pubkey) + '</code></div>';
+    }
+    h += '</div>';
+  }
+  if (input.redeemScript) {
+    h += '<div style="margin-bottom:8px"><span class="detail-label">Redeem Script:</span><code style="display:block;margin-top:4px;color:#a0a0a0;font-size:10px;word-break:break-all;background:#252525;padding:8px;border-radius:4px">' + escapeHtml(input.redeemScript) + '</code></div>';
+  }
+  if (input.witnessScript) {
+    h += '<div style="margin-bottom:8px"><span class="detail-label">Witness Script:</span><code style="display:block;margin-top:4px;color:#a0a0a0;font-size:10px;word-break:break-all;background:#252525;padding:8px;border-radius:4px">' + escapeHtml(input.witnessScript) + '</code></div>';
+  }
+  if (input.bip32Derivation && input.bip32Derivation.length > 0) {
+    h += '<div><span class="detail-label">BIP32 Paths:</span>';
+    for (var i = 0; i < input.bip32Derivation.length; i++) {
+      var d = input.bip32Derivation[i];
+      h += '<div style="background:#252525;padding:8px;border-radius:4px;margin-top:4px" class="mono"><span class="text-muted">' + escapeHtml(d.path) + '</span><span class="text-secondary ml-2" style="font-size:10px">(fp: ' + escapeHtml(d.masterFingerprint) + ')</span></div>';
+    }
+    h += '</div>';
+  }
+  h += '</div></div>';
+  return h;
+}
+
+function handleExtractRawTx(containerId) {
+  var container = document.getElementById(containerId);
+  if (!container) return;
+
+  // Get the last decoded PSBT data
+  if (!lastDecodedResult || lastDecodedResult.type !== 'psbt') return;
+
+  var result = extractTransactionFromPSBT(lastDecodedResult.data);
+  if (result.success) {
+    container.style.display = 'block';
+    container.innerHTML = '<div style="background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:16px">' +
+      '<div class="flex items-center justify-between mb-2">' +
+      '<span class="text-sm font-medium text-green">Raw Transaction Hex</span>' +
+      '<button class="copy-btn" onclick="copyText(\'' + result.txHex + '\')">' + icon('Copy', 14) + ' Copy</button>' +
+      '</div>' +
+      '<code style="display:block;font-size:11px;color:#a0a0a0;word-break:break-all;max-height:200px;overflow-y:auto">' + escapeHtml(result.txHex) + '</code>' +
+      '</div>';
+  } else {
+    container.style.display = 'block';
+    container.innerHTML = '<div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:12px">' +
+      '<span class="text-sm text-red">' + escapeHtml(result.error) + '</span></div>';
+  }
+}
+
+function toggleExpand(id) {
+  var el = document.getElementById(id);
+  var chev = document.getElementById(id + '-chevron');
+  if (!el) return;
+  var shown = el.style.display !== 'none';
+  el.style.display = shown ? 'none' : 'block';
+  if (chev) chev.innerHTML = shown ? icon('ChevronRight', 16, '#666') : icon('ChevronDown', 16, '#666');
+}
+
+/* ============================================================
+   INIT MODE
+   ============================================================ */
+setMode('broadcast');
+</script>
+</body>
 </html>

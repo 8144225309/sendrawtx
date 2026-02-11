@@ -23,6 +23,9 @@ typedef struct StaticFiles {
     StaticFile broadcast;    /* broadcast.html - raw tx submission */
     StaticFile result;       /* result.html - txid status page */
     StaticFile error;        /* error.html - error page */
+    StaticFile docs;         /* docs.html - API documentation */
+    StaticFile status;       /* status.html - system status */
+    StaticFile logos;        /* logos.html - logo showcase */
 } StaticFiles;
 
 /*
