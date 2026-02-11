@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Error - sendrawtx</title>
+<title>404 - sendrawtx</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{
@@ -13,16 +13,15 @@ body{
 }
 a{color:#f7931a;text-decoration:none}
 a:hover{text-decoration:underline}
-code,.mono{font-family:'SF Mono',Consolas,'Liberation Mono',Menlo,monospace}
-.container{max-width:1152px;margin:0 auto;padding:0 16px;width:100%}
-@media(min-width:640px){.container{padding:0 24px}}
+code,.mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',Menlo,monospace}
 
 /* Header */
 .header{position:sticky;top:0;z-index:50;background:rgba(15,15,15,.95);backdrop-filter:blur(8px);border-bottom:1px solid #1a1a1a}
-.header-inner{display:flex;align-items:center;justify-content:space-between;height:64px}
+.header-inner{max-width:1152px;margin:0 auto;padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:64px}
+@media(min-width:640px){.header-inner{padding:0 24px}}
 .logo-link{display:flex;align-items:center;gap:8px}
 .logo-link:hover{text-decoration:none}
-.site-name{font-size:18px;font-weight:700;color:#fff;font-family:'SF Mono',Consolas,monospace}
+.site-name{font-size:18px;font-weight:700;color:#fff;font-family:'SF Mono',SFMono-Regular,Consolas,monospace;transition:color .15s}
 .logo-link:hover .site-name{color:#f7931a}
 nav{display:flex;align-items:center;gap:4px}
 .nav-link{display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:8px;font-size:14px;font-weight:500;color:#a0a0a0;transition:all .15s}
@@ -31,56 +30,27 @@ nav{display:flex;align-items:center;gap:4px}
 .nav-label{display:none}
 @media(min-width:640px){.nav-label{display:inline}}
 
-/* Error content */
+/* Error content — matches React centered Card layout */
 .error-center{display:flex;align-items:center;justify-content:center;flex:1;padding:48px 16px}
-.error-card{max-width:560px;width:100%;text-align:center}
-.error-icon{margin:0 auto 24px}
-.error-title{font-size:24px;font-weight:700;color:#fff;margin-bottom:8px}
-.error-subtitle{color:#a0a0a0;font-size:14px;margin-bottom:24px}
+.error-card{background:#1a1a1a;border-radius:12px;padding:24px;max-width:448px;width:100%;text-align:center}
+.error-icon{margin:0 auto 16px}
+.error-title{font-size:30px;font-weight:700;color:#fff;margin-bottom:8px}
+.error-subtitle{color:#a0a0a0;margin-bottom:24px}
 
-.error-box{
-  background:#1a1a1a;border:1px solid #333;border-radius:8px;
-  padding:16px;margin-bottom:24px;text-align:left;
-}
-.error-code{color:#666;font-size:12px;margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
-.error-message{color:#e0e0e0;font-size:14px;line-height:1.6}
-.error-detail{color:#888;font-size:12px;margin-top:8px;font-family:'SF Mono',Consolas,monospace;word-break:break-all}
-
-.help-section{
-  background:#1a1a1a;border:1px solid #333;border-radius:8px;
-  padding:16px;margin-bottom:24px;text-align:left;
-}
-.help-title{color:#f7931a;font-size:14px;font-weight:600;margin-bottom:12px}
-.help-item{margin-bottom:12px}
-.help-item:last-child{margin-bottom:0}
-.help-label{color:#a0a0a0;font-size:13px;font-weight:600;margin-bottom:4px}
-.help-code{
-  display:block;background:#252525;border:1px solid #333;border-radius:4px;
-  padding:8px 12px;font-family:'SF Mono',Consolas,monospace;font-size:12px;
-  color:#4ade80;word-break:break-all;
-}
-.help-note{color:#666;font-size:11px;margin-top:2px}
-
-.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;transition:all .15s}
-.btn-primary{background:#f7931a;color:#000}
-.btn-primary:hover{background:#e8850f;text-decoration:none}
-.btn-muted{background:#1a1a1a;color:#a0a0a0;border:1px solid #333}
-.btn-muted:hover{color:#fff;background:#252525;text-decoration:none}
+/* Button — matches React Button variant="primary" */
+.btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:8px 16px;font-size:16px;font-weight:500;border-radius:8px;background:#f7931a;color:#0f0f0f;border:none;cursor:pointer;transition:all .15s;text-decoration:none}
+.btn-primary:hover{background:#ffa940;text-decoration:none}
 
 /* Footer */
 .footer{margin-top:auto;border-top:1px solid #1a1a1a;background:#0f0f0f;padding:32px 0}
+.footer-container{max-width:1152px;margin:0 auto;padding:0 16px}
+@media(min-width:640px){.footer-container{padding:0 24px}}
 .footer-inner{display:flex;flex-direction:column;align-items:center;gap:16px}
 @media(min-width:640px){.footer-inner{flex-direction:row;justify-content:space-between}}
 .footer-links{display:flex;align-items:center;gap:16px}
 .footer-link{display:flex;align-items:center;gap:8px;font-size:14px;color:#a0a0a0;transition:color .15s}
 .footer-link:hover{color:#fff;text-decoration:none}
 .footer-credit{font-size:12px;color:#666;text-align:center;margin-top:24px;padding-top:24px;border-top:1px solid #1a1a1a}
-
-/* Network banner */
-.network-banner{padding:8px 16px;text-align:center;font-size:13px;font-weight:600;letter-spacing:0.5px}
-.network-banner-testnet{background:#7c3aed;color:#fff}
-.network-banner-signet{background:#2563eb;color:#fff}
-.network-banner-regtest{background:#059669;color:#fff}
 </style>
 </head>
 <body>
@@ -88,7 +58,7 @@ nav{display:flex;align-items:center;gap:4px}
 
 <!-- Header -->
 <header class="header">
-<div class="container header-inner">
+<div class="header-inner">
   <a href="/" class="logo-link">
     <svg viewBox="0 0 100 100" style="width:56px;height:56px">
       <polygon points="50,2 93,26 93,74 50,98 7,74 7,26" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.1"/>
@@ -108,37 +78,18 @@ nav{display:flex;align-items:center;gap:4px}
 </div>
 </header>
 
-<!-- Error Content -->
+<!-- Error Content — matches React NotFoundPage layout exactly -->
 <div class="error-center">
   <div class="error-card">
+    <!-- AlertCircle icon (lucide) in #f7931a -->
     <div class="error-icon">
-      <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#f7931a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
     </div>
-    <h1 class="error-title">Invalid Request</h1>
-    <p class="error-subtitle" id="errorSubtitle">The URL could not be resolved to a valid route.</p>
-
-    <div class="error-box">
-      <div class="error-code">Error 404</div>
-      <div class="error-message" id="errorMessage">The requested URL is not a valid transaction format.</div>
-      <div class="error-detail" id="errorDetail" style="display:none"></div>
-    </div>
-
-    <div class="help-section">
-      <div class="help-title">How to use this service</div>
-      <div class="help-item">
-        <div class="help-label">Broadcast a transaction</div>
-        <code class="help-code" id="helpBroadcast">https://sendrawtx.com/{raw_tx_hex}</code>
-        <div class="help-note">Raw transaction hex must be at least 164 characters (82 bytes)</div>
-      </div>
-      <div class="help-item">
-        <div class="help-label">Check transaction status</div>
-        <code class="help-code" id="helpTx">https://sendrawtx.com/tx/{txid}</code>
-        <div class="help-note">Transaction ID must be exactly 64 hex characters</div>
-      </div>
-    </div>
-
-    <a href="/" class="btn btn-muted">
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    <h1 class="error-title">404</h1>
+    <p class="error-subtitle">The page you're looking for doesn't exist or has been moved.</p>
+    <a href="/" class="btn-primary">
+      <!-- Home icon (lucide) -->
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       Back to Home
     </a>
   </div>
@@ -146,9 +97,9 @@ nav{display:flex;align-items:center;gap:4px}
 
 <!-- Footer -->
 <footer class="footer">
-<div class="container">
+<div class="footer-container">
   <div class="footer-inner">
-    <div>
+    <div style="text-align:center">
       <p style="font-size:14px;color:#a0a0a0"><span style="color:#fff;font-weight:500" class="mono" id="footerSiteName"></span> - Bitcoin raw transaction broadcast service</p>
       <p style="font-size:12px;color:#666;margin-top:4px">Specializing in non-standard transactions that other services reject</p>
     </div>
@@ -169,107 +120,10 @@ nav{display:flex;align-items:center;gap:4px}
 
 <script>
 (function() {
-  'use strict';
-
-  // Set site names
   var host = window.location.host.replace(/^www\./, '');
-  var nameEl = document.getElementById('siteName');
-  var footerEl = document.getElementById('footerSiteName');
-  if (nameEl) nameEl.textContent = host;
-  if (footerEl) footerEl.textContent = host;
-
-  // Update help URLs with actual host
-  var helpBroadcast = document.getElementById('helpBroadcast');
-  var helpTx = document.getElementById('helpTx');
-  var proto = window.location.protocol + '//';
-  if (helpBroadcast) helpBroadcast.textContent = proto + host + '/{raw_tx_hex}';
-  if (helpTx) helpTx.textContent = proto + host + '/tx/{txid}';
-
-  function analyzeUrl() {
-    var path = window.location.pathname.substring(1);
-    var msgEl = document.getElementById('errorMessage');
-    var detailEl = document.getElementById('errorDetail');
-    var subtitleEl = document.getElementById('errorSubtitle');
-
-    if (!path || path === '') {
-      msgEl.textContent = 'No transaction data provided.';
-      return;
-    }
-
-    // Check if this is a /tx/ path with invalid txid
-    var isTxPath = path.indexOf('tx/') === 0;
-    var hexPart = isTxPath ? path.substring(3) : path;
-
-    // Show the attempted path
-    detailEl.textContent = 'Attempted: /' + path;
-    detailEl.style.display = 'block';
-
-    // Check for non-hex characters
-    if (!/^[0-9a-fA-F]*$/.test(hexPart)) {
-      if (isTxPath) {
-        msgEl.textContent = 'Invalid transaction ID: contains non-hex characters.';
-        subtitleEl.textContent = 'Transaction IDs must contain only hex characters (0-9, a-f).';
-      } else {
-        msgEl.textContent = 'Invalid characters detected. Only hex characters (0-9, a-f) are allowed.';
-        subtitleEl.textContent = 'The path contains characters that are not valid hexadecimal.';
-      }
-      // Highlight the bad characters
-      var badChars = hexPart.replace(/[0-9a-fA-F]/g, '');
-      var unique = badChars.split('').filter(function(c, i, a) { return a.indexOf(c) === i; }).join(' ');
-      if (unique) {
-        detailEl.textContent += '\nInvalid characters: ' + unique;
-      }
-      return;
-    }
-
-    // Check for odd length
-    if (hexPart.length % 2 !== 0) {
-      if (isTxPath) {
-        msgEl.textContent = 'Invalid transaction ID: odd number of characters (' + hexPart.length + ').';
-        subtitleEl.textContent = 'Transaction IDs must be exactly 64 hex characters.';
-      } else {
-        msgEl.textContent = 'Hex string has odd length (' + hexPart.length + ' characters). Must be even for valid hex bytes.';
-      }
-      return;
-    }
-
-    // /tx/ path with wrong length
-    if (isTxPath) {
-      if (hexPart.length !== 64) {
-        msgEl.textContent = 'Invalid transaction ID: wrong length (' + hexPart.length + ' characters).';
-        subtitleEl.textContent = 'Transaction IDs must be exactly 64 hex characters (32 bytes).';
-        if (hexPart.length < 64) {
-          detailEl.textContent += '\nNeed ' + (64 - hexPart.length) + ' more characters.';
-        } else {
-          detailEl.textContent += '\nHave ' + (hexPart.length - 64) + ' extra characters.';
-        }
-      }
-      return;
-    }
-
-    // Too short for either txid or tx
-    if (hexPart.length > 0 && hexPart.length < 64) {
-      msgEl.textContent = 'Hex string too short (' + hexPart.length + ' characters).';
-      subtitleEl.textContent = 'Need at least 64 characters for a transaction ID, or 164+ for a raw transaction.';
-      return;
-    }
-
-    // Between 64 and 164 (too long for txid, too short for tx)
-    if (hexPart.length > 64 && hexPart.length < 164) {
-      msgEl.textContent = 'Hex string has ' + hexPart.length + ' characters \u2014 too long for a txid (64) but too short for a raw transaction (164+).';
-      subtitleEl.textContent = 'This doesn\'t match any valid route pattern.';
-      return;
-    }
-
-    // Generic error
-    msgEl.textContent = 'The requested URL is not a valid transaction format.';
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', analyzeUrl);
-  } else {
-    analyzeUrl();
-  }
+  document.getElementById('siteName').textContent = host;
+  document.getElementById('footerSiteName').textContent = host;
+  document.title = '404 - ' + host;
 })();
 </script>
 </body>

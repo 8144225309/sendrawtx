@@ -68,18 +68,18 @@ code,pre,.mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',M
 .font-medium{font-weight:500}.font-semibold{font-weight:600}.font-bold{font-weight:700}
 .capitalize{text-transform:capitalize}.uppercase{text-transform:uppercase}
 .italic{font-style:italic}
-@media(min-width:640px){.sm-text-5xl{font-size:48px;line-height:1}.sm-text-xl{font-size:20px;line-height:28px}.sm-inline{display:inline!important}}
+@media(min-width:640px){.sm-py-20{padding-top:80px;padding-bottom:80px}.sm-px-6{padding-left:24px;padding-right:24px}.sm-text-5xl{font-size:48px;line-height:1}.sm-text-xl{font-size:20px;line-height:28px}.sm-inline{display:inline!important}}
 
 /* Colors/Backgrounds */
 .bg-dark{background:#0f0f0f}.bg-card{background:#1a1a1a}.bg-card-alt{background:#252525}
 .bg-orange{background:#f7931a}
 
 /* Card */
-.card{background:#1a1a1a;border:1px solid #252525;border-radius:8px}
-.card-bordered{background:#1a1a1a;border:1px solid #333;border-radius:8px}
+.card{background:#1a1a1a;border-radius:12px}
+.card-bordered{background:#1a1a1a;border:1px solid #333;border-radius:12px}
 .card-header{padding:16px 16px 0}
 .card-title{font-size:16px;font-weight:600;color:#fff;display:flex;align-items:center;gap:8px}
-.card-content{padding:16px}
+.card-content{padding:24px}
 
 /* Badge */
 .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:9999px;font-size:12px;font-weight:500}
@@ -123,7 +123,7 @@ code,pre,.mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',M
   transition:all 0.2s;cursor:pointer;border:none;
 }
 .btn-primary{background:#f7931a;color:#0f0f0f}
-.btn-primary:hover{background:#e8850f}
+.btn-primary:hover{background:#ffa940}
 .btn-primary:disabled{opacity:0.5;cursor:not-allowed}
 .btn-secondary{background:#252525;color:#a0a0a0;border:1px solid #333}
 .btn-secondary:hover{color:#fff;border-color:#555}
@@ -254,10 +254,10 @@ code,pre,.mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',M
 <main class="flex-1 flex flex-col">
 
 <!-- ==================== HOME ==================== -->
-  <section class="py-12" style="padding-top:48px;padding-bottom:80px">
+  <section class="py-12 sm-py-20">
     <div class="max-w-4xl mx-auto text-center" style="padding:0 16px">
-      <h1 class="text-4xl font-bold text-white mb-4" style="font-size:36px;line-height:40px">Broadcast Raw Transactions</h1>
-      <p class="text-muted mb-8" style="font-size:18px;max-width:672px;margin:0 auto 32px">
+      <h1 class="text-4xl sm-text-5xl font-bold text-white mb-4">Broadcast Raw Transactions</h1>
+      <p class="text-lg sm-text-xl text-muted mb-8 max-w-2xl mx-auto">
         The non-standard TX specialist. Route transactions through permissive nodes when standard services reject them.
       </p>
 
@@ -302,7 +302,7 @@ code,pre,.mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',M
   <!-- Features -->
   <section class="py-12 border-t">
     <div class="max-w-6xl mx-auto" style="padding:0 16px">
-      <div class="grid grid-cols-1" style="grid-template-columns:repeat(1,1fr);gap:24px">
+      <div class="grid sm-grid-cols-3" style="gap:24px">
         <div class="card text-center"><div class="card-content">
           <div class="feature-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#f7931a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
           <h3 class="text-lg font-semibold text-white mb-2">Non-Standard TX Support</h3>
@@ -2962,17 +2962,6 @@ document.addEventListener('DOMContentLoaded', function() {
   var name = window.location.host.replace(/^www\./, '');
   document.getElementById('site-name').textContent = name;
   document.getElementById('footer-site-name').textContent = name;
-
-  // Make features grid responsive
-  var featGrid = document.querySelector('.grid.grid-cols-1');
-  if (featGrid && window.innerWidth >= 640) {
-    featGrid.style.gridTemplateColumns = 'repeat(3,1fr)';
-  }
-  window.addEventListener('resize', function() {
-    if (featGrid) {
-      featGrid.style.gridTemplateColumns = window.innerWidth >= 640 ? 'repeat(3,1fr)' : 'repeat(1,1fr)';
-    }
-  });
 });
 
 /* ============================================================

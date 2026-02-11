@@ -39,11 +39,12 @@
     /* Main */
     .main-content {
       flex: 1;
-      max-width: 1100px;
+      max-width: 896px;
       width: 100%;
       margin: 0 auto;
-      padding: 32px 24px 64px;
+      padding: 32px 16px;
     }
+    @media(min-width:640px){.main-content{padding:32px 24px}}
 
     /* Back link */
     .back-link {
@@ -55,62 +56,60 @@
       margin-bottom: 24px;
       transition: color 0.15s;
     }
-    .back-link:hover { color: #f7931a; text-decoration: none; }
+    .back-link:hover { color: #fff; text-decoration: none; }
 
     /* Page header */
     .page-header {
       margin-bottom: 32px;
     }
     .page-header h1 {
-      font-size: 28px;
+      font-size: 24px;
       font-weight: 700;
       color: #fff;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
+    }
+    .header-row {
       display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
     }
     .txid-row {
       display: flex;
       align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
+      gap: 8px;
     }
     .txid-text {
       font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
       font-size: 14px;
       color: #a0a0a0;
       word-break: break-all;
-      background: #1a1a1a;
-      padding: 8px 12px;
-      border-radius: 6px;
-      border: 1px solid #333;
-      flex: 1;
-      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
+    @media(max-width:639px){.txid-text{max-width:280px}}
+    @media(min-width:640px){.txid-text{max-width:448px}}
     .copy-btn {
       background: none;
-      border: 1px solid #333;
-      border-radius: 6px;
-      padding: 8px;
+      border: none;
+      padding: 4px;
       cursor: pointer;
-      color: #a0a0a0;
-      transition: color 0.15s, border-color 0.15s;
+      color: #666;
+      transition: color 0.15s;
       display: flex;
       align-items: center;
       flex-shrink: 0;
     }
-    .copy-btn:hover { color: #f7931a; border-color: #f7931a; }
-    .copy-btn.copied { color: #22c55e; border-color: #22c55e; }
+    .copy-btn:hover { color: #fff; }
+    .copy-btn.copied { color: #22c55e; }
 
     .badge {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 13px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 12px;
       font-weight: 600;
       flex-shrink: 0;
     }
@@ -127,14 +126,14 @@
 
     /* Cards */
     .card {
-      background: #252525;
+      background: #1a1a1a;
       border: 1px solid #333;
-      border-radius: 8px;
+      border-radius: 12px;
       padding: 24px;
       margin-bottom: 24px;
     }
     .card-title {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 600;
       color: #fff;
       margin-bottom: 16px;
@@ -153,9 +152,9 @@
     }
     .acceptance-bar-track {
       width: 100%;
-      height: 12px;
-      background: #444;
-      border-radius: 6px;
+      height: 8px;
+      background: #333;
+      border-radius: 4px;
       overflow: hidden;
       position: relative;
     }
@@ -170,44 +169,38 @@
     .endpoint-list {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 12px;
     }
     .endpoint-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 14px;
-      background: #1a1a1a;
-      border-radius: 6px;
-      border: 1px solid #2a2a2a;
+      padding: 8px 0;
+      border-bottom: 1px solid #252525;
     }
+    .endpoint-item:last-child { border-bottom: none; }
     .endpoint-left {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       min-width: 0;
       flex: 1;
-    }
-    .endpoint-info {
-      min-width: 0;
     }
     .endpoint-name {
       font-size: 14px;
       font-weight: 500;
-      color: #e0e0e0;
+      color: #fff;
     }
     .endpoint-time {
-      font-size: 13px;
-      color: #666;
-      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 14px;
+      color: #a0a0a0;
       flex-shrink: 0;
       margin-left: 12px;
     }
     .endpoint-error {
-      font-size: 12px;
+      font-size: 14px;
       color: #ef4444;
-      margin-top: 2px;
-      max-width: 500px;
+      max-width: 320px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -216,28 +209,19 @@
     /* Classification grid */
     .class-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 16px;
+      margin-bottom: 24px;
     }
-    @media (max-width: 700px) {
-      .class-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-    .class-item {
-      background: #1a1a1a;
-      border: 1px solid #2a2a2a;
-      border-radius: 6px;
-      padding: 14px;
-    }
+    @media(min-width:640px){.class-grid{grid-template-columns:repeat(4,1fr)}}
     .class-item-label {
-      font-size: 12px;
+      font-size: 14px;
       color: #666;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
     .class-item-value {
-      font-size: 18px;
-      font-weight: 600;
+      font-size: 14px;
+      font-weight: 500;
       color: #fff;
     }
     .difficulty-badge {
@@ -276,44 +260,40 @@
 
     /* Service comparison */
     .advantage-text {
-      background: rgba(247, 147, 26, 0.08);
-      border: 1px solid rgba(247, 147, 26, 0.2);
-      border-radius: 6px;
-      padding: 12px 16px;
-      color: #f7931a;
       font-size: 14px;
+      color: #a0a0a0;
       margin-bottom: 16px;
     }
     .service-list {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 8px;
     }
     .service-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 14px;
-      background: #1a1a1a;
-      border-radius: 6px;
-      border: 1px solid #2a2a2a;
+      padding: 8px 0;
+      border-bottom: 1px solid #252525;
     }
     .service-item.rawrelay-highlight {
-      background: rgba(247, 147, 26, 0.08);
-      border-color: rgba(247, 147, 26, 0.25);
+      background: rgba(247, 147, 26, 0.06);
+      margin: 0 -24px;
+      padding: 8px 24px;
+      border-bottom: none;
+      border-radius: 0 0 12px 12px;
     }
     .service-left {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
     .service-name {
       font-size: 14px;
-      font-weight: 500;
-      color: #e0e0e0;
+      color: #a0a0a0;
     }
     .service-reason {
-      font-size: 13px;
+      font-size: 14px;
       color: #666;
       max-width: 400px;
       text-align: right;
@@ -322,57 +302,39 @@
     /* Timing grid */
     .timing-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 16px;
     }
-    @media (max-width: 700px) {
-      .timing-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-    .timing-item {
-      background: #1a1a1a;
-      border: 1px solid #2a2a2a;
-      border-radius: 6px;
-      padding: 14px;
-    }
+    @media(min-width:640px){.timing-grid{grid-template-columns:repeat(4,1fr)}}
     .timing-item-label {
-      font-size: 12px;
+      font-size: 14px;
       color: #666;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
     .timing-item-value {
-      font-size: 18px;
-      font-weight: 600;
+      font-size: 14px;
+      font-weight: 500;
       color: #fff;
       word-break: break-all;
-    }
-    .timing-item-value.small-text {
-      font-size: 14px;
     }
 
     /* External links */
     .external-links {
       display: flex;
-      gap: 12px;
+      justify-content: center;
+      gap: 16px;
       flex-wrap: wrap;
-      margin-top: 8px;
     }
     .ext-link {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 10px 18px;
-      background: #1a1a1a;
-      border: 1px solid #333;
-      border-radius: 6px;
+      gap: 8px;
       color: #a0a0a0;
       font-size: 14px;
-      transition: border-color 0.15s, color 0.15s;
+      transition: color 0.15s;
     }
     .ext-link:hover {
-      border-color: #f7931a;
-      color: #f7931a;
+      color: #fff;
       text-decoration: none;
     }
 
@@ -396,10 +358,10 @@
       padding: 120px 24px;
     }
     .spinner {
-      width: 48px;
-      height: 48px;
-      border: 3px solid #333;
-      border-top-color: #f7931a;
+      width: 32px;
+      height: 32px;
+      border: 2px solid #f7931a;
+      border-top-color: transparent;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
@@ -419,12 +381,12 @@
       padding: 80px 24px;
     }
     .error-card {
-      background: #252525;
+      background: #1a1a1a;
       border: 1px solid #333;
-      border-radius: 8px;
+      border-radius: 12px;
       padding: 40px;
       text-align: center;
-      max-width: 480px;
+      max-width: 448px;
       width: 100%;
     }
     .error-icon { margin-bottom: 16px; }
@@ -442,30 +404,29 @@
     .error-btn {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
       padding: 10px 20px;
-      background: #f7931a;
-      color: #000;
+      background: #1a1a1a;
+      color: #a0a0a0;
       font-weight: 600;
       font-size: 14px;
-      border: none;
-      border-radius: 6px;
+      border: 1px solid #333;
+      border-radius: 8px;
       cursor: pointer;
       text-decoration: none;
-      transition: background 0.15s;
+      transition: all 0.15s;
     }
     .error-btn:hover {
-      background: #e8850f;
+      background: #252525;
+      color: #fff;
       text-decoration: none;
-      color: #000;
     }
 
     /* Responsive */
     @media (max-width: 600px) {
-      .page-header h1 { font-size: 22px; }
+      .page-header h1 { font-size: 20px; }
       .card { padding: 16px; }
       .txid-text { font-size: 12px; }
-      .class-item-value, .timing-item-value { font-size: 15px; }
     }
   </style>
 </head>
@@ -638,11 +599,13 @@
       : '<span class="badge badge-error">' + iconXCircle(14, '#ef4444') + ' Failed</span>';
 
     html += '<div class="page-header">';
-    html += '<h1>Transaction Result ' + successBadge + '</h1>';
+    html += '<div class="header-row"><div>';
+    html += '<h1>Transaction Result</h1>';
     html += '<div class="txid-row">';
-    html += '<span class="txid-text" id="txid-display">' + esc(data.txid) + '</span>';
+    html += '<code class="txid-text" id="txid-display">' + esc(data.txid) + '</code>';
     html += '<button class="copy-btn" id="copy-btn" title="Copy TXID">' + iconCopy(16, 'currentColor') + '</button>';
     html += '</div>';
+    html += '</div>' + successBadge + '</div>';
     html += '</div>';
 
     /* 3. Endpoint Acceptance */
@@ -671,21 +634,17 @@
     for (var j = 0; j < endpoints.length; j++) {
       var key = endpoints[j];
       var r = results[key];
-      var eIcon = r.success ? iconCheckCircle(18, '#22c55e') : iconXCircle(18, '#ef4444');
-      var timeStr = (r.time_ms != null) ? r.time_ms + ' ms' : '';
+      var eIcon = r.success ? iconCheckCircle(20, '#22c55e') : iconXCircle(20, '#ef4444');
 
       html += '<div class="endpoint-item">';
       html += '<div class="endpoint-left">';
       html += eIcon;
-      html += '<div class="endpoint-info">';
-      html += '<div class="endpoint-name">' + esc(poolName(key)) + '</div>';
-      if (r.error) {
-        html += '<div class="endpoint-error" title="' + esc(r.error) + '">' + esc(r.error) + '</div>';
-      }
+      html += '<span class="endpoint-name">' + esc(poolName(key)) + '</span>';
       html += '</div>';
-      html += '</div>';
-      if (timeStr) {
-        html += '<span class="endpoint-time">' + esc(timeStr) + '</span>';
+      if (r.success) {
+        html += '<span class="endpoint-time">' + r.time_ms + 'ms</span>';
+      } else if (r.error) {
+        html += '<span class="endpoint-error" title="' + esc(r.error) + '">' + esc(r.error) + '</span>';
       }
       html += '</div>';
     }
@@ -697,36 +656,35 @@
     if (data.classification) {
       var c = data.classification;
       var dc = diffColor(c.difficulty_class);
-      var feeRate = (c.fee_rate_sat_vb != null) ? Number(c.fee_rate_sat_vb).toFixed(1) + ' sat/vB' : 'N/A';
-      var sizeVb = (c.size && c.size.vbytes != null) ? c.size.vbytes : '-';
+      var feeRate = (c.fee_rate_sat_vb != null) ? Number(c.fee_rate_sat_vb).toFixed(2) + ' sat/vB' : '? sat/vB';
+      var sizeVb = (c.size && c.size.vbytes != null) ? c.size.vbytes + ' vB' : '-';
       var isStd = c.is_standard;
 
       html += '<div class="card">';
       html += '<div class="card-title">Classification</div>';
       html += '<div class="class-grid">';
 
-      html += '<div class="class-item">';
+      html += '<div>';
       html += '<div class="class-item-label">Difficulty</div>';
       html += '<div class="class-item-value"><span class="difficulty-badge" style="background:' + dc + '22;color:' + dc + ';border:1px solid ' + dc + '44">' + esc(c.difficulty_class || '-') + '</span></div>';
       html += '</div>';
 
-      html += '<div class="class-item">';
+      html += '<div>';
       html += '<div class="class-item-label">Fee Rate</div>';
       html += '<div class="class-item-value">' + esc(feeRate) + '</div>';
       html += '</div>';
 
-      html += '<div class="class-item">';
+      html += '<div>';
       html += '<div class="class-item-label">Size</div>';
-      html += '<div class="class-item-value">' + esc(String(sizeVb)) + ' <span style="font-size:13px;color:#666">vB</span></div>';
+      html += '<div class="class-item-value">' + esc(sizeVb) + '</div>';
       html += '</div>';
 
-      html += '<div class="class-item">';
+      html += '<div>';
       html += '<div class="class-item-label">Standard</div>';
-      if (isStd) {
-        html += '<div class="class-item-value"><span class="standard-yes">Yes</span></div>';
-      } else {
-        html += '<div class="class-item-value"><span class="standard-no">No</span></div>';
-      }
+      var stdBadge = isStd
+        ? '<span class="badge badge-success">Yes</span>'
+        : '<span class="badge" style="background:rgba(234,179,8,.15);color:#eab308;border:1px solid rgba(234,179,8,.3)">No</span>';
+      html += '<div class="class-item-value">' + stdBadge + '</div>';
       html += '</div>';
 
       html += '</div>';
@@ -761,35 +719,35 @@
         for (var si = 0; si < serviceKeys.length; si++) {
           var sk = serviceKeys[si];
           var svc = comp.standard_services[sk];
-          var svcIcon = svc.would_accept ? iconCheckCircle(18, '#22c55e') : iconXCircle(18, '#ef4444');
-
           html += '<div class="service-item">';
-          html += '<div class="service-left">';
-          html += svcIcon;
           html += '<span class="service-name">' + esc(poolName(sk)) + '</span>';
-          html += '</div>';
+          html += '<div style="display:flex;align-items:center;gap:8px">';
+          html += (svc.would_accept ? iconCheckCircle(16, '#22c55e') : iconXCircle(16, '#ef4444'));
           html += '<span class="service-reason">' + esc(svc.reason || '') + '</span>';
+          html += '</div>';
           html += '</div>';
         }
       }
 
       if (comp.rawrelay_routing) {
         var rr = comp.rawrelay_routing;
-        var rrIcon = rr.path_found ? iconCheckCircle(18, '#f7931a') : iconXCircle(18, '#ef4444');
-        var rrAccepted = (rr.accepted_by || []).length;
+        var rrIcon = rr.path_found ? iconCheckCircle(16, '#22c55e') : iconXCircle(16, '#ef4444');
         var rrReason;
         if (rr.path_found) {
-          rrReason = 'Accepted by ' + rrAccepted + ' endpoint' + (rrAccepted !== 1 ? 's' : '');
+          var names = (rr.accepted_by || []).map(function(k) { return poolName(k); });
+          rrReason = 'Found path via ' + names.join(', ');
         } else {
-          rrReason = 'Rejected by all endpoints';
+          rrReason = 'No path found';
         }
 
         html += '<div class="service-item rawrelay-highlight">';
         html += '<div class="service-left">';
-        html += rrIcon;
-        html += '<span class="service-name" style="color:#f7931a;font-weight:600">sendrawtx (RawRelay)</span>';
+        html += '<span class="service-name" style="color:#f7931a;font-weight:500">RawRelay</span>';
         html += '</div>';
-        html += '<span class="service-reason">' + esc(rrReason) + '</span>';
+        html += '<div style="display:flex;align-items:center;gap:8px">';
+        html += rrIcon;
+        html += '<span style="font-size:14px;color:#fff">' + esc(rrReason) + '</span>';
+        html += '</div>';
         html += '</div>';
       }
 
@@ -805,24 +763,24 @@
       html += '<div class="card-title">Timing</div>';
       html += '<div class="timing-grid">';
 
-      html += '<div class="timing-item">';
+      html += '<div>';
       html += '<div class="timing-item-label">Processed</div>';
-      html += '<div class="timing-item-value small-text">' + esc(formatDate(m.processed_at)) + '</div>';
+      html += '<div class="timing-item-value" style="font-size:14px">' + esc(formatDate(m.processed_at)) + '</div>';
       html += '</div>';
 
-      html += '<div class="timing-item">';
+      html += '<div>';
       html += '<div class="timing-item-label">Processing Time</div>';
-      html += '<div class="timing-item-value">' + esc(String(m.processing_time_ms != null ? m.processing_time_ms : '-')) + ' <span style="font-size:13px;color:#666">ms</span></div>';
+      html += '<div class="timing-item-value">' + (m.processing_time_ms != null ? m.processing_time_ms + 'ms' : '-') + '</div>';
       html += '</div>';
 
-      html += '<div class="timing-item">';
+      html += '<div>';
       html += '<div class="timing-item-label">Endpoints Tried</div>';
-      html += '<div class="timing-item-value">' + esc(String(m.endpoints_attempted != null ? m.endpoints_attempted : '-')) + '</div>';
+      html += '<div class="timing-item-value">' + (m.endpoints_attempted != null ? m.endpoints_attempted : '-') + '</div>';
       html += '</div>';
 
-      html += '<div class="timing-item">';
+      html += '<div>';
       html += '<div class="timing-item-label">Accepted</div>';
-      html += '<div class="timing-item-value">' + esc(String(m.endpoints_accepted != null ? m.endpoints_accepted : '-')) + '</div>';
+      html += '<div class="timing-item-value">' + (m.endpoints_accepted != null ? m.endpoints_accepted : '-') + '</div>';
       html += '</div>';
 
       html += '</div>';
@@ -830,12 +788,9 @@
     }
 
     /* 7. External Links */
-    html += '<div class="card">';
-    html += '<div class="card-title">External Links</div>';
     html += '<div class="external-links">';
-    html += '<a href="https://mempool.space/tx/' + esc(data.txid) + '" target="_blank" rel="noopener noreferrer" class="ext-link">' + iconExternalLink(16, 'currentColor') + ' mempool.space</a>';
-    html += '<a href="https://blockstream.info/tx/' + esc(data.txid) + '" target="_blank" rel="noopener noreferrer" class="ext-link">' + iconExternalLink(16, 'currentColor') + ' Blockstream</a>';
-    html += '</div>';
+    html += '<a href="https://mempool.space/tx/' + esc(data.txid) + '" target="_blank" rel="noopener noreferrer" class="ext-link">' + iconExternalLink(16, 'currentColor') + ' View on mempool.space</a>';
+    html += '<a href="https://blockstream.info/tx/' + esc(data.txid) + '" target="_blank" rel="noopener noreferrer" class="ext-link">' + iconExternalLink(16, 'currentColor') + ' View on Blockstream</a>';
     html += '</div>';
 
     app.innerHTML = html;

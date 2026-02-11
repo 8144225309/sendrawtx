@@ -32,7 +32,7 @@ nav{display:flex;align-items:center;gap:4px}
 @media(min-width:640px){.nav-label{display:inline}}
 
 /* Cards */
-.card{background:#252525;border:1px solid #333;border-radius:12px;padding:24px}
+.card{background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:24px}
 .card-sm{padding:16px}
 
 /* Badge */
@@ -75,9 +75,8 @@ nav{display:flex;align-items:center;gap:4px}
 .copy-btn.copied{color:#22c55e}
 
 /* Result summary */
-.result-grid{display:grid;grid-template-columns:1fr;gap:16px}
-@media(min-width:640px){.result-grid{grid-template-columns:repeat(2,1fr)}}
-@media(min-width:768px){.result-grid{grid-template-columns:repeat(4,1fr)}}
+.result-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+@media(min-width:640px){.result-grid{grid-template-columns:repeat(4,1fr)}}
 .result-item{text-align:center}
 .result-label{font-size:12px;color:#888;margin-bottom:4px}
 .result-value{font-size:18px;font-weight:700;color:#fff}
@@ -109,7 +108,7 @@ nav{display:flex;align-items:center;gap:4px}
 /* Button */
 .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;transition:all .15s}
 .btn-primary{background:#f7931a;color:#000}
-.btn-primary:hover{background:#e8850f;text-decoration:none}
+.btn-primary:hover{background:#ffa940;text-decoration:none}
 .btn-muted{background:#1a1a1a;color:#a0a0a0;border:1px solid #333}
 .btn-muted:hover{color:#fff;background:#252525;text-decoration:none}
 
@@ -157,7 +156,7 @@ nav{display:flex;align-items:center;gap:4px}
 
 <!-- Main Content -->
 <main style="flex:1">
-<div class="container" style="padding-top:16px;padding-bottom:48px">
+<div style="max-width:896px;margin:0 auto;padding:32px 16px">
 
   <!-- Status Section -->
   <div id="statusSection" class="status-container">
@@ -172,25 +171,20 @@ nav{display:flex;align-items:center;gap:4px}
   <!-- Error Section (hidden by default) -->
   <div id="errorSection" class="error-container" style="display:none">
     <div class="card error-card">
-      <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 16px;display:block"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-      <h2 style="font-size:24px;font-weight:700;color:#fff;margin-bottom:8px">Invalid Transaction</h2>
-      <p id="errorMessage" style="color:#a0a0a0;margin-bottom:24px"></p>
-      <a href="/" class="btn btn-muted">Back to Broadcast</a>
+      <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 16px;display:block"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      <h2 style="font-size:20px;font-weight:600;color:#fff;margin-bottom:8px">Invalid Transaction</h2>
+      <p id="errorMessage" style="color:#a0a0a0;margin-bottom:16px"></p>
+      <a href="/" style="display:inline-flex;align-items:center;gap:8px;color:#f7931a;font-size:14px">Back to Broadcast</a>
     </div>
   </div>
 
   <!-- Transaction Preview -->
-  <div id="txPreviewSection" style="display:none;margin-bottom:24px">
-    <h2 style="font-size:16px;font-weight:600;color:#fff;margin-bottom:12px;display:flex;align-items:center;gap:8px">
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#f7931a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-      Transaction Preview
-    </h2>
+  <div id="txPreviewSection" style="display:none;margin-bottom:32px">
     <div id="txPreview"></div>
   </div>
 
   <!-- Result Summary -->
   <div id="resultSection" style="display:none;margin-bottom:24px">
-    <h2 style="font-size:16px;font-weight:600;color:#fff;margin-bottom:12px">Broadcast Result</h2>
     <div class="card">
       <div id="resultGrid" class="result-grid"></div>
     </div>
@@ -2874,17 +2868,15 @@ function showResult(data) {
     : '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
   iconEl.className = 'status-icon';
   titleEl.textContent = success ? 'Broadcast Successful' : 'Broadcast Failed';
-  titleEl.style.color = success ? '#22c55e' : '#fff';
 
   var tid = data.txid || '';
-  var trunc = tid.length > 20 ? (tid.slice(0, 12) + '\u2026' + tid.slice(-8)) : tid;
-  subEl.innerHTML = tid ? '<span class="badge badge-muted mono" style="font-size:13px">' + esc(trunc) + '</span>' : '';
+  subEl.innerHTML = tid ? '<span class="badge badge-muted mono" style="font-size:12px">' + esc(tid) + '</span>' : '';
 
   linksEl.style.display = 'flex';
   var lh = '';
   if (tid) {
-    lh += '<a href="/tx/' + tid + '" class="btn btn-primary" style="font-size:13px;padding:8px 16px">View Full Result</a>';
-    lh += '<a href="https://mempool.space/tx/' + tid + '" target="_blank" rel="noopener" class="btn btn-muted" style="font-size:13px;padding:8px 16px">mempool.space</a>';
+    lh += '<a href="/tx/' + tid + '" style="font-size:14px;color:#f7931a">View full result</a>';
+    lh += '<a href="https://mempool.space/tx/' + tid + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;font-size:14px;color:#a0a0a0"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>mempool.space</a>';
   }
   linksEl.innerHTML = lh;
 
@@ -2897,8 +2889,8 @@ function showResult(data) {
   document.getElementById('resultGrid').innerHTML =
     '<div class="result-item"><div class="result-label">Status</div><div class="result-value"><span class="badge ' + (success ? 'badge-success' : 'badge-error') + '">' + (success ? 'Accepted' : 'Rejected') + '</span></div></div>' +
     '<div class="result-item"><div class="result-label">Endpoints Tried</div><div class="result-value">' + tried + '</div></div>' +
-    '<div class="result-item"><div class="result-label">Accepted By</div><div class="result-value" style="color:' + (accepted > 0 ? '#22c55e' : '#ef4444') + '">' + accepted + '</div></div>' +
-    '<div class="result-item"><div class="result-label">Processing Time</div><div class="result-value">' + timeMs + ' ms</div></div>';
+    '<div class="result-item"><div class="result-label">Accepted By</div><div class="result-value">' + accepted + '</div></div>' +
+    '<div class="result-item"><div class="result-label">Time</div><div class="result-value">' + timeMs + 'ms</div></div>';
 
   // Endpoints
   if (data.broadcast_results) {
