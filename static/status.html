@@ -6,6 +6,9 @@
 <title>System Status - sendrawtx</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scrollbar-gutter:stable}
+::selection{background:#f7931a;color:#0f0f0f}
+:focus-visible{outline:2px solid #f7931a;outline-offset:2px}
 body{
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   background:#0f0f0f;color:#e0e0e0;min-height:100vh;display:flex;flex-direction:column;
@@ -46,7 +49,7 @@ nav{display:flex;align-items:center;gap:4px}
 .btn-secondary svg{margin-right:8px}
 
 /* Cards — matches React Card variant="bordered" */
-.card{background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:24px}
+.card{background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:24px;box-shadow:0 4px 6px -1px rgb(0 0 0/.3),0 2px 4px -2px rgb(0 0 0/.3)}
 .card-header{margin-bottom:16px}
 .card-title{font-size:18px;font-weight:600;color:#fff;display:flex;align-items:center;gap:8px}
 .card-content{color:#a0a0a0}
