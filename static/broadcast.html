@@ -182,6 +182,9 @@ nav{display:flex;align-items:center;gap:4px}
     </div>
   </div>
 
+  <!-- Dynamic Network Detection Banner -->
+  <div id="chain-detect-banner" style="display:none;margin-bottom:16px;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;text-align:center"></div>
+
   <!-- Transaction Preview -->
   <div id="txPreviewSection" style="display:none;margin-bottom:32px">
     <div id="txPreview"></div>
@@ -614,8 +617,9 @@ function parseOpReturnData(data) {
 }
 
 async function scriptToAddress(scriptType, data, isMainnet) {
-  if (isMainnet === undefined) isMainnet = true;
-  const hrp = isMainnet ? 'bc' : 'tb';
+  var net = window.__NETWORK__ || 'mainnet';
+  if (isMainnet === undefined) isMainnet = (net === 'mainnet');
+  var hrp = net === 'regtest' ? 'bcrt' : (isMainnet ? 'bc' : 'tb');
 
   switch (scriptType) {
     case 'p2wpkh':
@@ -2806,6 +2810,44 @@ var attempt = 0;
 var maxAttempts = 15;
 var baseDelay = 500;
 
+function detectChainFromAddress(addr) {
+  if (!addr) return null;
+  if (addr.startsWith('bcrt1')) return 'regtest';
+  if (addr.startsWith('tb1')) return 'testnet';
+  if (addr.startsWith('bc1')) return 'mainnet';
+  if ('mn2'.includes(addr[0])) return 'testnet';
+  if ('13'.includes(addr[0])) return 'mainnet';
+  return null;
+}
+
+var chainBannerColors = {
+  regtest: { bg: 'rgba(5,150,105,0.15)', border: 'rgba(5,150,105,0.4)', color: '#34d399' },
+  testnet: { bg: 'rgba(124,58,237,0.15)', border: 'rgba(124,58,237,0.4)', color: '#a78bfa' },
+  signet:  { bg: 'rgba(37,99,235,0.15)', border: 'rgba(37,99,235,0.4)', color: '#60a5fa' },
+  mainnet: { bg: 'rgba(247,147,26,0.15)', border: 'rgba(247,147,26,0.4)', color: '#f7931a' }
+};
+
+function updateChainDetectBanner(outputs) {
+  var banner = document.getElementById('chain-detect-banner');
+  if (!banner || !outputs || outputs.length === 0) { if (banner) banner.style.display = 'none'; return; }
+  var detected = null;
+  var sample = '';
+  for (var i = 0; i < outputs.length; i++) {
+    var addr = outputs[i].address;
+    if (!addr) continue;
+    var chain = detectChainFromAddress(addr);
+    if (chain) { detected = chain; sample = addr.length > 12 ? addr.slice(0, 12) + '...' : addr; break; }
+  }
+  if (!detected || detected === 'mainnet') { banner.style.display = 'none'; return; }
+  var c = chainBannerColors[detected] || chainBannerColors.testnet;
+  var label = detected.toUpperCase();
+  banner.style.display = 'block';
+  banner.style.background = c.bg;
+  banner.style.border = '1px solid ' + c.border;
+  banner.style.color = c.color;
+  banner.textContent = 'This transaction targets ' + label + ' \u2014 outputs contain ' + sample + ' addresses';
+}
+
 init();
 
 async function init() {
@@ -2821,6 +2863,8 @@ async function init() {
       txid = result.data.unsignedTx.txid;
     }
     renderPreview(result);
+    var outputs = result.type === 'psbt' ? (result.data.unsignedTx && result.data.unsignedTx.outputs || []) : (result.data.outputs || []);
+    updateChainDetectBanner(outputs);
     if (txid) setTimeout(poll, baseDelay);
   } catch (err) {
     console.error('Decode error:', err);
