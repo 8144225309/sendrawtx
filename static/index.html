@@ -2098,7 +2098,9 @@ async function decodeTransaction(hexInput) {
   }
 
   // Witness data (if SegWit)
+  let witnessBytes = 0;
   if (isSegwit) {
+    const witnessStart = reader.pos;
     for (let i = 0; i < inputCount; i++) {
       const witnessCount = reader.readVarInt();
       const witness = [];
@@ -2108,6 +2110,7 @@ async function decodeTransaction(hexInput) {
       }
       inputs[i].witness = witness;
     }
+    witnessBytes = (reader.pos - witnessStart) / 2;
   }
 
   // Locktime (4 bytes)
@@ -2132,11 +2135,11 @@ async function decodeTransaction(hexInput) {
   let vsize;
 
   if (isSegwit) {
-    // For SegWit, we need to calculate non-witness and witness sizes
-    // This is an approximation - for exact, we'd need to track positions
-    const baseSize = size - (isSegwit ? 2 : 0); // Subtract marker+flag
-    // Rough witness discount calculation
-    weight = baseSize * 3 + size;
+    // SegWit weight: non-witness bytes count 4x, witness bytes count 1x
+    // Witness overhead = 2 (marker+flag) + witnessBytes
+    const witnessTotal = 2 + witnessBytes;
+    const baseSize = size - witnessTotal;
+    weight = baseSize * 4 + witnessTotal;
     vsize = Math.ceil(weight / 4);
   } else {
     weight = size * 4;
@@ -3009,6 +3012,7 @@ function handleTxInput() {
   if (!val.trim()) {
     document.getElementById('tx-preview-container').style.display = 'none';
     document.getElementById('tx-preview-container').innerHTML = '';
+    document.getElementById('chain-detect-banner').style.display = 'none';
     txValid = false;
     txCanBroadcast = false;
     updateStatusBar();
