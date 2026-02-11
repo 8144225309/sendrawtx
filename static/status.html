@@ -13,16 +13,15 @@ body{
 }
 a{color:#f7931a;text-decoration:none}
 a:hover{text-decoration:underline}
-code,.mono{font-family:'SF Mono',Consolas,'Liberation Mono',Menlo,monospace}
-.container{max-width:1152px;margin:0 auto;padding:0 16px;width:100%}
-@media(min-width:640px){.container{padding:0 24px}}
+code,.mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',Menlo,monospace}
 
 /* Header */
 .header{position:sticky;top:0;z-index:50;background:rgba(15,15,15,.95);backdrop-filter:blur(8px);border-bottom:1px solid #1a1a1a}
-.header-inner{display:flex;align-items:center;justify-content:space-between;height:64px}
+.header-inner{max-width:1152px;margin:0 auto;padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:64px}
+@media(min-width:640px){.header-inner{padding:0 24px}}
 .logo-link{display:flex;align-items:center;gap:8px}
 .logo-link:hover{text-decoration:none}
-.site-name{font-size:18px;font-weight:700;color:#fff;font-family:'SF Mono',Consolas,monospace}
+.site-name{font-size:18px;font-weight:700;color:#fff;font-family:'SF Mono',SFMono-Regular,Consolas,monospace;transition:color .15s}
 .logo-link:hover .site-name{color:#f7931a}
 nav{display:flex;align-items:center;gap:4px}
 .nav-link{display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:8px;font-size:14px;font-weight:500;color:#a0a0a0;transition:all .15s}
@@ -31,66 +30,74 @@ nav{display:flex;align-items:center;gap:4px}
 .nav-label{display:none}
 @media(min-width:640px){.nav-label{display:inline}}
 
-/* Cards */
-.card{background:#252525;border:1px solid #333;border-radius:12px;padding:24px}
-.card-sm{padding:16px}
-.card-header{font-size:14px;font-weight:600;color:#fff;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+/* Page content */
+.page-container{max-width:896px;margin:0 auto;padding:0 16px}
+@media(min-width:640px){.page-container{padding:0 24px}}
+
+/* Title row */
+.title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px}
+.title-row h1{font-size:30px;font-weight:700;color:#fff;margin-bottom:8px}
+.title-row p{color:#a0a0a0}
+
+/* Button — matches React Button variant="secondary" size="md" */
+.btn-secondary{display:inline-flex;align-items:center;justify-content:center;font-weight:500;padding:8px 16px;font-size:16px;border-radius:8px;background:#252525;color:#fff;border:1px solid #333;cursor:pointer;transition:all .15s}
+.btn-secondary:hover{background:#2d2d2d;border-color:#444}
+.btn-secondary:disabled{opacity:.5;cursor:not-allowed}
+.btn-secondary svg{margin-right:8px}
+
+/* Cards — matches React Card variant="bordered" */
+.card{background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:24px}
+.card-header{margin-bottom:16px}
+.card-title{font-size:18px;font-weight:600;color:#fff;display:flex;align-items:center;gap:8px}
+.card-content{color:#a0a0a0}
+.card-stack{display:flex;flex-direction:column;gap:24px}
 
 /* Badge */
-.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:600}
-.badge-success{background:rgba(34,197,94,.15);color:#22c55e;border:1px solid rgba(34,197,94,.3)}
-.badge-error{background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3)}
-.badge-warning{background:rgba(234,179,8,.15);color:#eab308;border:1px solid rgba(234,179,8,.3)}
-.badge-info{background:rgba(59,130,246,.15);color:#3b82f6;border:1px solid rgba(59,130,246,.3)}
-.badge-orange{background:rgba(247,147,26,.15);color:#f7931a;border:1px solid rgba(247,147,26,.3)}
-.badge-muted{background:#1a1a1a;color:#a0a0a0;border:1px solid #333}
-
-/* Button */
-.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;transition:all .15s;border:none;cursor:pointer}
-.btn-primary{background:#f7931a;color:#000}
-.btn-primary:hover{background:#e8850f;text-decoration:none}
-.btn-muted{background:#1a1a1a;color:#a0a0a0;border:1px solid #333}
-.btn-muted:hover{color:#fff;background:#252525;text-decoration:none}
-
-/* Progress bar */
-.progress-bar{height:8px;border-radius:4px;background:#333;overflow:hidden}
-.progress-fill{height:100%;border-radius:4px;transition:width .3s ease}
-.progress-green{background:#22c55e}
-.progress-yellow{background:#eab308}
-.progress-red{background:#ef4444}
+.badge{display:inline-flex;align-items:center;font-weight:500;border-radius:6px}
+.badge-sm{padding:2px 8px;font-size:12px}
+.badge-md{padding:4px 10px;font-size:14px}
+.badge-success{background:rgba(34,197,94,.12);color:#22c55e}
+.badge-warning{background:rgba(234,179,8,.12);color:#eab308}
 
 /* Stats grid */
 .stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
 @media(min-width:640px){.stats-grid{grid-template-columns:repeat(4,1fr)}}
-.stat-item{text-align:center}
-.stat-label{font-size:12px;color:#888;margin-bottom:4px}
-.stat-value{font-size:18px;font-weight:700;color:#fff;font-family:'SF Mono',Consolas,monospace}
+.stat-label{font-size:14px;color:#666;margin-bottom:4px}
+.stat-value{font-size:20px;font-weight:700;color:#fff}
 
-/* Pool slots */
-.pool-slot{margin-bottom:12px}
-.pool-slot:last-child{margin-bottom:0}
-.pool-label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
-.pool-name{color:#e0e0e0}
-.pool-count{color:#a0a0a0;font-family:'SF Mono',Consolas,monospace}
+/* Status indicator */
+.status-row{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+.status-text h3{font-size:18px;font-weight:600;color:#fff}
+.status-text p{font-size:14px;color:#a0a0a0}
+
+/* Progress bars */
+.progress-track{width:100%;background:#252525;border-radius:9999px;overflow:hidden}
+.progress-track-sm{height:8px}
+.progress-track-md{height:12px}
+.progress-fill{height:100%;border-radius:9999px;transition:all .3s}
+.fill-green{background:#22c55e}
+.fill-yellow{background:#eab308}
+.fill-red{background:#ef4444}
+
+/* Slot rows */
+.slot-row{margin-bottom:16px}
+.slot-row:last-child{margin-bottom:0}
+.slot-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.slot-name{font-size:14px;font-weight:500;color:#fff;text-transform:capitalize}
+.slot-count{font-size:14px;color:#a0a0a0}
 
 /* TLS row */
-.tls-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #2a2a2a;font-size:13px}
-.tls-row:last-child{border-bottom:none}
-.tls-label{color:#888}
-.tls-value{color:#fff;font-family:'SF Mono',Consolas,monospace}
+.tls-status{display:flex;align-items:center;gap:16px}
+.tls-enabled{display:flex;align-items:center;gap:8px}
+.tls-enabled span{color:#fff;font-weight:500}
+.tls-cert{display:flex;align-items:center;gap:8px;color:#a0a0a0}
 
-/* Status hero */
-.status-hero{text-align:center;padding:40px 0 32px}
-.status-hero-icon{margin:0 auto 16px;width:64px;height:64px}
-.status-hero-title{font-size:24px;font-weight:700;color:#fff;margin-bottom:4px}
-.status-hero-sub{color:#a0a0a0;font-size:14px}
-
-/* Section title */
-.section-title{font-size:16px;font-weight:600;color:#fff;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+/* Resources grid */
+.resources-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px}
 
 /* Error card */
-.error-card{background:#252525;border:2px solid #ef4444;border-radius:12px;padding:24px;text-align:center}
-.error-card p{color:#a0a0a0;margin-top:8px}
+.error-card{background:#1a1a1a;border:1px solid #ef4444;border-radius:12px;padding:24px}
+.error-content{display:flex;align-items:center;gap:12px;color:#ef4444}
 
 /* Spinner */
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -98,21 +105,18 @@ nav{display:flex;align-items:center;gap:4px}
 
 /* Footer */
 .footer{margin-top:auto;border-top:1px solid #1a1a1a;background:#0f0f0f;padding:32px 0}
+.footer-container{max-width:1152px;margin:0 auto;padding:0 16px}
+@media(min-width:640px){.footer-container{padding:0 24px}}
 .footer-inner{display:flex;flex-direction:column;align-items:center;gap:16px}
 @media(min-width:640px){.footer-inner{flex-direction:row;justify-content:space-between}}
 .footer-links{display:flex;align-items:center;gap:16px}
 .footer-link{display:flex;align-items:center;gap:8px;font-size:14px;color:#a0a0a0;transition:color .15s}
 .footer-link:hover{color:#fff;text-decoration:none}
 .footer-credit{font-size:12px;color:#666;text-align:center;margin-top:24px;padding-top:24px;border-top:1px solid #1a1a1a}
-
-/* Refresh row */
-.refresh-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
-.refresh-info{font-size:12px;color:#666}
-
-/* Grid layout for sections */
-.dashboard-grid{display:grid;grid-template-columns:1fr;gap:24px}
-@media(min-width:768px){.dashboard-grid{grid-template-columns:1fr 1fr}}
-.dashboard-full{grid-column:1/-1}
+.network-banner{padding:8px 16px;text-align:center;font-size:13px;font-weight:600;letter-spacing:0.5px}
+.network-banner-testnet{background:#7c3aed;color:#fff}
+.network-banner-signet{background:#2563eb;color:#fff}
+.network-banner-regtest{background:#059669;color:#fff}
 </style>
 </head>
 <body>
@@ -120,7 +124,7 @@ nav{display:flex;align-items:center;gap:4px}
 
 <!-- Header -->
 <header class="header">
-<div class="container header-inner">
+<div class="header-inner">
   <a href="/" class="logo-link">
     <svg viewBox="0 0 100 100" style="width:56px;height:56px">
       <polygon points="50,2 93,26 93,74 50,98 7,74 7,26" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.1"/>
@@ -141,30 +145,25 @@ nav{display:flex;align-items:center;gap:4px}
 </header>
 
 <!-- Main Content -->
-<main style="flex:1">
-<div class="container" style="padding-top:16px;padding-bottom:48px">
+<main style="flex:1;padding:32px 0">
+<div class="page-container">
 
-  <!-- Status Hero -->
-  <div id="statusHero" class="status-hero">
-    <div class="status-hero-icon" id="heroIcon">
-      <!-- Loader shown initially -->
-      <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="#f7931a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spinning"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+  <!-- Title row: matches React flex layout -->
+  <div class="title-row">
+    <div>
+      <h1>System Status</h1>
+      <p>Monitor worker health and resource usage</p>
     </div>
-    <h1 class="status-hero-title" id="heroTitle">Loading Status...</h1>
-    <p class="status-hero-sub" id="heroSub">Checking system health</p>
-  </div>
-
-  <!-- Refresh row -->
-  <div class="refresh-row">
-    <button class="btn btn-muted" id="refreshBtn" onclick="fetchHealth()">
-      <!-- RefreshCw icon -->
-      <svg id="refreshIcon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+    <button class="btn-secondary" id="refreshBtn" onclick="fetchHealth()">
+      <svg id="refreshIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       Refresh
     </button>
-    <span class="refresh-info" id="refreshInfo">Auto-refresh every 30s</span>
   </div>
 
-  <!-- Dashboard content rendered by JS -->
+  <!-- Error shown here when fetch fails -->
+  <div id="errorContainer"></div>
+
+  <!-- Dashboard cards rendered by JS -->
   <div id="dashboardContent"></div>
 
 </div>
@@ -172,9 +171,9 @@ nav{display:flex;align-items:center;gap:4px}
 
 <!-- Footer -->
 <footer class="footer">
-<div class="container">
+<div class="footer-container">
   <div class="footer-inner">
-    <div>
+    <div style="text-align:center">
       <p style="font-size:14px;color:#a0a0a0"><span style="color:#fff;font-weight:500" class="mono" id="footerSiteName"></span> - Bitcoin raw transaction broadcast service</p>
       <p style="font-size:12px;color:#666;margin-top:4px">Specializing in non-standard transactions that other services reject</p>
     </div>
@@ -197,22 +196,16 @@ nav{display:flex;align-items:center;gap:4px}
 (function() {
 'use strict';
 
-// ── SVG Icons (inline) ──────────────────────────────────────────────────────
+// ── SVG Icons ────────────────────────────────────────────────────────────────
 
 var ICONS = {
-  checkCircle: '<svg viewBox="0 0 24 24" width="WW" height="HH" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
-  xCircle: '<svg viewBox="0 0 24 24" width="WW" height="HH" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
-  alertTriangle: '<svg viewBox="0 0 24 24" width="WW" height="HH" fill="none" stroke="#eab308" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
-  refreshCw: '<svg viewBox="0 0 24 24" width="WW" height="HH" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>',
-  server: '<svg viewBox="0 0 24 24" width="WW" height="HH" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>',
-  cpu: '<svg viewBox="0 0 24 24" width="WW" height="HH" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>'
+  checkCircle: function(s) { return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'; },
+  xCircle: function(s) { return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'; },
+  alertTriangle: function(s) { return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'; },
+  server: function(s) { return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="#f7931a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>'; },
+  shield: function(s) { return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="#f7931a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>'; },
+  cpu: function(s) { return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="#f7931a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>'; }
 };
-
-function icon(name, w, h) {
-  w = w || 16;
-  h = h || w;
-  return (ICONS[name] || '').replace(/WW/g, w).replace(/HH/g, h);
-}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -221,17 +214,15 @@ function formatUptime(seconds) {
   var d = Math.floor(seconds / 86400);
   var h = Math.floor((seconds % 86400) / 3600);
   var m = Math.floor((seconds % 3600) / 60);
-  var parts = [];
-  if (d > 0) parts.push(d + 'd');
-  if (h > 0 || d > 0) parts.push(h + 'h');
-  parts.push(m + 'm');
-  return parts.join(' ');
+  if (d > 0) return d + 'd ' + h + 'h ' + m + 'm';
+  if (h > 0) return h + 'h ' + m + 'm';
+  return m + 'm';
 }
 
-function progressColorClass(pct) {
-  if (pct >= 90) return 'progress-red';
-  if (pct >= 70) return 'progress-yellow';
-  return 'progress-green';
+function fillColor(pct) {
+  if (pct >= 90) return 'fill-red';
+  if (pct >= 70) return 'fill-yellow';
+  return 'fill-green';
 }
 
 function esc(s) {
@@ -243,235 +234,159 @@ function esc(s) {
 
 // ── Site name ────────────────────────────────────────────────────────────────
 
-var host = window.location.host || 'sendrawtx';
+var host = window.location.host.replace(/^www\./, '');
 document.getElementById('siteName').textContent = host;
 document.getElementById('footerSiteName').textContent = host;
 
 // ── Refresh logic ────────────────────────────────────────────────────────────
 
 var refreshTimer = null;
-var REFRESH_INTERVAL = 30000;
 
 function startAutoRefresh() {
   if (refreshTimer) clearInterval(refreshTimer);
-  refreshTimer = setInterval(fetchHealth, REFRESH_INTERVAL);
+  refreshTimer = setInterval(fetchHealth, 30000);
 }
 
-function fetchHealth() {
+window.fetchHealth = function() {
   var btn = document.getElementById('refreshBtn');
   var ico = document.getElementById('refreshIcon');
   btn.disabled = true;
   ico.classList.add('spinning');
 
-  fetch('/health', {
-    headers: { 'Accept': 'application/json' }
-  })
+  fetch('/health', { headers: { 'Accept': 'application/json' } })
   .then(function(res) {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return res.json();
   })
   .then(function(data) {
+    document.getElementById('errorContainer').innerHTML = '';
     renderDashboard(data);
   })
   .catch(function(err) {
-    renderError(err.message || 'Failed to fetch health data');
+    renderError(err.message || 'Failed to fetch health');
   })
   .finally(function() {
     btn.disabled = false;
     ico.classList.remove('spinning');
     startAutoRefresh();
   });
-}
+};
 
-// ── Render: success ──────────────────────────────────────────────────────────
+// ── Render: dashboard ────────────────────────────────────────────────────────
 
 function renderDashboard(data) {
-  // Hero status
-  var heroIcon = document.getElementById('heroIcon');
-  var heroTitle = document.getElementById('heroTitle');
-  var heroSub = document.getElementById('heroSub');
+  var isOk = data.status === 'ok' || data.status === 'healthy';
+  var html = '<div class="card-stack">';
 
-  var isHealthy = data.status === 'ok' || data.status === 'healthy';
-
-  if (isHealthy) {
-    heroIcon.innerHTML = icon('checkCircle', 64, 64);
-    heroTitle.textContent = 'Operational';
-    heroTitle.style.color = '#22c55e';
-    heroSub.textContent = 'All systems running normally';
-  } else {
-    heroIcon.innerHTML = icon('alertTriangle', 64, 64);
-    heroTitle.textContent = 'Issues Detected';
-    heroTitle.style.color = '#ef4444';
-    heroSub.textContent = 'Some systems may be degraded';
-  }
-
-  // Build dashboard HTML
-  var html = '';
-
-  // ── Stats grid ──
-  html += '<div class="card dashboard-full" style="margin-bottom:24px">';
-  html += '<div class="card-header">' + icon('server', 16) + ' System Overview</div>';
-  html += '<div class="stats-grid">';
-
-  html += '<div class="stat-item">';
-  html += '<div class="stat-label">Worker ID</div>';
-  html += '<div class="stat-value">' + esc(data.worker_id != null ? data.worker_id : '—') + '</div>';
-  html += '</div>';
-
-  html += '<div class="stat-item">';
-  html += '<div class="stat-label">Uptime</div>';
-  html += '<div class="stat-value">' + esc(formatUptime(data.uptime_seconds)) + '</div>';
-  html += '</div>';
-
-  html += '<div class="stat-item">';
-  html += '<div class="stat-label">Active Connections</div>';
-  html += '<div class="stat-value">' + esc(data.active_connections != null ? data.active_connections : '—') + '</div>';
-  html += '</div>';
-
-  html += '<div class="stat-item">';
-  html += '<div class="stat-label">Rate Limiter</div>';
-  html += '<div class="stat-value">' + esc(data.rate_limiter_entries != null ? data.rate_limiter_entries : '—') + '</div>';
-  html += '</div>';
-
-  html += '</div>'; // stats-grid
-  html += '</div>'; // card
-
-  // ── Two-column grid ──
-  html += '<div class="dashboard-grid">';
-
-  // ── Connection pool slots ──
-  var pools = data.connection_pools || data.pool_slots || [];
+  // ── Worker Status card ──
   html += '<div class="card">';
-  html += '<div class="card-header">' + icon('server', 16) + ' Connection Pool Slots</div>';
-  if (pools.length === 0) {
-    html += '<p style="color:#888;font-size:13px">No pool data available</p>';
-  } else {
-    for (var i = 0; i < pools.length; i++) {
-      var pool = pools[i];
-      var poolName = pool.name || pool.endpoint || ('Pool ' + i);
-      var used = pool.active != null ? pool.active : (pool.used != null ? pool.used : 0);
-      var total = pool.size != null ? pool.size : (pool.max != null ? pool.max : (pool.total != null ? pool.total : 0));
-      var pct = total > 0 ? Math.round((used / total) * 100) : 0;
-      var colorClass = progressColorClass(pct);
+  html += '<div class="card-header"><div class="card-title">' + ICONS.server(20) + ' Worker Status</div></div>';
+  html += '<div class="card-content">';
 
-      html += '<div class="pool-slot">';
-      html += '<div class="pool-label">';
-      html += '<span class="pool-name">' + esc(poolName) + '</span>';
-      html += '<span class="pool-count">' + esc(used) + ' / ' + esc(total) + '</span>';
-      html += '</div>';
-      html += '<div class="progress-bar"><div class="progress-fill ' + colorClass + '" style="width:' + pct + '%"></div></div>';
+  // Status indicator
+  html += '<div class="status-row">';
+  if (isOk) {
+    html += ICONS.checkCircle(32);
+    html += '<div class="status-text"><h3>Operational</h3><p>All systems running normally</p></div>';
+  } else {
+    html += ICONS.xCircle(32);
+    html += '<div class="status-text"><h3>Issues Detected</h3><p>Some systems may be degraded</p></div>';
+  }
+  html += '</div>';
+
+  // Stats grid
+  html += '<div class="stats-grid">';
+  html += '<div><div class="stat-label">Worker ID</div><div class="stat-value">' + esc(data.worker_id != null ? data.worker_id : '—') + '</div></div>';
+  html += '<div><div class="stat-label">Uptime</div><div class="stat-value">' + esc(formatUptime(data.uptime_seconds)) + '</div></div>';
+  html += '<div><div class="stat-label">Active Connections</div><div class="stat-value">' + esc(data.active_connections != null ? data.active_connections : '—') + '</div></div>';
+  html += '<div><div class="stat-label">Rate Limiter</div><div class="stat-value">' + esc(data.rate_limiter_entries != null ? data.rate_limiter_entries + ' entries' : '—') + '</div></div>';
+  html += '</div>';
+
+  html += '</div></div>';
+
+  // ── Slot Usage card ──
+  var slots = data.slots || {};
+  var slotKeys = Object.keys(slots);
+
+  html += '<div class="card">';
+  html += '<div class="card-header"><div class="card-title">Slot Usage</div></div>';
+  html += '<div class="card-content">';
+
+  if (slotKeys.length === 0) {
+    html += '<p style="color:#666">No slot data available</p>';
+  } else {
+    for (var i = 0; i < slotKeys.length; i++) {
+      var name = slotKeys[i];
+      var pool = slots[name];
+      var used = pool.used != null ? pool.used : 0;
+      var max = pool.max != null ? pool.max : 0;
+      var pct = max > 0 ? Math.round((used / max) * 100) : 0;
+      html += '<div class="slot-row">';
+      html += '<div class="slot-header"><span class="slot-name">' + esc(name) + '</span><span class="slot-count">' + esc(used) + '/' + esc(max) + ' (' + pct + '%)</span></div>';
+      html += '<div class="progress-track progress-track-sm"><div class="progress-fill ' + fillColor(pct) + '" style="width:' + pct + '%"></div></div>';
       html += '</div>';
     }
   }
-  html += '</div>'; // card
 
-  // ── TLS status ──
+  html += '</div></div>';
+
+  // ── TLS Status card ──
   var tls = data.tls || {};
   html += '<div class="card">';
-  html += '<div class="card-header">' + icon('server', 16) + ' TLS Status</div>';
-
-  var tlsEntries = [];
-  if (tls.enabled != null) tlsEntries.push(['Enabled', tls.enabled ? 'Yes' : 'No']);
-  if (tls.cert_path) tlsEntries.push(['Certificate', tls.cert_path]);
-  if (tls.key_path) tlsEntries.push(['Key', tls.key_path]);
-  if (tls.expiry) tlsEntries.push(['Expiry', tls.expiry]);
-  if (tls.issuer) tlsEntries.push(['Issuer', tls.issuer]);
-  if (tls.protocol) tlsEntries.push(['Protocol', tls.protocol]);
-  if (tls.cipher) tlsEntries.push(['Cipher', tls.cipher]);
-
-  if (typeof tls === 'string') {
-    html += '<p style="color:#e0e0e0;font-size:13px">' + esc(tls) + '</p>';
-  } else if (tlsEntries.length === 0) {
-    // Check top-level tls fields
-    if (data.tls_enabled != null) tlsEntries.push(['Enabled', data.tls_enabled ? 'Yes' : 'No']);
-    if (tlsEntries.length === 0) {
-      html += '<p style="color:#888;font-size:13px">No TLS data available</p>';
-    }
-  }
-
-  for (var t = 0; t < tlsEntries.length; t++) {
-    html += '<div class="tls-row">';
-    html += '<span class="tls-label">' + esc(tlsEntries[t][0]) + '</span>';
-    html += '<span class="tls-value">' + esc(tlsEntries[t][1]) + '</span>';
-    html += '</div>';
-  }
-  html += '</div>'; // card
-
-  html += '</div>'; // dashboard-grid
-
-  // ── Resources ──
-  var res = data.resources || {};
-  var openFds = res.open_fds != null ? res.open_fds : (data.open_fds != null ? data.open_fds : null);
-  var maxFds = res.max_fds != null ? res.max_fds : (data.max_fds != null ? data.max_fds : null);
-
-  html += '<div class="card" style="margin-top:24px">';
-  html += '<div class="card-header">' + icon('cpu', 16) + ' Resources</div>';
-
-  if (openFds != null && maxFds != null && maxFds > 0) {
-    var fdPct = Math.round((openFds / maxFds) * 100);
-    var fdColor = progressColorClass(fdPct);
-
-    html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px">';
-
-    html += '<div class="stat-item">';
-    html += '<div class="stat-label">Open FDs</div>';
-    html += '<div class="stat-value">' + esc(openFds) + '</div>';
-    html += '</div>';
-
-    html += '<div class="stat-item">';
-    html += '<div class="stat-label">Max FDs</div>';
-    html += '<div class="stat-value">' + esc(maxFds) + '</div>';
-    html += '</div>';
-
-    html += '<div class="stat-item">';
-    html += '<div class="stat-label">Usage</div>';
-    html += '<div class="stat-value">' + fdPct + '%</div>';
-    html += '</div>';
-
-    html += '</div>'; // grid
-
-    html += '<div class="progress-bar"><div class="progress-fill ' + fdColor + '" style="width:' + fdPct + '%"></div></div>';
+  html += '<div class="card-header"><div class="card-title">' + ICONS.shield(20) + ' TLS Status</div></div>';
+  html += '<div class="card-content">';
+  html += '<div class="tls-status">';
+  html += '<div class="tls-enabled">';
+  if (tls.enabled) {
+    html += ICONS.checkCircle(20);
+    html += '<span>Enabled</span>';
   } else {
-    // Show whatever resource fields exist
-    var resKeys = Object.keys(res);
-    if (resKeys.length > 0) {
-      for (var r = 0; r < resKeys.length; r++) {
-        html += '<div class="tls-row">';
-        html += '<span class="tls-label">' + esc(resKeys[r]) + '</span>';
-        html += '<span class="tls-value">' + esc(res[resKeys[r]]) + '</span>';
-        html += '</div>';
-      }
-    } else {
-      html += '<p style="color:#888;font-size:13px">No resource data available</p>';
-    }
+    html += ICONS.xCircle(20);
+    html += '<span>Disabled</span>';
+  }
+  html += '</div>';
+
+  if (tls.enabled && tls.cert_expiry_days !== undefined) {
+    var certVariant = tls.cert_expiry_days < 14 ? 'warning' : 'success';
+    var certIcon = tls.cert_expiry_days < 14 ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+    html += '<div class="tls-cert">' + certIcon + ' Certificate expires in <span class="badge badge-md badge-' + certVariant + '">' + esc(tls.cert_expiry_days) + ' days</span></div>';
   }
 
-  html += '</div>'; // card
+  html += '</div>';
+  html += '</div></div>';
 
+  // ── Resources card ──
+  var res = data.resources || {};
+  html += '<div class="card">';
+  html += '<div class="card-header"><div class="card-title">' + ICONS.cpu(20) + ' Resources</div></div>';
+  html += '<div class="card-content">';
+
+  if (res.open_fds != null && res.max_fds != null) {
+    var usagePct = typeof res.usage_pct === 'number' ? res.usage_pct : (res.max_fds > 0 ? (res.open_fds / res.max_fds * 100) : 0);
+    html += '<div class="resources-grid">';
+    html += '<div><div class="stat-label">Open FDs</div><div class="stat-value">' + esc(res.open_fds) + '</div></div>';
+    html += '<div><div class="stat-label">Max FDs</div><div class="stat-value">' + esc(res.max_fds) + '</div></div>';
+    html += '<div><div class="stat-label">Usage</div><div class="stat-value">' + usagePct.toFixed(1) + '%</div></div>';
+    html += '</div>';
+    html += '<div class="progress-track progress-track-md"><div class="progress-fill ' + fillColor(usagePct) + '" style="width:' + Math.min(usagePct, 100) + '%"></div></div>';
+  } else {
+    html += '<p style="color:#666">No resource data available</p>';
+  }
+
+  html += '</div></div>';
+
+  html += '</div>'; // card-stack
   document.getElementById('dashboardContent').innerHTML = html;
 }
 
 // ── Render: error ────────────────────────────────────────────────────────────
 
 function renderError(message) {
-  var heroIcon = document.getElementById('heroIcon');
-  var heroTitle = document.getElementById('heroTitle');
-  var heroSub = document.getElementById('heroSub');
-
-  heroIcon.innerHTML = icon('xCircle', 64, 64);
-  heroTitle.textContent = 'Issues Detected';
-  heroTitle.style.color = '#ef4444';
-  heroSub.textContent = 'Unable to reach health endpoint';
-
-  var html = '';
-  html += '<div class="error-card">';
-  html += icon('alertTriangle', 32, 32);
-  html += '<h3 style="color:#ef4444;font-size:16px;font-weight:600;margin-top:12px">Connection Error</h3>';
-  html += '<p>' + esc(message) + '</p>';
-  html += '<p style="font-size:12px;color:#666;margin-top:12px">Will retry automatically in 30 seconds</p>';
+  document.getElementById('dashboardContent').innerHTML = '';
+  var html = '<div class="error-card" style="margin-bottom:24px">';
+  html += '<div class="error-content">' + ICONS.xCircle(20) + '<span>' + esc(message) + '</span></div>';
   html += '</div>';
-
-  document.getElementById('dashboardContent').innerHTML = html;
+  document.getElementById('errorContainer').innerHTML = html;
 }
 
 // ── Init ─────────────────────────────────────────────────────────────────────

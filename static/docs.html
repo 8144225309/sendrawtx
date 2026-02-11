@@ -14,16 +14,15 @@ body{
 }
 a{color:#f7931a;text-decoration:none}
 a:hover{text-decoration:underline}
-code,.mono{font-family:'SF Mono',Consolas,'Liberation Mono',Menlo,monospace}
-.container{max-width:1152px;margin:0 auto;padding:0 16px;width:100%}
-@media(min-width:640px){.container{padding:0 24px}}
+code,.mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',Menlo,monospace}
 
 /* Header */
 .header{position:sticky;top:0;z-index:50;background:rgba(15,15,15,.95);backdrop-filter:blur(8px);border-bottom:1px solid #1a1a1a}
-.header-inner{display:flex;align-items:center;justify-content:space-between;height:64px}
+.header-inner{max-width:1152px;margin:0 auto;padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:64px}
+@media(min-width:640px){.header-inner{padding:0 24px}}
 .logo-link{display:flex;align-items:center;gap:8px}
 .logo-link:hover{text-decoration:none}
-.site-name{font-size:18px;font-weight:700;color:#fff;font-family:'SF Mono',Consolas,monospace}
+.site-name{font-size:18px;font-weight:700;color:#fff;font-family:'SF Mono',SFMono-Regular,Consolas,monospace;transition:color .15s}
 .logo-link:hover .site-name{color:#f7931a}
 nav{display:flex;align-items:center;gap:4px}
 .nav-link{display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:8px;font-size:14px;font-weight:500;color:#a0a0a0;transition:all .15s}
@@ -32,45 +31,67 @@ nav{display:flex;align-items:center;gap:4px}
 .nav-label{display:none}
 @media(min-width:640px){.nav-label{display:inline}}
 
-/* Cards */
-.card{background:#252525;border:1px solid #333;border-radius:12px;padding:24px}
+/* Page content */
+.page-container{max-width:896px;margin:0 auto;padding:0 16px}
+@media(min-width:640px){.page-container{padding:0 24px}}
+
+/* Cards — matches React Card variant="bordered" */
+.card{background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:24px;margin-bottom:32px}
+.card-header{margin-bottom:16px}
+.card-title{font-size:18px;font-weight:600;color:#fff;display:flex;align-items:center;gap:8px}
+.card-content{color:#a0a0a0}
+
+/* Badges — matches React Badge */
+.badge{display:inline-flex;align-items:center;font-weight:500;border-radius:6px}
+.badge-sm{padding:2px 8px;font-size:12px}
+.badge-md{padding:4px 10px;font-size:14px}
+.badge-info{background:rgba(59,130,246,.12);color:#3b82f6}
+.badge-success{background:rgba(34,197,94,.12);color:#22c55e}
+
+/* Code blocks */
+.code-block{background:#0f0f0f;border-radius:8px;padding:16px;font-family:'SF Mono',SFMono-Regular,Consolas,monospace;font-size:14px;overflow-x:auto}
+.code-block pre{margin:0;color:#a0a0a0;white-space:pre;line-height:1.6}
+.code-green{color:#22c55e}
+.code-white{color:#fff}
+.code-orange{color:#f7931a}
+.code-yellow{color:#eab308}
+
+/* Endpoint cards */
+.endpoint-card{background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:24px}
+.endpoint-header{margin-bottom:16px}
+.endpoint-title{font-size:18px;font-weight:600;color:#fff;display:flex;align-items:center;gap:8px}
+.endpoint-path{font-family:'SF Mono',SFMono-Regular,Consolas,monospace;color:#fff}
+.endpoint-desc{color:#a0a0a0;margin-bottom:16px}
+.endpoint-note{font-size:14px;color:#666;margin-bottom:16px}
+.endpoint-example-label{font-size:14px;color:#666;margin-bottom:8px}
+.endpoint-example{background:#0f0f0f;border-radius:8px;padding:12px;font-family:'SF Mono',SFMono-Regular,Consolas,monospace;font-size:14px;overflow-x:auto}
+.endpoint-example code{color:#a0a0a0}
+.endpoints-list{display:flex;flex-direction:column;gap:24px;margin-bottom:32px}
+
+/* Content negotiation */
+.nego-row{display:flex;align-items:flex-start;gap:12px}
+.nego-row+.nego-row{margin-top:12px}
+.nego-badge{margin-top:2px;flex-shrink:0}
+.nego-text{color:#a0a0a0}
+.nego-text code{color:#f7931a}
+
+/* Section heading */
+.section-heading{font-size:20px;font-weight:600;color:#fff;margin-bottom:24px}
 
 /* Footer */
 .footer{margin-top:auto;border-top:1px solid #1a1a1a;background:#0f0f0f;padding:32px 0}
+.footer-container{max-width:1152px;margin:0 auto;padding:0 16px}
+@media(min-width:640px){.footer-container{padding:0 24px}}
 .footer-inner{display:flex;flex-direction:column;align-items:center;gap:16px}
 @media(min-width:640px){.footer-inner{flex-direction:row;justify-content:space-between}}
 .footer-links{display:flex;align-items:center;gap:16px}
 .footer-link{display:flex;align-items:center;gap:8px;font-size:14px;color:#a0a0a0;transition:color .15s}
 .footer-link:hover{color:#fff;text-decoration:none}
 .footer-credit{font-size:12px;color:#666;text-align:center;margin-top:24px;padding-top:24px;border-top:1px solid #1a1a1a}
-
-/* Docs-specific */
-.page-title{font-size:28px;font-weight:700;color:#fff;margin-bottom:8px}
-@media(min-width:640px){.page-title{font-size:32px}}
-.page-subtitle{color:#a0a0a0;font-size:15px;margin-bottom:32px}
-.endpoint-group{margin-bottom:24px}
-.endpoint-card{background:#252525;border:1px solid #333;border-radius:12px;padding:24px;margin-bottom:16px}
-.endpoint-header{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
-.method-badge{display:inline-flex;align-items:center;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700;font-family:'SF Mono',Consolas,monospace;letter-spacing:0.5px}
-.method-post{background:rgba(59,130,246,.15);color:#3b82f6;border:1px solid rgba(59,130,246,.3)}
-.method-get{background:rgba(34,197,94,.15);color:#22c55e;border:1px solid rgba(34,197,94,.3)}
-.endpoint-path{font-family:'SF Mono',Consolas,monospace;font-size:15px;font-weight:600;color:#fff}
-.endpoint-desc{color:#a0a0a0;font-size:14px;margin-bottom:16px;line-height:1.7}
-.endpoint-desc strong{color:#e0e0e0}
-.code-block{background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:16px;overflow-x:auto;margin-bottom:12px}
-.code-block code{font-family:'SF Mono',Consolas,monospace;font-size:13px;color:#e0e0e0;white-space:pre;line-height:1.6}
-.code-label{font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
-.response-block{margin-top:12px}
-.section-heading{font-size:20px;font-weight:700;color:#fff;margin-bottom:16px;display:flex;align-items:center;gap:8px}
-.section-heading svg{flex-shrink:0}
-.param-table{width:100%;border-collapse:collapse;margin-bottom:12px}
-.param-table th{text-align:left;font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;padding:8px 12px;border-bottom:1px solid #333}
-.param-table td{font-size:13px;padding:8px 12px;border-bottom:1px solid #2a2a2a;color:#e0e0e0}
-.param-table td:first-child{font-family:'SF Mono',Consolas,monospace;color:#f7931a;white-space:nowrap}
-.param-table tr:last-child td{border-bottom:none}
-.divider{border:none;border-top:1px solid #333;margin:32px 0}
-.note-box{background:rgba(247,147,26,.08);border:1px solid rgba(247,147,26,.25);border-radius:8px;padding:14px 18px;font-size:13px;color:#e0e0e0;line-height:1.7;margin-bottom:16px}
-.note-box code{background:#1a1a1a;padding:2px 6px;border-radius:4px;font-size:12px}
+.network-banner{padding:8px 16px;text-align:center;font-size:13px;font-weight:600;letter-spacing:0.5px}
+.network-banner-testnet{background:#7c3aed;color:#fff}
+.network-banner-signet{background:#2563eb;color:#fff}
+.network-banner-regtest{background:#059669;color:#fff}
 </style>
 </head>
 <body>
@@ -78,7 +99,7 @@ nav{display:flex;align-items:center;gap:4px}
 
 <!-- Header -->
 <header class="header">
-<div class="container header-inner">
+<div class="header-inner">
   <a href="/" class="logo-link">
     <svg viewBox="0 0 100 100" style="width:56px;height:56px">
       <polygon points="50,2 93,26 93,74 50,98 7,74 7,26" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.1"/>
@@ -99,207 +120,204 @@ nav{display:flex;align-items:center;gap:4px}
 </header>
 
 <!-- Main Content -->
-<main style="flex:1">
-<div class="container" style="padding-top:32px;padding-bottom:48px">
+<main style="flex:1;padding:32px 0">
+<div class="page-container">
 
-  <h1 class="page-title">API Documentation</h1>
-  <p class="page-subtitle">Broadcast raw Bitcoin transactions via REST API. All endpoints accept and return JSON unless otherwise noted.</p>
-
-  <div class="note-box">
-    <strong style="color:#f7931a">Base URL:</strong> <code id="baseUrl">https://your-host</code> &mdash; All paths below are relative to this base. Replace example hostnames with your instance.
+  <div style="margin-bottom:32px">
+    <h1 style="font-size:30px;font-weight:700;color:#fff;margin-bottom:8px">API Documentation</h1>
+    <p style="color:#a0a0a0">REST API for broadcasting raw Bitcoin transactions via the C server</p>
   </div>
 
-  <!-- ===== Broadcast Endpoints ===== -->
-  <h2 class="section-heading">
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#f7931a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg>
-    Broadcast Endpoints
-  </h2>
-
-  <!-- POST / -->
-  <div class="endpoint-card">
-    <div class="endpoint-header">
-      <span class="method-badge method-post">POST</span>
-      <span class="endpoint-path">/</span>
+  <!-- Quick Start -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f7931a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Quick Start
+      </h3>
     </div>
-    <p class="endpoint-desc">
-      Broadcast a raw transaction to the Bitcoin network. The request body must be the raw transaction hex string. On success, returns a JSON object containing the transaction ID.
-    </p>
-    <table class="param-table">
-      <thead><tr><th>Parameter</th><th>Location</th><th>Description</th></tr></thead>
-      <tbody>
-        <tr><td>body</td><td>Request body</td><td>Raw transaction hex string (plain text)</td></tr>
-      </tbody>
-    </table>
-    <div class="code-label">Example Request</div>
-    <div class="code-block"><code>curl -X POST https://your-host/ \
-  -H "Content-Type: text/plain" \
-  -d "0200000001abcdef..."</code></div>
-    <div class="response-block">
-      <div class="code-label">Success Response (200)</div>
-      <div class="code-block"><code>{
-  "txid": "a1b2c3d4e5f6..."
-}</code></div>
-    </div>
-    <div class="response-block">
-      <div class="code-label">Error Response (400/500)</div>
-      <div class="code-block"><code>{
-  "error": "Transaction rejected: insufficient fee"
-}</code></div>
+    <div class="card-content">
+      <p style="margin-bottom:16px">Broadcast a transaction with a single curl command:</p>
+      <div class="code-block">
+        <code><span class="code-green">curl</span><span class="code-white"> </span><span class="code-orange" id="quickStartUrl1">https://sendrawtx.com/0100000001...</span></code>
+      </div>
+      <p style="color:#666;font-size:14px;margin-top:12px">For JSON response, add the Accept header:</p>
+      <div class="code-block" style="margin-top:8px">
+        <code><span class="code-green">curl</span><span class="code-white"> -H </span><span class="code-yellow">"Accept: application/json"</span><span class="code-white"> </span><span class="code-orange" id="quickStartUrl2">https://sendrawtx.com/0100000001...</span></code>
+      </div>
     </div>
   </div>
 
-  <!-- GET /tx/{txid} -->
-  <div class="endpoint-card">
-    <div class="endpoint-header">
-      <span class="method-badge method-get">GET</span>
-      <span class="endpoint-path">/tx/{txid}</span>
+  <!-- Content Negotiation -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f7931a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        Content Negotiation
+      </h3>
     </div>
-    <p class="endpoint-desc">
-      Check the status of a previously broadcast transaction by its transaction ID. Returns confirmation status and details from connected nodes.
-    </p>
-    <table class="param-table">
-      <thead><tr><th>Parameter</th><th>Location</th><th>Description</th></tr></thead>
-      <tbody>
-        <tr><td>txid</td><td>URL path</td><td>The transaction ID (64-character hex string)</td></tr>
-      </tbody>
-    </table>
-    <div class="code-label">Example Request</div>
-    <div class="code-block"><code>curl https://your-host/tx/a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2</code></div>
-    <div class="response-block">
-      <div class="code-label">Success Response (200)</div>
-      <div class="code-block"><code>{
-  "txid": "a1b2c3d4e5f6...",
-  "status": "confirmed",
-  "confirmations": 3
-}</code></div>
+    <div class="card-content">
+      <p style="margin-bottom:16px">Broadcast and result endpoints support content negotiation:</p>
+      <div class="nego-row">
+        <span class="badge badge-md badge-info nego-badge">Browser</span>
+        <span class="nego-text">Returns HTML page with interactive UI</span>
+      </div>
+      <div class="nego-row">
+        <span class="badge badge-md badge-success nego-badge">JSON</span>
+        <span class="nego-text">Send <code>Accept: application/json</code> to get structured JSON response</span>
+      </div>
     </div>
   </div>
 
-  <!-- GET /{raw_tx_hex} -->
-  <div class="endpoint-card">
-    <div class="endpoint-header">
-      <span class="method-badge method-get">GET</span>
-      <span class="endpoint-path">/{raw_tx_hex}</span>
+  <!-- Endpoints -->
+  <h2 class="section-heading">Endpoints</h2>
+
+  <div class="endpoints-list">
+
+    <!-- GET /{raw_tx_hex} -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <div class="endpoint-title">
+          <span class="badge badge-sm badge-info">GET</span>
+          <code class="endpoint-path">/{raw_tx_hex}</code>
+        </div>
+      </div>
+      <div class="card-content">
+        <p class="endpoint-desc">Broadcast a raw transaction. The hex must be 164+ characters (a valid serialized Bitcoin transaction).</p>
+        <p class="endpoint-note">Returns broadcast.html for browsers, JSON with Accept: application/json header.</p>
+        <div>
+          <p class="endpoint-example-label">Example:</p>
+          <div class="endpoint-example"><code>curl https://sendrawtx.com/0100000001...</code></div>
+        </div>
+      </div>
     </div>
-    <p class="endpoint-desc">
-      Browser-based broadcast. Navigating to this URL in a browser triggers a broadcast of the raw transaction hex provided in the URL path. Useful for simple integrations, bookmarks, or sharing a broadcast link. Returns an HTML result page.
-    </p>
-    <table class="param-table">
-      <thead><tr><th>Parameter</th><th>Location</th><th>Description</th></tr></thead>
-      <tbody>
-        <tr><td>raw_tx_hex</td><td>URL path</td><td>The full raw transaction as a hex-encoded string</td></tr>
-      </tbody>
-    </table>
-    <div class="code-label">Example Request</div>
-    <div class="code-block"><code>curl https://your-host/0200000001abcdef...</code></div>
-    <div class="response-block">
-      <div class="code-label">Browser Usage</div>
-      <div class="code-block"><code>Open in browser:
-https://your-host/0200000001abcdef1234567890...</code></div>
+
+    <!-- GET /tx/{txid} -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <div class="endpoint-title">
+          <span class="badge badge-sm badge-info">GET</span>
+          <code class="endpoint-path">/tx/{txid}</code>
+        </div>
+      </div>
+      <div class="card-content">
+        <p class="endpoint-desc">Look up a cached broadcast result by transaction ID (64 hex characters).</p>
+        <p class="endpoint-note">Returns result.html for browsers, JSON with Accept: application/json header.</p>
+        <div>
+          <p class="endpoint-example-label">Example:</p>
+          <div class="endpoint-example"><code>curl -H "Accept: application/json" https://sendrawtx.com/tx/abc123...</code></div>
+        </div>
+      </div>
     </div>
+
+    <!-- GET /{txid} -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <div class="endpoint-title">
+          <span class="badge badge-sm badge-info">GET</span>
+          <code class="endpoint-path">/{txid}</code>
+        </div>
+      </div>
+      <div class="card-content">
+        <p class="endpoint-desc">Shorthand for /tx/{txid}. Exactly 64 hex characters routes to result lookup.</p>
+        <p class="endpoint-note">The server distinguishes broadcasts (164+ hex) from lookups (64 hex) by length.</p>
+      </div>
+    </div>
+
+    <!-- GET /health -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <div class="endpoint-title">
+          <span class="badge badge-sm badge-info">GET</span>
+          <code class="endpoint-path">/health</code>
+        </div>
+      </div>
+      <div class="card-content">
+        <p class="endpoint-desc">Worker health check. Returns JSON with worker ID, uptime, slot usage, TLS status, and resource consumption.</p>
+        <div>
+          <p class="endpoint-example-label">Example:</p>
+          <div class="endpoint-example"><code>curl https://sendrawtx.com/health</code></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GET /metrics -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <div class="endpoint-title">
+          <span class="badge badge-sm badge-info">GET</span>
+          <code class="endpoint-path">/metrics</code>
+        </div>
+      </div>
+      <div class="card-content">
+        <p class="endpoint-desc">Prometheus-format metrics for monitoring. Includes connection counts, slot usage, request rates.</p>
+        <div>
+          <p class="endpoint-example-label">Example:</p>
+          <div class="endpoint-example"><code>curl https://sendrawtx.com/metrics</code></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GET /ready -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <div class="endpoint-title">
+          <span class="badge badge-sm badge-info">GET</span>
+          <code class="endpoint-path">/ready</code>
+        </div>
+      </div>
+      <div class="card-content">
+        <p class="endpoint-desc">Readiness probe. Returns 200 when the worker is ready to accept connections.</p>
+      </div>
+    </div>
+
+    <!-- GET /alive -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <div class="endpoint-title">
+          <span class="badge badge-sm badge-info">GET</span>
+          <code class="endpoint-path">/alive</code>
+        </div>
+      </div>
+      <div class="card-content">
+        <p class="endpoint-desc">Liveness probe. Returns 200 as long as the worker process is running.</p>
+      </div>
+    </div>
+
   </div>
 
-  <hr class="divider">
-
-  <!-- ===== Operational Endpoints ===== -->
-  <h2 class="section-heading">
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#f7931a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-    Health &amp; Status Endpoints
-  </h2>
-
-  <!-- GET /health -->
-  <div class="endpoint-card">
-    <div class="endpoint-header">
-      <span class="method-badge method-get">GET</span>
-      <span class="endpoint-path">/health</span>
+  <!-- Health Response Example -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f7931a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        Health Response Example
+      </h3>
     </div>
-    <p class="endpoint-desc">
-      Health check endpoint. Returns a JSON object indicating the overall health of the service and its connected backend nodes.
-    </p>
-    <div class="code-label">Example Request</div>
-    <div class="code-block"><code>curl https://your-host/health</code></div>
-    <div class="response-block">
-      <div class="code-label">Success Response (200)</div>
-      <div class="code-block"><code>{
-  "status": "healthy",
-  "timestamp": "2026-01-15T12:00:00Z"
-}</code></div>
-    </div>
-  </div>
-
-  <!-- GET /ready -->
-  <div class="endpoint-card">
-    <div class="endpoint-header">
-      <span class="method-badge method-get">GET</span>
-      <span class="endpoint-path">/ready</span>
-    </div>
-    <p class="endpoint-desc">
-      Readiness probe. Returns HTTP 200 when the service is ready to accept traffic. Suitable for use as a Kubernetes readiness probe. Returns HTTP 503 if the service is not yet ready.
-    </p>
-    <div class="code-label">Example Request</div>
-    <div class="code-block"><code>curl -s -o /dev/null -w "%{http_code}" https://your-host/ready</code></div>
-    <div class="response-block">
-      <div class="code-label">Response</div>
-      <div class="code-block"><code>200 OK    - Service is ready
-503       - Service is not ready</code></div>
-    </div>
-  </div>
-
-  <!-- GET /alive -->
-  <div class="endpoint-card">
-    <div class="endpoint-header">
-      <span class="method-badge method-get">GET</span>
-      <span class="endpoint-path">/alive</span>
-    </div>
-    <p class="endpoint-desc">
-      Liveness probe. Returns HTTP 200 as long as the service process is running. Suitable for use as a Kubernetes liveness probe.
-    </p>
-    <div class="code-label">Example Request</div>
-    <div class="code-block"><code>curl -s -o /dev/null -w "%{http_code}" https://your-host/alive</code></div>
-    <div class="response-block">
-      <div class="code-label">Response</div>
-      <div class="code-block"><code>200 OK    - Service is alive</code></div>
-    </div>
-  </div>
-
-  <!-- GET /metrics -->
-  <div class="endpoint-card">
-    <div class="endpoint-header">
-      <span class="method-badge method-get">GET</span>
-      <span class="endpoint-path">/metrics</span>
-    </div>
-    <p class="endpoint-desc">
-      Prometheus-compatible metrics endpoint. Returns service metrics in the Prometheus text exposition format. Use this to monitor broadcast counts, error rates, endpoint latencies, and more.
-    </p>
-    <div class="code-label">Example Request</div>
-    <div class="code-block"><code>curl https://your-host/metrics</code></div>
-    <div class="response-block">
-      <div class="code-label">Response (text/plain)</div>
-      <div class="code-block"><code># HELP sendrawtx_broadcasts_total Total number of broadcast attempts
-# TYPE sendrawtx_broadcasts_total counter
-sendrawtx_broadcasts_total{status="success"} 1234
-sendrawtx_broadcasts_total{status="error"} 56</code></div>
-    </div>
-  </div>
-
-  <!-- GET /version -->
-  <div class="endpoint-card">
-    <div class="endpoint-header">
-      <span class="method-badge method-get">GET</span>
-      <span class="endpoint-path">/version</span>
-    </div>
-    <p class="endpoint-desc">
-      Returns version information for the running sendrawtx instance, including the build version, commit hash, and build timestamp.
-    </p>
-    <div class="code-label">Example Request</div>
-    <div class="code-block"><code>curl https://your-host/version</code></div>
-    <div class="response-block">
-      <div class="code-label">Success Response (200)</div>
-      <div class="code-block"><code>{
-  "version": "1.2.0",
-  "commit": "abc1234",
-  "built": "2026-01-15T10:30:00Z"
-}</code></div>
+    <div class="card-content">
+      <div class="code-block">
+        <pre style="color:#a0a0a0">{
+  "status": "ok",
+  "worker_id": 1,
+  "uptime_seconds": 3600,
+  "active_connections": 5,
+  "slots": {
+    "normal": {"used": 3, "max": 1000},
+    "large": {"used": 1, "max": 50},
+    "huge": {"used": 0, "max": 10}
+  },
+  "rate_limiter_entries": 42,
+  "tls": {
+    "enabled": true,
+    "cert_expiry_days": 60
+  },
+  "resources": {
+    "open_fds": 128,
+    "max_fds": 65536,
+    "usage_pct": 0.2
+  }
+}</pre>
+      </div>
     </div>
   </div>
 
@@ -308,9 +326,9 @@ sendrawtx_broadcasts_total{status="error"} 56</code></div>
 
 <!-- Footer -->
 <footer class="footer">
-<div class="container">
+<div class="footer-container">
   <div class="footer-inner">
-    <div>
+    <div style="text-align:center">
       <p style="font-size:14px;color:#a0a0a0"><span style="color:#fff;font-weight:500" class="mono" id="footerSiteName"></span> - Bitcoin raw transaction broadcast service</p>
       <p style="font-size:12px;color:#666;margin-top:4px">Specializing in non-standard transactions that other services reject</p>
     </div>
@@ -334,8 +352,12 @@ document.addEventListener('DOMContentLoaded', function() {
   var siteName = window.location.host.replace(/^www\./, '');
   document.getElementById('siteName').textContent = siteName;
   document.getElementById('footerSiteName').textContent = siteName;
-  document.getElementById('baseUrl').textContent = window.location.protocol + '//' + window.location.host;
   document.title = 'API Documentation - ' + siteName;
+  var baseUrl = window.location.protocol + '//' + window.location.host;
+  var qs1 = document.getElementById('quickStartUrl1');
+  var qs2 = document.getElementById('quickStartUrl2');
+  if (qs1) qs1.textContent = baseUrl + '/0100000001...';
+  if (qs2) qs2.textContent = baseUrl + '/0100000001...';
 });
 </script>
 </body>
