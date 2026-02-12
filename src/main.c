@@ -48,6 +48,7 @@ static void print_usage(const char *prog)
     printf("  -h, --help      Show this help message\n");
     printf("  -t, --test      Test configuration and exit\n");
     printf("  -w, --workers N Override number of workers\n");
+    printf("  -b, --benchmark Disable rate limits & raise slot limits for benchmarking\n");
     printf("\n");
     printf("Arguments:\n");
     printf("  config_file     Path to configuration file (default: config.ini)\n");
@@ -69,6 +70,7 @@ int main(int argc, char **argv)
     MasterProcess master;
     const char *config_path = "config.ini";
     int test_mode = 0;
+    int benchmark_mode = 0;
     int override_workers = 0;
     int ret;
 
@@ -80,6 +82,10 @@ int main(int argc, char **argv)
         }
         if (strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--test") == 0) {
             test_mode = 1;
+            continue;
+        }
+        if (strcmp(argv[i], "-b") == 0 || strcmp(argv[i], "--benchmark") == 0) {
+            benchmark_mode = 1;
             continue;
         }
         if ((strcmp(argv[i], "-w") == 0 || strcmp(argv[i], "--workers") == 0) && i + 1 < argc) {
@@ -120,6 +126,17 @@ int main(int argc, char **argv)
     if (override_workers > 0) {
         master.num_workers = override_workers;
         log_info("Overriding worker count to %d", override_workers);
+    }
+
+    /* Benchmark mode - remove artificial limits for raw throughput testing */
+    if (benchmark_mode) {
+        master.config->rate_limit_rps = 0;     /* Disable rate limiting */
+        master.config->rate_limit_burst = 0;
+        master.config->slots_normal_max = 10000;
+        master.config->slots_large_max = 1000;
+        master.config->slots_huge_max = 100;
+        master.config->max_connections = 10000;
+        log_info("Benchmark mode: rate limiting disabled, slots raised to 10000/1000/100");
     }
 
     /* Test mode - just verify config and exit */
