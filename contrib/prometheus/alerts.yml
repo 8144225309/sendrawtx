@@ -42,6 +42,7 @@ groups:
         expr: >
           rate(rawrelay_http_requests_by_class_total{class="5xx"}[5m])
           / rate(rawrelay_requests_total[5m]) > 0.05
+          and rate(rawrelay_requests_total[5m]) > 0
         for: 5m
         labels:
           severity: warning
@@ -127,6 +128,7 @@ groups:
         expr: >
           rate(rawrelay_rpc_broadcasts_failed_total[5m])
           / rate(rawrelay_rpc_broadcasts_total[5m]) > 0.1
+          and rate(rawrelay_rpc_broadcasts_total[5m]) > 0
         for: 5m
         labels:
           severity: warning

@@ -1219,7 +1219,7 @@ static void log_request_complete(Connection *conn)
     update_status_counters(worker, conn->response_status);
     update_method_counters(worker, conn->method);
     worker->response_bytes_total += conn->response_bytes;
-    if (conn->requests_on_connection > 1) {
+    if (conn->requests_on_connection > 0) {
         worker->keepalive_reuses++;
     }
 

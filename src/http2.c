@@ -377,6 +377,7 @@ static int h2_on_stream_close_callback(nghttp2_session *session,
             update_latency_histogram(worker, duration_sec);
             update_status_counters(worker, stream->response_status);
             update_method_counters(worker, stream->method);
+            worker->response_bytes_total += stream->response_bytes;
 
             log_request_access(conn->client_ip,
                                stream->method ? stream->method : "???",
@@ -486,6 +487,7 @@ static int h2_on_header_callback(nghttp2_session *session,
             if (!slot_manager_promote(&h2->worker->slots, stream->tier, required)) {
                 log_warn("HTTP/2: Cannot promote stream %d from %s to %s tier",
                          stream->stream_id, tier_name(stream->tier), tier_name(required));
+                h2->worker->slot_promotion_failures++;
                 /* Reject the stream with REFUSED_STREAM */
                 nghttp2_submit_rst_stream(session, NGHTTP2_FLAG_NONE,
                                           stream->stream_id, NGHTTP2_REFUSED_STREAM);
