@@ -7,6 +7,9 @@
   <meta name="description" content="Bitcoin transaction broadcast result"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scrollbar-gutter: stable; }
+    ::selection { background: #f7931a; color: #0f0f0f; }
+    :focus-visible { outline: 2px solid #f7931a; outline-offset: 2px; }
 
     body {
       background: #0f0f0f;
@@ -131,6 +134,7 @@
       border-radius: 12px;
       padding: 24px;
       margin-bottom: 24px;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
     }
     .card-title {
       font-size: 16px;
@@ -428,6 +432,10 @@
       .card { padding: 16px; }
       .txid-text { font-size: 12px; }
     }
+    ::-webkit-scrollbar{width:8px;height:8px}
+    ::-webkit-scrollbar-track{background:#0f0f0f}
+    ::-webkit-scrollbar-thumb{background:#333;border-radius:4px}
+    ::-webkit-scrollbar-thumb:hover{background:#555}
     .network-banner{padding:8px 16px;text-align:center;font-size:13px;font-weight:600;letter-spacing:0.5px}
     .network-banner-testnet{background:#7c3aed;color:#fff}
     .network-banner-signet{background:#2563eb;color:#fff}
