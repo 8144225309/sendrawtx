@@ -12,20 +12,20 @@ html{scrollbar-gutter:stable}
 :focus-visible{outline:2px solid #f7931a;outline-offset:2px}
 body{
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-  background:#0f0f0f;color:#e0e0e0;min-height:100vh;display:flex;flex-direction:column;
+  background:#0f0f0f;color:#fff;min-height:100vh;display:flex;flex-direction:column;
   line-height:1.6;
 }
 a{color:#f7931a;text-decoration:none}
 a:hover{text-decoration:underline}
-code,.mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',Menlo,monospace}
+code,.mono{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace}
 
 /* Header */
-.header{position:sticky;top:0;z-index:50;background:rgba(15,15,15,.95);backdrop-filter:blur(8px);border-bottom:1px solid #1a1a1a}
+.header{position:sticky;top:0;z-index:50;background:rgba(15,15,15,.95);backdrop-filter:blur(8px);border-bottom:1px solid #333}
 .header-inner{max-width:1152px;margin:0 auto;padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:64px}
 @media(min-width:640px){.header-inner{padding:0 24px}}
 .logo-link{display:flex;align-items:center;gap:8px}
 .logo-link:hover{text-decoration:none}
-.site-name{font-size:18px;font-weight:700;color:#fff;font-family:'SF Mono',SFMono-Regular,Consolas,monospace;transition:color .15s}
+.site-name{font-size:18px;font-weight:700;color:#fff;font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;transition:color .15s}
 .logo-link:hover .site-name{color:#f7931a}
 nav{display:flex;align-items:center;gap:4px}
 .nav-link{display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:8px;font-size:14px;font-weight:500;color:#a0a0a0;transition:all .15s}
@@ -39,7 +39,7 @@ nav{display:flex;align-items:center;gap:4px}
 @media(min-width:640px){.page-container{padding:0 24px}}
 
 /* Cards — matches React Card variant="bordered" */
-.card{background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:24px;margin-bottom:32px;box-shadow:0 4px 6px -1px rgb(0 0 0/.3),0 2px 4px -2px rgb(0 0 0/.3)}
+.card{background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:24px;margin-bottom:32px}
 .card-header{margin-bottom:16px}
 .card-title{font-size:18px;font-weight:600;color:#fff;display:flex;align-items:center;gap:8px}
 .card-content{color:#a0a0a0}
@@ -52,7 +52,7 @@ nav{display:flex;align-items:center;gap:4px}
 .badge-success{background:rgba(34,197,94,.12);color:#22c55e}
 
 /* Code blocks */
-.code-block{background:#0f0f0f;border-radius:8px;padding:16px;font-family:'SF Mono',SFMono-Regular,Consolas,monospace;font-size:14px;overflow-x:auto}
+.code-block{background:#0f0f0f;border-radius:8px;padding:16px;font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-size:14px;overflow-x:auto}
 .code-block pre{margin:0;color:#a0a0a0;white-space:pre;line-height:1.6}
 .code-green{color:#22c55e}
 .code-white{color:#fff}
@@ -63,11 +63,11 @@ nav{display:flex;align-items:center;gap:4px}
 .endpoint-card{background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:24px}
 .endpoint-header{margin-bottom:16px}
 .endpoint-title{font-size:18px;font-weight:600;color:#fff;display:flex;align-items:center;gap:8px}
-.endpoint-path{font-family:'SF Mono',SFMono-Regular,Consolas,monospace;color:#fff}
+.endpoint-path{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;color:#fff}
 .endpoint-desc{color:#a0a0a0;margin-bottom:16px}
 .endpoint-note{font-size:14px;color:#666;margin-bottom:16px}
 .endpoint-example-label{font-size:14px;color:#666;margin-bottom:8px}
-.endpoint-example{background:#0f0f0f;border-radius:8px;padding:12px;font-family:'SF Mono',SFMono-Regular,Consolas,monospace;font-size:14px;overflow-x:auto}
+.endpoint-example{background:#0f0f0f;border-radius:8px;padding:12px;font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-size:14px;overflow-x:auto}
 .endpoint-example code{color:#a0a0a0}
 .endpoints-list{display:flex;flex-direction:column;gap:24px;margin-bottom:32px}
 
@@ -82,7 +82,7 @@ nav{display:flex;align-items:center;gap:4px}
 .section-heading{font-size:20px;font-weight:600;color:#fff;margin-bottom:24px}
 
 /* Footer */
-.footer{margin-top:auto;border-top:1px solid #1a1a1a;background:#0f0f0f;padding:32px 0}
+.footer{margin-top:auto;border-top:1px solid #333;background:#0f0f0f;padding:32px 0}
 .footer-container{max-width:1152px;margin:0 auto;padding:0 16px}
 @media(min-width:640px){.footer-container{padding:0 24px}}
 .footer-inner{display:flex;flex-direction:column;align-items:center;gap:16px}
@@ -90,20 +90,15 @@ nav{display:flex;align-items:center;gap:4px}
 .footer-links{display:flex;align-items:center;gap:16px}
 .footer-link{display:flex;align-items:center;gap:8px;font-size:14px;color:#a0a0a0;transition:color .15s}
 .footer-link:hover{color:#fff;text-decoration:none}
-.footer-credit{font-size:12px;color:#666;text-align:center;margin-top:24px;padding-top:24px;border-top:1px solid #1a1a1a}
+.footer-credit{font-size:12px;color:#666;text-align:center;margin-top:24px;padding-top:24px;border-top:1px solid #333}
 ::-webkit-scrollbar{width:8px;height:8px}
 ::-webkit-scrollbar-track{background:#0f0f0f}
 ::-webkit-scrollbar-thumb{background:#333;border-radius:4px}
-::-webkit-scrollbar-thumb:hover{background:#555}
-.network-banner{padding:8px 16px;text-align:center;font-size:13px;font-weight:600;letter-spacing:0.5px}
-.network-banner-testnet{background:#7c3aed;color:#fff}
-.network-banner-signet{background:#2563eb;color:#fff}
-.network-banner-regtest{background:#059669;color:#fff}
+::-webkit-scrollbar-thumb:hover{background:#666}
+
 </style>
 </head>
 <body>
-<!-- NETWORK_BANNER -->
-
 <!-- Header -->
 <header class="header">
 <div class="header-inner">

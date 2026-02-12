@@ -30,13 +30,11 @@ typedef struct StaticFiles {
 
 /*
  * Load all static files from a directory.
- * Files must exist: broadcast.html, result.html, error.html
- *
- * For non-mainnet chains, injects a network banner into HTML files.
+ * Files are served as-is with no modification.
  *
  * @param files  Pointer to StaticFiles struct to populate
  * @param dir    Directory path (e.g., "./static")
- * @param config Config with chain setting for banner injection
+ * @param config Config (reserved for future use)
  * @return 0 on success, -1 on error
  */
 int static_files_load(StaticFiles *files, const char *dir, const Config *config);

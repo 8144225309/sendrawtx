@@ -12,12 +12,12 @@ html{scroll-behavior:smooth;scrollbar-gutter:stable}
 :focus-visible{outline:2px solid #f7931a;outline-offset:2px}
 body{
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-  background:#0f0f0f;color:#e0e0e0;min-height:100vh;display:flex;flex-direction:column;
-  line-height:1.6;-webkit-font-smoothing:antialiased;
+  background:#0f0f0f;color:#fff;min-height:100vh;display:flex;flex-direction:column;
+  line-height:1.5;-webkit-font-smoothing:antialiased;
 }
 a{color:inherit;text-decoration:none}
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
-code,pre,.mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',Menlo,monospace}
+code,pre,.mono{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace}
 .hidden{display:none!important}
 
 /* Layout */
@@ -35,7 +35,8 @@ code,pre,.mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',M
 .mb-1{margin-bottom:4px}.mb-2{margin-bottom:8px}.mb-3{margin-bottom:12px}.mb-4{margin-bottom:16px}.mb-6{margin-bottom:24px}.mb-8{margin-bottom:32px}
 .pt-1{padding-top:4px}.pt-3{padding-top:12px}.pt-4{padding-top:16px}
 .p-1{padding:4px}.p-2{padding:8px}.p-3{padding:12px}.p-4{padding:16px}
-.px-2{padding-left:8px;padding-right:8px}.px-4{padding-left:16px;padding-right:16px}
+.px-2{padding-left:8px;padding-right:8px}.px-4{padding-left:16px;padding-right:16px}.px-section{padding-left:16px;padding-right:16px}
+@media(min-width:640px){.px-section{padding-left:24px;padding-right:24px}}
 .py-1{padding-top:4px;padding-bottom:4px}.py-2{padding-top:8px;padding-bottom:8px}
 .py-8{padding-top:32px;padding-bottom:32px}.py-12{padding-top:48px;padding-bottom:48px}
 .truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -77,34 +78,34 @@ code,pre,.mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',M
 .bg-orange{background:#f7931a}
 
 /* Card */
-.card{background:#1a1a1a;border-radius:12px;box-shadow:0 4px 6px -1px rgb(0 0 0/.3),0 2px 4px -2px rgb(0 0 0/.3)}
-.card-bordered{background:#1a1a1a;border:1px solid #333;border-radius:12px;box-shadow:0 4px 6px -1px rgb(0 0 0/.3),0 2px 4px -2px rgb(0 0 0/.3)}
+.card{background:#1a1a1a;border-radius:12px}
+.card-bordered{background:#1a1a1a;border:1px solid #333;border-radius:12px}
 .card-header{padding:16px 16px 0}
-.card-title{font-size:16px;font-weight:600;color:#fff;display:flex;align-items:center;gap:8px}
+.card-title{font-size:18px;font-weight:600;color:#fff;display:flex;align-items:center;gap:8px}
 .card-content{padding:24px}
 
 /* Badge */
-.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:9999px;font-size:12px;font-weight:500}
-.badge-info{background:rgba(59,130,246,0.2);color:#3b82f6}
-.badge-success{background:rgba(34,197,94,0.2);color:#22c55e}
-.badge-warning{background:rgba(234,179,8,0.2);color:#eab308}
-.badge-error{background:rgba(239,68,68,0.2);color:#ef4444}
-.badge-sm{font-size:11px;padding:1px 6px}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:500}
+.badge-info{background:rgba(59,130,246,0.12);color:#3b82f6}
+.badge-success{background:rgba(34,197,94,0.12);color:#22c55e}
+.badge-warning{background:rgba(234,179,8,0.12);color:#eab308}
+.badge-error{background:rgba(239,68,68,0.12);color:#ef4444}
+.badge-sm{font-size:12px;padding:2px 8px}
 
 /* Header */
 #site-header{
   position:sticky;top:0;z-index:50;
   background:rgba(15,15,15,0.95);backdrop-filter:blur(8px);
-  border-bottom:1px solid #1a1a1a;
+  border-bottom:1px solid #333;
 }
 #site-header .inner{display:flex;align-items:center;justify-content:space-between;height:64px}
 #site-header .logo-link{display:flex;align-items:center;gap:8px;transition:color 0.2s}
 #site-header .logo-link:hover .site-name{color:#f7931a}
-.site-name{font-size:18px;font-weight:700;color:#fff;font-family:'SF Mono',SFMono-Regular,Consolas,monospace;transition:color 0.2s}
+.site-name{font-size:18px;line-height:28px;font-weight:700;color:#fff;font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;transition:color 0.2s}
 #site-header nav{display:flex;align-items:center;gap:4px}
 .nav-link{
   display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:8px;
-  font-size:14px;font-weight:500;color:#a0a0a0;transition:all 0.2s;
+  font-size:14px;line-height:20px;font-weight:500;color:#a0a0a0;transition:all 0.2s;
 }
 .nav-link:hover{color:#fff;background:#1a1a1a}
 .nav-link.active{color:#fff;background:#1a1a1a}
@@ -112,7 +113,7 @@ code,pre,.mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',M
 @media(min-width:640px){.nav-link .nav-label{display:inline}}
 
 /* Footer */
-#site-footer{margin-top:auto;border-top:1px solid #1a1a1a;background:#0f0f0f;padding:32px 0}
+#site-footer{margin-top:auto;border-top:1px solid #333;background:#0f0f0f;padding:32px 0}
 #site-footer .footer-inner-wrap{display:flex;flex-direction:column;align-items:center;gap:16px}
 @media(min-width:640px){#site-footer .footer-inner-wrap{flex-direction:row;justify-content:space-between}}
 .footer-link{display:flex;align-items:center;gap:8px;font-size:14px;color:#a0a0a0;transition:color 0.2s}
@@ -121,22 +122,23 @@ code,pre,.mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',M
 /* Buttons */
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;
-  transition:all 0.2s;cursor:pointer;border:none;
+  padding:8px 16px;border-radius:8px;font-size:16px;font-weight:500;
+  transition:all .15s;cursor:pointer;border:none;
 }
 .btn-primary{background:#f7931a;color:#0f0f0f}
-.btn-primary:hover{background:#ffa940}
+.btn-primary:hover{background:#ffa940;text-decoration:none}
 .btn-primary:disabled{opacity:0.5;cursor:not-allowed}
-.btn-secondary{background:#252525;color:#a0a0a0;border:1px solid #333}
-.btn-secondary:hover{color:#fff;border-color:#555}
+.btn-secondary{background:#252525;color:#fff;border:1px solid #333}
+.btn-secondary:hover{color:#fff;background:#2d2d2d;border-color:#444}
 .btn-secondary:disabled{opacity:0.5;cursor:not-allowed}
-.btn-lg{padding:12px 24px;font-size:16px}
+.btn-lg{padding:12px 24px;font-size:18px;line-height:28px}
 
 /* Textarea */
 .tx-textarea{
-  width:100%;padding:12px;border-radius:8px;border:1px solid #333;
-  background:#252525;color:#e0e0e0;font-family:'SF Mono',SFMono-Regular,Consolas,monospace;
-  font-size:13px;resize:vertical;outline:none;transition:border-color 0.2s,box-shadow 0.2s;
+  width:100%;padding:12px 16px;border-radius:8px;border:1px solid #333;
+  background:#252525;color:#fff;font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;
+  font-size:14px;line-height:20px;resize:none;outline:none;transition:border-color .15s,box-shadow .15s;
+  margin-bottom:16px;
 }
 .tx-textarea:focus{border-color:#f7931a;box-shadow:0 0 0 1px #f7931a}
 .tx-textarea::placeholder{color:#666}
@@ -149,7 +151,7 @@ code,pre,.mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',M
 }
 .mode-btn{
   display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:6px;
-  font-size:14px;font-weight:500;color:#666;transition:all 0.2s;
+  font-size:14px;line-height:20px;font-weight:500;color:#666;transition:all 0.2s;
 }
 .mode-btn:hover{color:#a0a0a0}
 .mode-btn.active-preview{background:#252525;color:#fff}
@@ -185,7 +187,7 @@ code,pre,.mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',M
 .animate-spin{animation:spin 1s linear infinite}
 
 /* Border */
-.border-t{border-top:1px solid #1a1a1a}
+.border-t{border-top:1px solid #333}
 .border-b{border-bottom:1px solid #333}
 .border{border:1px solid #333}
 
@@ -195,7 +197,7 @@ code,pre,.mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',M
 @media(min-width:768px){.tx-info-grid{grid-template-columns:repeat(4,1fr)}}
 .tx-info-box{background:#1a1a1a;border-radius:8px;padding:12px}
 .tx-info-label{font-size:12px;color:#666;margin-bottom:4px;display:flex;align-items:center;gap:4px}
-.tx-info-value{font-size:14px;font-weight:500;color:#e0e0e0}
+.tx-info-value{font-size:14px;font-weight:500;color:#fff}
 .tx-badge{
   display:inline-flex;align-items:center;gap:4px;
   font-size:12px;padding:4px 8px;border-radius:4px;
@@ -206,22 +208,24 @@ code,pre,.mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',M
 .expand-detail{margin-top:12px;padding-top:12px;border-top:1px solid #333}
 .detail-row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px}
 .detail-label{color:#666}.detail-value{color:#a0a0a0}
-.copy-btn{color:#666;transition:color 0.2s;background:none;border:none;cursor:pointer;padding:2px}
-.copy-btn:hover{color:#a0a0a0}
+.copy-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:4px;font-size:12px;color:#a0a0a0;background:transparent;border:1px solid transparent;cursor:pointer;transition:all .15s}
+.copy-btn:hover{color:#fff;background:#333;border-color:#444}
 
 /* Scrollbar */
 ::-webkit-scrollbar{width:8px;height:8px}
 ::-webkit-scrollbar-track{background:#0f0f0f}
 ::-webkit-scrollbar-thumb{background:#333;border-radius:4px}
-::-webkit-scrollbar-thumb:hover{background:#555}
-.network-banner{padding:8px 16px;text-align:center;font-size:13px;font-weight:600;letter-spacing:0.5px}
-.network-banner-testnet{background:#7c3aed;color:#fff}
-.network-banner-signet{background:#2563eb;color:#fff}
-.network-banner-regtest{background:#059669;color:#fff}
+::-webkit-scrollbar-thumb:hover{background:#666}
+#network-banner{padding:8px 16px;text-align:center;font-size:13px;font-weight:600;letter-spacing:0.5px;display:none}
+#network-banner.testnet{background:#7c3aed;color:#fff}
+#network-banner.signet{background:#2563eb;color:#fff}
+#network-banner.regtest{background:#059669;color:#fff}
+.net-select{background:#1a1a1a;color:#a0a0a0;border:1px solid #333;border-radius:6px;padding:4px 8px;font-size:12px;font-family:inherit;cursor:pointer;outline:none}
+.net-select:focus{border-color:#f7931a}
 </style>
 </head>
 <body>
-<!-- NETWORK_BANNER -->
+<div id="network-banner"></div>
 
 <!-- HEADER -->
 <header id="site-header">
@@ -261,7 +265,7 @@ code,pre,.mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',M
 
 <!-- ==================== HOME ==================== -->
   <section class="py-12 sm-py-20">
-    <div class="max-w-4xl mx-auto text-center" style="padding:0 16px">
+    <div class="max-w-4xl mx-auto text-center px-section">
       <h1 class="text-4xl sm-text-5xl font-bold text-white mb-4">Broadcast Raw Transactions</h1>
       <p class="text-lg sm-text-xl text-muted mb-8 max-w-2xl mx-auto">
         The non-standard TX specialist. Route transactions through permissive nodes when standard services reject them.
@@ -272,11 +276,11 @@ code,pre,.mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',M
         <div class="card-content">
           <!-- Mode Toggle -->
           <div class="mode-toggle">
-            <button class="mode-btn active-preview" id="btn-preview" onclick="setMode('preview')">
+            <button class="mode-btn" id="btn-preview" onclick="setMode('preview')">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               Preview Only
             </button>
-            <button class="mode-btn" id="btn-broadcast" onclick="setMode('broadcast')">
+            <button class="mode-btn active-broadcast" id="btn-broadcast" onclick="setMode('broadcast')">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 010 8.49m-8.48-.01a6 6 0 010-8.49m11.31-2.82a10 10 0 010 14.14m-14.14 0a10 10 0 010-14.14"/></svg>
               Broadcast
             </button>
@@ -294,14 +298,19 @@ code,pre,.mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',M
           </div>
 
           <div class="flex items-center justify-between" style="margin-top:16px">
-            <span class="text-sm text-secondary" id="tx-status-left"></span>
-            <span id="tx-status-right"></span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <select id="net-select" class="net-select" onchange="onNetworkChange()">
+                <option value="mainnet">Mainnet</option>
+                <option value="testnet">Testnet</option>
+                <option value="signet">Signet</option>
+                <option value="regtest">Regtest</option>
+              </select>
+              <span class="text-sm text-secondary" id="tx-status-left"></span>
+            </div>
+            <span id="tx-status-right"><button class="btn btn-primary btn-lg" disabled><span>Broadcast</span> <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button></span>
           </div>
         </div>
       </div>
-
-      <!-- Dynamic Network Detection Banner -->
-      <div id="chain-detect-banner" class="max-w-2xl mx-auto" style="display:none;margin-top:16px;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;text-align:center"></div>
 
       <!-- Transaction Preview Container -->
       <div id="tx-preview-container" class="max-w-2xl mx-auto" style="margin-top:24px;display:none"></div>
@@ -310,7 +319,7 @@ code,pre,.mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',M
 
   <!-- Features -->
   <section class="py-12 border-t">
-    <div class="max-w-6xl mx-auto" style="padding:0 16px">
+    <div class="max-w-6xl mx-auto px-section">
       <div class="grid sm-grid-cols-3" style="gap:24px">
         <div class="card text-center"><div class="card-content">
           <div class="feature-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#f7931a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
@@ -333,7 +342,7 @@ code,pre,.mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',M
 
   <!-- How It Works -->
   <section class="py-12 border-t">
-    <div class="max-w-4xl mx-auto" style="padding:0 16px">
+    <div class="max-w-4xl mx-auto px-section">
       <h2 class="text-2xl font-bold text-white text-center mb-8">How It Works</h2>
       <div style="display:flex;flex-direction:column;gap:16px">
         <div class="flex items-start gap-4"><div class="step-circle">1</div><div class="pt-1 flex-1"><p class="text-muted">Paste your raw transaction hex</p></div></div>
@@ -365,7 +374,7 @@ code,pre,.mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',M
         </a>
       </div>
     </div>
-    <div style="margin-top:24px;padding-top:24px;border-top:1px solid #1a1a1a;text-align:center">
+    <div style="margin-top:24px;padding-top:24px;border-top:1px solid #333;text-align:center">
       <p style="font-size:12px;color:#666">Built with Bitcoin Core, Knots, and Libre Relay</p>
     </div>
 
@@ -756,8 +765,12 @@ function parseOpReturnData(data) {
   };
 }
 
+function getSelectedNetwork() {
+  return localStorage.getItem('sendrawtx-network') || 'mainnet';
+}
+
 async function scriptToAddress(scriptType, data, isMainnet) {
-  var net = window.__NETWORK__ || 'mainnet';
+  var net = getSelectedNetwork();
   if (isMainnet === undefined) isMainnet = (net === 'mainnet');
   var hrp = net === 'regtest' ? 'bcrt' : (isMainnet ? 'bc' : 'tb');
 
@@ -3012,7 +3025,7 @@ function handleTxInput() {
   if (!val.trim()) {
     document.getElementById('tx-preview-container').style.display = 'none';
     document.getElementById('tx-preview-container').innerHTML = '';
-    document.getElementById('chain-detect-banner').style.display = 'none';
+
     txValid = false;
     txCanBroadcast = false;
     updateStatusBar();
@@ -3037,7 +3050,7 @@ function updateStatusBar() {
   if (val.length === 0) {
     leftEl.innerHTML = '';
     if (broadcastMode === 'broadcast') {
-      rightEl.innerHTML = '<button class="btn btn-primary" disabled><span>Broadcast</span> ' + icon('ArrowRight', 20, '#666') + '</button>';
+      rightEl.innerHTML = '<button class="btn btn-primary btn-lg" disabled><span>Broadcast</span> ' + icon('ArrowRight', 20, '#666') + '</button>';
     } else {
       rightEl.innerHTML = '';
     }
@@ -3053,7 +3066,7 @@ function updateStatusBar() {
 
   if (broadcastMode === 'broadcast') {
     var disabled = !val || !txCanBroadcast;
-    rightEl.innerHTML = '<button class="btn btn-primary' + (disabled ? '' : '') + '" onclick="handleBroadcast()"' + (disabled ? ' disabled' : '') + '><span>Broadcast</span> ' + icon('ArrowRight', 20, disabled ? '#666' : '#0f0f0f') + '</button>';
+    rightEl.innerHTML = '<button class="btn btn-primary btn-lg" onclick="handleBroadcast()"' + (disabled ? ' disabled' : '') + '><span>Broadcast</span> ' + icon('ArrowRight', 20, disabled ? '#666' : '#0f0f0f') + '</button>';
   } else {
     rightEl.innerHTML = '<span class="text-sm text-secondary italic">Preview mode - decoding only</span>';
   }
@@ -3077,45 +3090,43 @@ function handleBroadcast() {
 }
 
 /* ============================================================
-   NETWORK DETECTION
+   NETWORK SELECTOR + TOP BANNER
    ============================================================ */
-function detectChainFromAddress(addr) {
-  if (!addr) return null;
-  if (addr.startsWith('bcrt1')) return 'regtest';
-  if (addr.startsWith('tb1')) return 'testnet';
-  if (addr.startsWith('bc1')) return 'mainnet';
-  if ('mn2'.includes(addr[0])) return 'testnet';
-  if ('13'.includes(addr[0])) return 'mainnet';
-  return null;
-}
-
-var chainBannerColors = {
-  regtest: { bg: 'rgba(5,150,105,0.15)', border: 'rgba(5,150,105,0.4)', color: '#34d399' },
-  testnet: { bg: 'rgba(124,58,237,0.15)', border: 'rgba(124,58,237,0.4)', color: '#a78bfa' },
-  signet:  { bg: 'rgba(37,99,235,0.15)', border: 'rgba(37,99,235,0.4)', color: '#60a5fa' },
-  mainnet: { bg: 'rgba(247,147,26,0.15)', border: 'rgba(247,147,26,0.4)', color: '#f7931a' }
+var networkLabels = {
+  testnet: 'TESTNET \u2014 Coins have no value',
+  signet: 'SIGNET \u2014 Coins have no value',
+  regtest: 'REGTEST \u2014 Local test network'
 };
 
-function updateChainDetectBanner(outputs) {
-  var banner = document.getElementById('chain-detect-banner');
-  if (!banner || !outputs || outputs.length === 0) { if (banner) banner.style.display = 'none'; return; }
-  var detected = null;
-  var sample = '';
-  for (var i = 0; i < outputs.length; i++) {
-    var addr = outputs[i].address;
-    if (!addr) continue;
-    var chain = detectChainFromAddress(addr);
-    if (chain) { detected = chain; sample = addr.length > 12 ? addr.slice(0, 12) + '...' : addr; break; }
+function updateNetworkBanner() {
+  var net = getSelectedNetwork();
+  var banner = document.getElementById('network-banner');
+  banner.className = '';
+  if (net !== 'mainnet' && networkLabels[net]) {
+    banner.className = net;
+    banner.textContent = networkLabels[net];
+    banner.style.display = 'block';
+  } else {
+    banner.style.display = 'none';
   }
-  if (!detected || detected === 'mainnet') { banner.style.display = 'none'; return; }
-  var c = chainBannerColors[detected] || chainBannerColors.testnet;
-  var label = detected.toUpperCase();
-  banner.style.display = 'block';
-  banner.style.background = c.bg;
-  banner.style.border = '1px solid ' + c.border;
-  banner.style.color = c.color;
-  banner.textContent = 'This transaction targets ' + label + ' \u2014 outputs contain ' + sample + ' addresses';
 }
+
+function onNetworkChange() {
+  var sel = document.getElementById('net-select').value;
+  localStorage.setItem('sendrawtx-network', sel);
+  updateNetworkBanner();
+  /* Re-decode current TX with new network encoding */
+  var val = document.getElementById('tx-input').value.trim();
+  if (val) decodeTxPreview(val);
+}
+
+/* Initialize network selector from localStorage */
+(function() {
+  var saved = getSelectedNetwork();
+  var sel = document.getElementById('net-select');
+  if (sel) sel.value = saved;
+  updateNetworkBanner();
+})();
 
 /* ============================================================
    TRANSACTION PREVIEW
@@ -3125,7 +3136,7 @@ function decodeTxPreview(rawTx) {
   if (!rawTx.trim()) {
     container.style.display = 'none';
     container.innerHTML = '';
-    document.getElementById('chain-detect-banner').style.display = 'none';
+
     return;
   }
 
@@ -3158,12 +3169,12 @@ function decodeTxPreview(rawTx) {
     updateStatusBar();
     renderDecodeResult(container, result);
     var outputs = result.type === 'psbt' ? (result.data.unsignedTx && result.data.unsignedTx.outputs || []) : (result.data.outputs || []);
-    updateChainDetectBanner(outputs);
+    /* Network banner is controlled by selector, not per-TX detection */
   }).catch(function(err) {
     txValid = false;
     txCanBroadcast = false;
     updateStatusBar();
-    document.getElementById('chain-detect-banner').style.display = 'none';
+
     container.innerHTML = '<div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:16px"><div class="flex items-start gap-2">' + icon('AlertTriangle', 16, '#ef4444') + ' <span class="text-sm text-red">' + escapeHtml(err.message || 'Failed to decode transaction') + '</span></div></div>';
   });
 }

@@ -11,21 +11,21 @@ html{scrollbar-gutter:stable}
 :focus-visible{outline:2px solid #f7931a;outline-offset:2px}
 body{
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-  background:#0f0f0f;color:#e0e0e0;min-height:100vh;display:flex;flex-direction:column;
+  background:#0f0f0f;color:#fff;min-height:100vh;display:flex;flex-direction:column;
   line-height:1.6;
 }
 a{color:#f7931a;text-decoration:none}
 a:hover{text-decoration:underline}
-code,.mono{font-family:'SF Mono',Consolas,'Liberation Mono',Menlo,monospace}
+code,.mono{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace}
 .container{max-width:1152px;margin:0 auto;padding:0 16px;width:100%}
 @media(min-width:640px){.container{padding:0 24px}}
 
 /* Header */
-.header{position:sticky;top:0;z-index:50;background:rgba(15,15,15,.95);backdrop-filter:blur(8px);border-bottom:1px solid #1a1a1a}
+.header{position:sticky;top:0;z-index:50;background:rgba(15,15,15,.95);backdrop-filter:blur(8px);border-bottom:1px solid #333}
 .header-inner{display:flex;align-items:center;justify-content:space-between;height:64px}
 .logo-link{display:flex;align-items:center;gap:8px}
 .logo-link:hover{text-decoration:none}
-.site-name{font-size:18px;font-weight:700;color:#fff;font-family:'SF Mono',Consolas,monospace}
+.site-name{font-size:18px;font-weight:700;color:#fff;font-family:ui-monospace,'Cascadia Code','Fira Code',monospace}
 .logo-link:hover .site-name{color:#f7931a}
 nav{display:flex;align-items:center;gap:4px}
 .nav-link{display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:8px;font-size:14px;font-weight:500;color:#a0a0a0;transition:all .15s}
@@ -35,16 +35,16 @@ nav{display:flex;align-items:center;gap:4px}
 @media(min-width:640px){.nav-label{display:inline}}
 
 /* Cards */
-.card{background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:24px;box-shadow:0 4px 6px -1px rgb(0 0 0/.3),0 2px 4px -2px rgb(0 0 0/.3)}
+.card{background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:24px}
 .card-sm{padding:16px}
 
 /* Badge */
-.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:600}
-.badge-success{background:rgba(34,197,94,.15);color:#22c55e;border:1px solid rgba(34,197,94,.3)}
-.badge-error{background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3)}
-.badge-warning{background:rgba(234,179,8,.15);color:#eab308;border:1px solid rgba(234,179,8,.3)}
-.badge-info{background:rgba(59,130,246,.15);color:#3b82f6;border:1px solid rgba(59,130,246,.3)}
-.badge-orange{background:rgba(247,147,26,.15);color:#f7931a;border:1px solid rgba(247,147,26,.3)}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:500}
+.badge-success{background:rgba(34,197,94,.12);color:#22c55e}
+.badge-error{background:rgba(239,68,68,.12);color:#ef4444}
+.badge-warning{background:rgba(234,179,8,.12);color:#eab308}
+.badge-info{background:rgba(59,130,246,.12);color:#3b82f6}
+.badge-orange{background:rgba(247,147,26,.12);color:#f7931a}
 .badge-muted{background:#1a1a1a;color:#a0a0a0;border:1px solid #333}
 
 /* Status */
@@ -67,7 +67,7 @@ nav{display:flex;align-items:center;gap:4px}
 .tx-row{padding:10px 16px;border-bottom:1px solid #2a2a2a;font-size:13px}
 .tx-row:last-child{border-bottom:none}
 .tx-label{color:#888;font-size:12px;margin-bottom:2px}
-.tx-value{color:#fff;font-family:'SF Mono',Consolas,monospace;font-size:13px;word-break:break-all}
+.tx-value{color:#fff;font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-size:13px;word-break:break-all}
 .tx-info-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:16px}
 @media(min-width:640px){.tx-info-grid{grid-template-columns:repeat(4,1fr)}}
 .tx-badges{display:flex;flex-wrap:wrap;gap:6px;padding:8px 16px}
@@ -85,13 +85,13 @@ nav{display:flex;align-items:center;gap:4px}
 .result-value{font-size:18px;font-weight:700;color:#fff}
 
 /* Footer */
-.footer{margin-top:auto;border-top:1px solid #1a1a1a;background:#0f0f0f;padding:32px 0}
+.footer{margin-top:auto;border-top:1px solid #333;background:#0f0f0f;padding:32px 0}
 .footer-inner{display:flex;flex-direction:column;align-items:center;gap:16px}
 @media(min-width:640px){.footer-inner{flex-direction:row;justify-content:space-between}}
 .footer-links{display:flex;align-items:center;gap:16px}
 .footer-link{display:flex;align-items:center;gap:8px;font-size:14px;color:#a0a0a0;transition:color .15s}
 .footer-link:hover{color:#fff;text-decoration:none}
-.footer-credit{font-size:12px;color:#666;text-align:center;margin-top:24px;padding-top:24px;border-top:1px solid #1a1a1a}
+.footer-credit{font-size:12px;color:#666;text-align:center;margin-top:24px;padding-top:24px;border-top:1px solid #333}
 
 /* Warning */
 .warning-box{background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.3);border-radius:8px;padding:12px 16px;display:flex;align-items:flex-start;gap:10px;margin:8px 16px}
@@ -109,8 +109,8 @@ nav{display:flex;align-items:center;gap:4px}
 .error-card{max-width:480px;text-align:center;width:100%}
 
 /* Button */
-.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;transition:all .15s}
-.btn-primary{background:#f7931a;color:#000}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:8px;font-size:16px;font-weight:500;transition:all .15s}
+.btn-primary{background:#f7931a;color:#0f0f0f}
 .btn-primary:hover{background:#ffa940;text-decoration:none}
 .btn-muted{background:#1a1a1a;color:#a0a0a0;border:1px solid #333}
 .btn-muted:hover{color:#fff;background:#252525;text-decoration:none}
@@ -122,8 +122,8 @@ nav{display:flex;align-items:center;gap:4px}
 .ns-limits{display:flex;gap:16px;margin-top:4px;font-size:11px;color:#666}
 
 /* Acceptance bar */
-.acceptance-bar{height:8px;border-radius:4px;background:#333;overflow:hidden;margin:8px 0}
-.acceptance-fill{height:100%;border-radius:4px;background:#22c55e;transition:width .3s}
+.acceptance-bar{height:12px;border-radius:9999px;background:#252525;overflow:hidden;margin:8px 0}
+.acceptance-fill{height:100%;border-radius:9999px;background:#22c55e;transition:width .5s}
 
 /* Endpoint list */
 .endpoint-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2a2a2a;font-size:13px}
@@ -133,15 +133,15 @@ nav{display:flex;align-items:center;gap:4px}
 ::-webkit-scrollbar{width:8px;height:8px}
 ::-webkit-scrollbar-track{background:#0f0f0f}
 ::-webkit-scrollbar-thumb{background:#333;border-radius:4px}
-::-webkit-scrollbar-thumb:hover{background:#555}
-.network-banner{padding:8px 16px;text-align:center;font-size:13px;font-weight:600;letter-spacing:0.5px}
-.network-banner-testnet{background:#7c3aed;color:#fff}
-.network-banner-signet{background:#2563eb;color:#fff}
-.network-banner-regtest{background:#059669;color:#fff}
+::-webkit-scrollbar-thumb:hover{background:#666}
+#network-banner{padding:8px 16px;text-align:center;font-size:13px;font-weight:600;letter-spacing:0.5px;display:none}
+#network-banner.testnet{background:#7c3aed;color:#fff}
+#network-banner.signet{background:#2563eb;color:#fff}
+#network-banner.regtest{background:#059669;color:#fff}
 </style>
 </head>
 <body>
-<!-- NETWORK_BANNER -->
+<div id="network-banner"></div>
 
 <!-- Header -->
 <header class="header">
@@ -188,9 +188,6 @@ nav{display:flex;align-items:center;gap:4px}
       <a href="/" style="display:inline-flex;align-items:center;gap:8px;color:#f7931a;font-size:14px">Back to Broadcast</a>
     </div>
   </div>
-
-  <!-- Dynamic Network Detection Banner -->
-  <div id="chain-detect-banner" style="display:none;margin-bottom:16px;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;text-align:center"></div>
 
   <!-- Transaction Preview -->
   <div id="txPreviewSection" style="display:none;margin-bottom:32px">
@@ -623,8 +620,12 @@ function parseOpReturnData(data) {
   };
 }
 
+function getSelectedNetwork() {
+  return localStorage.getItem('sendrawtx-network') || 'mainnet';
+}
+
 async function scriptToAddress(scriptType, data, isMainnet) {
-  var net = window.__NETWORK__ || 'mainnet';
+  var net = getSelectedNetwork();
   if (isMainnet === undefined) isMainnet = (net === 'mainnet');
   var hrp = net === 'regtest' ? 'bcrt' : (isMainnet ? 'bc' : 'tb');
 
@@ -2817,43 +2818,27 @@ var attempt = 0;
 var maxAttempts = 15;
 var baseDelay = 500;
 
-function detectChainFromAddress(addr) {
-  if (!addr) return null;
-  if (addr.startsWith('bcrt1')) return 'regtest';
-  if (addr.startsWith('tb1')) return 'testnet';
-  if (addr.startsWith('bc1')) return 'mainnet';
-  if ('mn2'.includes(addr[0])) return 'testnet';
-  if ('13'.includes(addr[0])) return 'mainnet';
-  return null;
-}
-
-var chainBannerColors = {
-  regtest: { bg: 'rgba(5,150,105,0.15)', border: 'rgba(5,150,105,0.4)', color: '#34d399' },
-  testnet: { bg: 'rgba(124,58,237,0.15)', border: 'rgba(124,58,237,0.4)', color: '#a78bfa' },
-  signet:  { bg: 'rgba(37,99,235,0.15)', border: 'rgba(37,99,235,0.4)', color: '#60a5fa' },
-  mainnet: { bg: 'rgba(247,147,26,0.15)', border: 'rgba(247,147,26,0.4)', color: '#f7931a' }
+var networkLabels = {
+  testnet: 'TESTNET \u2014 Coins have no value',
+  signet: 'SIGNET \u2014 Coins have no value',
+  regtest: 'REGTEST \u2014 Local test network'
 };
 
-function updateChainDetectBanner(outputs) {
-  var banner = document.getElementById('chain-detect-banner');
-  if (!banner || !outputs || outputs.length === 0) { if (banner) banner.style.display = 'none'; return; }
-  var detected = null;
-  var sample = '';
-  for (var i = 0; i < outputs.length; i++) {
-    var addr = outputs[i].address;
-    if (!addr) continue;
-    var chain = detectChainFromAddress(addr);
-    if (chain) { detected = chain; sample = addr.length > 12 ? addr.slice(0, 12) + '...' : addr; break; }
+function updateNetworkBanner() {
+  var net = getSelectedNetwork();
+  var banner = document.getElementById('network-banner');
+  banner.className = '';
+  if (net !== 'mainnet' && networkLabels[net]) {
+    banner.className = net;
+    banner.textContent = networkLabels[net];
+    banner.style.display = 'block';
+  } else {
+    banner.style.display = 'none';
   }
-  if (!detected || detected === 'mainnet') { banner.style.display = 'none'; return; }
-  var c = chainBannerColors[detected] || chainBannerColors.testnet;
-  var label = detected.toUpperCase();
-  banner.style.display = 'block';
-  banner.style.background = c.bg;
-  banner.style.border = '1px solid ' + c.border;
-  banner.style.color = c.color;
-  banner.textContent = 'This transaction targets ' + label + ' \u2014 outputs contain ' + sample + ' addresses';
 }
+
+/* Show banner on load based on localStorage */
+updateNetworkBanner();
 
 init();
 
@@ -2871,7 +2856,6 @@ async function init() {
     }
     renderPreview(result);
     var outputs = result.type === 'psbt' ? (result.data.unsignedTx && result.data.unsignedTx.outputs || []) : (result.data.outputs || []);
-    updateChainDetectBanner(outputs);
     if (txid) setTimeout(poll, baseDelay);
   } catch (err) {
     console.error('Decode error:', err);
