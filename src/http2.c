@@ -72,7 +72,7 @@ H2Stream *h2_stream_new(H2Connection *h2, int32_t stream_id)
 
     /* Per-stream request tracking */
     clock_gettime(CLOCK_MONOTONIC, &stream->start_time);
-    snprintf(stream->request_id, sizeof(stream->request_id), "%d-%lx-%xs%d",
+    snprintf(stream->request_id, sizeof(stream->request_id), "%d-%lx-%x-s%d",
              h2->worker->worker_id,
              (unsigned long)(stream->start_time.tv_sec * 1000000 + stream->start_time.tv_nsec / 1000),
              h2_request_counter++, stream_id);
@@ -233,6 +233,16 @@ static void h2_process_stream_request(Connection *conn, H2Stream *stream)
             h2_send_response(conn, stream->stream_id, 200, "text/plain",
                              (const unsigned char *)"", 0);
             break;
+        case ROUTE_VERSION: {
+            char body[256];
+            int len = snprintf(body, sizeof(body), "{\"version\":\"0.1.0\"}");
+            status_code = 200;
+            content_type = "application/json";
+            body_len = len;
+            h2_send_response(conn, stream->stream_id, status_code, content_type,
+                             (const unsigned char *)body, body_len);
+            break;
+        }
         case ROUTE_METRICS: {
             char body[16384];
             int len = generate_metrics_body(worker, body, sizeof(body));

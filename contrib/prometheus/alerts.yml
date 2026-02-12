@@ -29,7 +29,7 @@ groups:
 
       # Slot usage above 90% on any tier
       - alert: RawRelaySlotPressure
-        expr: (rawrelay_slots_used / rawrelay_slots_max) > 0.9
+        expr: (rawrelay_slots_used / rawrelay_slots_max) > 0.9 and rawrelay_slots_max > 0
         for: 2m
         labels:
           severity: warning
@@ -72,7 +72,7 @@ groups:
 
       # File descriptor usage above 80%
       - alert: RawRelayFDPressure
-        expr: (rawrelay_open_fds / rawrelay_max_fds) > 0.8
+        expr: (rawrelay_open_fds / rawrelay_max_fds) > 0.8 and rawrelay_max_fds > 0
         for: 5m
         labels:
           severity: warning

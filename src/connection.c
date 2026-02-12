@@ -1186,10 +1186,21 @@ static void connection_reset_for_keepalive(Connection *conn)
         }
     }
 
+    /* Reset response tracking for next request */
+    conn->response_status = 0;
+    conn->response_bytes = 0;
+
     /* Reset timing for next request */
     clock_gettime(CLOCK_MONOTONIC, &conn->start_time);
     conn->last_progress_time = conn->start_time;
     conn->bytes_at_last_check = 0;
+
+    /* Generate new request ID for next request */
+    static uint32_t keepalive_counter = 0;
+    snprintf(conn->request_id, sizeof(conn->request_id), "%d-%lx-%x",
+             conn->worker->worker_id,
+             (unsigned long)(conn->start_time.tv_sec * 1000000 + conn->start_time.tv_nsec / 1000),
+             keepalive_counter++);
 
     /* Ready for next request */
     conn->state = CONN_STATE_READING_HEADERS;
@@ -1330,14 +1341,20 @@ void connection_send_response(Connection *conn, int status_code,
         "Content-Type: text/plain\r\n"
         "Content-Length: %zu\r\n"
         "Connection: %s\r\n"
+        "X-Request-ID: %s\r\n"
         "\r\n",
         status_code, status_text, body_len,
-        conn->keep_alive ? "keep-alive" : "close");
+        conn->keep_alive ? "keep-alive" : "close",
+        conn->request_id);
 
     /* Write body */
     if (body && body_len > 0) {
         evbuffer_add(output, body, body_len);
     }
+
+    /* Track response for access logging */
+    conn->response_status = status_code;
+    conn->response_bytes = body_len;
 
     /* Set state based on keep-alive */
     if (conn->keep_alive) {
@@ -1354,6 +1371,9 @@ void connection_send_response(Connection *conn, int status_code,
 void connection_send_error(Connection *conn, int status_code,
                            const char *status_text)
 {
+    /* Force close on errors - don't keep broken connections alive */
+    conn->keep_alive = false;
+
     char body[256];
     snprintf(body, sizeof(body), "Error %d: %s\n", status_code, status_text);
     connection_send_response(conn, status_code, status_text, body);
