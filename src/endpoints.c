@@ -2,6 +2,7 @@
 #include "worker.h"
 #include "connection.h"
 #include "http2.h"
+#include "router.h"
 #include "slot_manager.h"
 #include "rate_limiter.h"
 #include "tls.h"
@@ -374,6 +375,145 @@ int generate_metrics_body(WorkerProcess *worker, char *buf, size_t bufsize)
         worker->worker_id, rate_limiter_get_entry_count(&worker->rate_limiter));
     METRICS_ADVANCE();
 
+    /* === Extended Metrics === */
+    n = snprintf(buf + offset, remaining,
+        "\n"
+        "# HELP rawrelay_response_bytes_total Total response bytes sent\n"
+        "# TYPE rawrelay_response_bytes_total counter\n"
+        "rawrelay_response_bytes_total{worker=\"%d\"} %lu\n"
+        "\n"
+        "# HELP rawrelay_slowloris_kills_total Connections killed by slowloris detection\n"
+        "# TYPE rawrelay_slowloris_kills_total counter\n"
+        "rawrelay_slowloris_kills_total{worker=\"%d\"} %lu\n"
+        "\n"
+        "# HELP rawrelay_slot_promotion_failures_total Tier promotion failures due to no slots\n"
+        "# TYPE rawrelay_slot_promotion_failures_total counter\n"
+        "rawrelay_slot_promotion_failures_total{worker=\"%d\"} %lu\n"
+        "\n"
+        "# HELP rawrelay_keepalive_reuses_total Requests served on reused keep-alive connections\n"
+        "# TYPE rawrelay_keepalive_reuses_total counter\n"
+        "rawrelay_keepalive_reuses_total{worker=\"%d\"} %lu\n",
+        worker->worker_id, (unsigned long)worker->response_bytes_total,
+        worker->worker_id, (unsigned long)worker->slowloris_kills,
+        worker->worker_id, (unsigned long)worker->slot_promotion_failures,
+        worker->worker_id, (unsigned long)worker->keepalive_reuses);
+    METRICS_ADVANCE();
+
+    /* === Per-Endpoint Counters === */
+    n = snprintf(buf + offset, remaining,
+        "\n"
+        "# HELP rawrelay_endpoint_requests_total Requests by endpoint\n"
+        "# TYPE rawrelay_endpoint_requests_total counter\n"
+        "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/health\"} %lu\n"
+        "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/ready\"} %lu\n"
+        "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/alive\"} %lu\n"
+        "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/version\"} %lu\n"
+        "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/metrics\"} %lu\n"
+        "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/\"} %lu\n"
+        "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/broadcast\"} %lu\n"
+        "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/result\"} %lu\n"
+        "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/docs\"} %lu\n"
+        "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/status\"} %lu\n"
+        "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/logos\"} %lu\n"
+        "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/acme\"} %lu\n",
+        worker->worker_id, (unsigned long)worker->endpoint_health,
+        worker->worker_id, (unsigned long)worker->endpoint_ready,
+        worker->worker_id, (unsigned long)worker->endpoint_alive,
+        worker->worker_id, (unsigned long)worker->endpoint_version,
+        worker->worker_id, (unsigned long)worker->endpoint_metrics,
+        worker->worker_id, (unsigned long)worker->endpoint_home,
+        worker->worker_id, (unsigned long)worker->endpoint_broadcast,
+        worker->worker_id, (unsigned long)worker->endpoint_result,
+        worker->worker_id, (unsigned long)worker->endpoint_docs,
+        worker->worker_id, (unsigned long)worker->endpoint_status,
+        worker->worker_id, (unsigned long)worker->endpoint_logos,
+        worker->worker_id, (unsigned long)worker->endpoint_acme);
+    METRICS_ADVANCE();
+
+    /* === RPC / Bitcoin Node Metrics === */
+    {
+        RPCManager *rpc = &worker->rpc;
+        n = snprintf(buf + offset, remaining,
+            "\n"
+            "# HELP rawrelay_rpc_broadcasts_total Total transaction broadcast attempts\n"
+            "# TYPE rawrelay_rpc_broadcasts_total counter\n"
+            "rawrelay_rpc_broadcasts_total{worker=\"%d\"} %lu\n"
+            "\n"
+            "# HELP rawrelay_rpc_broadcasts_success_total Successful transaction broadcasts\n"
+            "# TYPE rawrelay_rpc_broadcasts_success_total counter\n"
+            "rawrelay_rpc_broadcasts_success_total{worker=\"%d\"} %lu\n"
+            "\n"
+            "# HELP rawrelay_rpc_broadcasts_failed_total Failed transaction broadcasts\n"
+            "# TYPE rawrelay_rpc_broadcasts_failed_total counter\n"
+            "rawrelay_rpc_broadcasts_failed_total{worker=\"%d\"} %lu\n",
+            worker->worker_id, (unsigned long)rpc->total_broadcasts,
+            worker->worker_id, (unsigned long)rpc->successful_broadcasts,
+            worker->worker_id, (unsigned long)rpc->failed_broadcasts);
+        METRICS_ADVANCE();
+
+        /* Per-chain RPC client stats */
+        struct { const char *name; RPCClient *client; } chains[] = {
+            { "mainnet", &rpc->mainnet },
+            { "testnet", &rpc->testnet },
+            { "signet",  &rpc->signet },
+            { "regtest", &rpc->regtest },
+        };
+
+        int first_client = 1;
+        for (int i = 0; i < 4; i++) {
+            if (chains[i].client->host[0] == '\0') continue;
+            if (first_client) {
+                n = snprintf(buf + offset, remaining,
+                    "\n"
+                    "# HELP rawrelay_rpc_requests_total Total RPC requests to Bitcoin node\n"
+                    "# TYPE rawrelay_rpc_requests_total counter\n");
+                METRICS_ADVANCE();
+                first_client = 0;
+            }
+            n = snprintf(buf + offset, remaining,
+                "rawrelay_rpc_requests_total{worker=\"%d\",chain=\"%s\"} %lu\n",
+                worker->worker_id, chains[i].name,
+                (unsigned long)chains[i].client->request_count);
+            METRICS_ADVANCE();
+        }
+
+        first_client = 1;
+        for (int i = 0; i < 4; i++) {
+            if (chains[i].client->host[0] == '\0') continue;
+            if (first_client) {
+                n = snprintf(buf + offset, remaining,
+                    "\n"
+                    "# HELP rawrelay_rpc_errors_total Total RPC errors by chain\n"
+                    "# TYPE rawrelay_rpc_errors_total counter\n");
+                METRICS_ADVANCE();
+                first_client = 0;
+            }
+            n = snprintf(buf + offset, remaining,
+                "rawrelay_rpc_errors_total{worker=\"%d\",chain=\"%s\"} %lu\n",
+                worker->worker_id, chains[i].name,
+                (unsigned long)chains[i].client->error_count);
+            METRICS_ADVANCE();
+        }
+
+        first_client = 1;
+        for (int i = 0; i < 4; i++) {
+            if (chains[i].client->host[0] == '\0') continue;
+            if (first_client) {
+                n = snprintf(buf + offset, remaining,
+                    "\n"
+                    "# HELP rawrelay_rpc_node_up Bitcoin node availability (1=up, 0=down)\n"
+                    "# TYPE rawrelay_rpc_node_up gauge\n");
+                METRICS_ADVANCE();
+                first_client = 0;
+            }
+            n = snprintf(buf + offset, remaining,
+                "rawrelay_rpc_node_up{worker=\"%d\",chain=\"%s\"} %d\n",
+                worker->worker_id, chains[i].name,
+                chains[i].client->available);
+            METRICS_ADVANCE();
+        }
+    }
+
     /* Ensure null termination */
     buf[offset] = '\0';
 
@@ -570,6 +710,28 @@ void update_method_counters(WorkerProcess *worker, const char *method)
         worker->method_post++;
     } else {
         worker->method_other++;
+    }
+}
+
+/*
+ * Update per-endpoint counters.
+ */
+void update_endpoint_counter(WorkerProcess *worker, RouteType route)
+{
+    switch (route) {
+        case ROUTE_HEALTH:    worker->endpoint_health++; break;
+        case ROUTE_READY:     worker->endpoint_ready++; break;
+        case ROUTE_ALIVE:     worker->endpoint_alive++; break;
+        case ROUTE_VERSION:   worker->endpoint_version++; break;
+        case ROUTE_METRICS:   worker->endpoint_metrics++; break;
+        case ROUTE_HOME:      worker->endpoint_home++; break;
+        case ROUTE_BROADCAST: worker->endpoint_broadcast++; break;
+        case ROUTE_RESULT:    worker->endpoint_result++; break;
+        case ROUTE_DOCS:      worker->endpoint_docs++; break;
+        case ROUTE_STATUS:    worker->endpoint_status++; break;
+        case ROUTE_LOGOS:     worker->endpoint_logos++; break;
+        case ROUTE_ACME_CHALLENGE: worker->endpoint_acme++; break;
+        case ROUTE_ERROR:     break;  /* tracked via 404 status counter */
     }
 }
 
