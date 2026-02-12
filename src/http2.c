@@ -206,6 +206,7 @@ static void h2_process_stream_request(Connection *conn, H2Stream *stream)
     H2Connection *h2 = conn->h2;
     WorkerProcess *worker = h2->worker;
     RouteType route = route_request(stream->path, stream->path_len);
+    update_endpoint_counter(worker, route);
     StaticFile *file;
     int status_code = 200;
     const char *content_type = "text/plain";

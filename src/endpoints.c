@@ -2,6 +2,7 @@
 #include "worker.h"
 #include "connection.h"
 #include "http2.h"
+#include "router.h"
 #include "slot_manager.h"
 #include "rate_limiter.h"
 #include "tls.h"
@@ -398,6 +399,35 @@ int generate_metrics_body(WorkerProcess *worker, char *buf, size_t bufsize)
         worker->worker_id, (unsigned long)worker->keepalive_reuses);
     METRICS_ADVANCE();
 
+    /* === Per-Endpoint Counters === */
+    n = snprintf(buf + offset, remaining,
+        "\n"
+        "# HELP rawrelay_endpoint_requests_total Requests by endpoint\n"
+        "# TYPE rawrelay_endpoint_requests_total counter\n"
+        "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/health\"} %lu\n"
+        "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/ready\"} %lu\n"
+        "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/alive\"} %lu\n"
+        "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/version\"} %lu\n"
+        "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/metrics\"} %lu\n"
+        "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/\"} %lu\n"
+        "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/broadcast\"} %lu\n"
+        "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/result\"} %lu\n"
+        "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/docs\"} %lu\n"
+        "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/status\"} %lu\n"
+        "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/acme\"} %lu\n",
+        worker->worker_id, (unsigned long)worker->endpoint_health,
+        worker->worker_id, (unsigned long)worker->endpoint_ready,
+        worker->worker_id, (unsigned long)worker->endpoint_alive,
+        worker->worker_id, (unsigned long)worker->endpoint_version,
+        worker->worker_id, (unsigned long)worker->endpoint_metrics,
+        worker->worker_id, (unsigned long)worker->endpoint_home,
+        worker->worker_id, (unsigned long)worker->endpoint_broadcast,
+        worker->worker_id, (unsigned long)worker->endpoint_result,
+        worker->worker_id, (unsigned long)worker->endpoint_docs,
+        worker->worker_id, (unsigned long)worker->endpoint_status,
+        worker->worker_id, (unsigned long)worker->endpoint_acme);
+    METRICS_ADVANCE();
+
     /* === RPC / Bitcoin Node Metrics === */
     {
         RPCManager *rpc = &worker->rpc;
@@ -678,6 +708,28 @@ void update_method_counters(WorkerProcess *worker, const char *method)
         worker->method_post++;
     } else {
         worker->method_other++;
+    }
+}
+
+/*
+ * Update per-endpoint counters.
+ */
+void update_endpoint_counter(WorkerProcess *worker, RouteType route)
+{
+    switch (route) {
+        case ROUTE_HEALTH:    worker->endpoint_health++; break;
+        case ROUTE_READY:     worker->endpoint_ready++; break;
+        case ROUTE_ALIVE:     worker->endpoint_alive++; break;
+        case ROUTE_VERSION:   worker->endpoint_version++; break;
+        case ROUTE_METRICS:   worker->endpoint_metrics++; break;
+        case ROUTE_HOME:      worker->endpoint_home++; break;
+        case ROUTE_BROADCAST: worker->endpoint_broadcast++; break;
+        case ROUTE_RESULT:    worker->endpoint_result++; break;
+        case ROUTE_DOCS:      worker->endpoint_docs++; break;
+        case ROUTE_STATUS:    worker->endpoint_status++; break;
+        case ROUTE_LOGOS:     worker->endpoint_status++; break;
+        case ROUTE_ACME_CHALLENGE: worker->endpoint_acme++; break;
+        case ROUTE_ERROR:     break;  /* tracked via 404 status counter */
     }
 }
 

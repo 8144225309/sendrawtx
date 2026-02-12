@@ -123,6 +123,19 @@ typedef struct WorkerProcess {
     uint64_t errors_parse;
     uint64_t errors_tls;
 
+    /* Per-endpoint counters */
+    uint64_t endpoint_health;
+    uint64_t endpoint_ready;
+    uint64_t endpoint_alive;
+    uint64_t endpoint_version;
+    uint64_t endpoint_metrics;
+    uint64_t endpoint_home;
+    uint64_t endpoint_broadcast;
+    uint64_t endpoint_result;
+    uint64_t endpoint_docs;
+    uint64_t endpoint_status;
+    uint64_t endpoint_acme;
+
     /* Extended metrics */
     uint64_t response_bytes_total;       /* Total response bytes sent */
     uint64_t slowloris_kills;            /* Slowloris detections */

@@ -78,7 +78,7 @@
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
       "targets": [
-        { "expr": "sum(rate(rawrelay_requests_total{instance=~\"$instance\", worker=~\"$worker\"}[5m]))", "legendFormat": "" }
+        { "expr": "sum(rate(rawrelay_http_requests_by_class_total{instance=~\"$instance\", worker=~\"$worker\"}[5m]))", "legendFormat": "" }
       ],
       "fieldConfig": {
         "defaults": {
@@ -223,10 +223,68 @@
     },
 
     {
+      "title": "Requests by Endpoint",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 14 },
+      "targets": [
+        { "expr": "sum by (endpoint) (rate(rawrelay_endpoint_requests_total{instance=~\"$instance\", worker=~\"$worker\"}[1m]))", "legendFormat": "{{endpoint}}" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "fillOpacity": 20, "stacking": { "mode": "normal" } }
+        }
+      }
+    },
+
+    {
+      "title": "Requests by Method",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 14 },
+      "targets": [
+        { "expr": "sum by (method) (rate(rawrelay_requests_by_method_total{instance=~\"$instance\", worker=~\"$worker\"}[1m]))", "legendFormat": "{{method}}" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "fillOpacity": 20, "stacking": { "mode": "normal" } }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "GET" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "POST" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "OTHER" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+        ]
+      }
+    },
+
+    {
+      "title": "Connections Accepted/s",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 14 },
+      "targets": [
+        { "expr": "sum(rate(rawrelay_connections_accepted_total{instance=~\"$instance\", worker=~\"$worker\"}[1m]))", "legendFormat": "accepted" },
+        { "expr": "sum(rate(rawrelay_connections_rejected_total{instance=~\"$instance\", worker=~\"$worker\"}[1m]))", "legendFormat": "rejected" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "cps",
+          "custom": { "fillOpacity": 20 }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "accepted" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "rejected" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      }
+    },
+
+    {
       "title": "Request Latency (P50 / P90 / P99)",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 22 },
       "targets": [
         { "expr": "histogram_quantile(0.50, sum by (le) (rate(rawrelay_request_duration_seconds_bucket{instance=~\"$instance\", worker=~\"$worker\"}[5m])))", "legendFormat": "p50" },
         { "expr": "histogram_quantile(0.90, sum by (le) (rate(rawrelay_request_duration_seconds_bucket{instance=~\"$instance\", worker=~\"$worker\"}[5m])))", "legendFormat": "p90" },
@@ -249,7 +307,7 @@
       "title": "Latency Heatmap",
       "type": "heatmap",
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 22 },
       "targets": [
         { "expr": "sum(increase(rawrelay_request_duration_seconds_bucket{instance=~\"$instance\", worker=~\"$worker\"}[$__rate_interval])) by (le)", "legendFormat": "{{le}}", "format": "heatmap" }
       ],
@@ -264,7 +322,7 @@
     {
       "title": "Connections",
       "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 22 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 30 },
       "collapsed": false,
       "panels": []
     },
@@ -273,7 +331,7 @@
       "title": "Active Connections by Worker",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 23 },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 31 },
       "targets": [
         { "expr": "rawrelay_active_connections{instance=~\"$instance\", worker=~\"$worker\"}", "legendFormat": "worker {{worker}}" }
       ],
@@ -288,7 +346,7 @@
       "title": "Rejections by Reason",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 23 },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 31 },
       "targets": [
         { "expr": "sum by (reason) (rate(rawrelay_connections_rejected_total{instance=~\"$instance\", worker=~\"$worker\"}[1m]))", "legendFormat": "{{reason}}" }
       ],
@@ -309,7 +367,7 @@
       "title": "Slot Usage by Tier",
       "type": "bargauge",
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 23 },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 31 },
       "targets": [
         { "expr": "sum by (tier) (rawrelay_slots_used{instance=~\"$instance\", worker=~\"$worker\"}) / sum by (tier) (rawrelay_slots_max{instance=~\"$instance\", worker=~\"$worker\"})", "legendFormat": "{{tier}}" }
       ],
@@ -327,7 +385,7 @@
     {
       "title": "TLS & HTTP/2",
       "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 31 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 39 },
       "collapsed": false,
       "panels": []
     },
@@ -336,7 +394,7 @@
       "title": "TLS Handshakes by Version",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 32 },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 40 },
       "targets": [
         { "expr": "sum by (protocol) (rate(rawrelay_tls_handshakes_total{instance=~\"$instance\", worker=~\"$worker\"}[1m]))", "legendFormat": "{{protocol}}" }
       ],
@@ -356,7 +414,7 @@
       "title": "TLS Errors",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 32 },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 40 },
       "targets": [
         { "expr": "sum(rate(rawrelay_tls_handshake_errors_total{instance=~\"$instance\", worker=~\"$worker\"}[1m]))", "legendFormat": "handshake errors" }
       ],
@@ -373,7 +431,7 @@
       "title": "HTTP/2 Streams",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 32 },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 40 },
       "targets": [
         { "expr": "sum(rawrelay_http2_streams_active{instance=~\"$instance\", worker=~\"$worker\"})", "legendFormat": "active streams" },
         { "expr": "sum(rate(rawrelay_http2_streams_total{instance=~\"$instance\", worker=~\"$worker\"}[1m]))", "legendFormat": "new streams/s" },
@@ -394,7 +452,7 @@
     {
       "title": "Resources",
       "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 40 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 48 },
       "collapsed": false,
       "panels": []
     },
@@ -403,7 +461,7 @@
       "title": "File Descriptors",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 41 },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 49 },
       "targets": [
         { "expr": "sum(rawrelay_open_fds{instance=~\"$instance\", worker=~\"$worker\"})", "legendFormat": "open" },
         { "expr": "sum(rawrelay_max_fds{instance=~\"$instance\", worker=~\"$worker\"})", "legendFormat": "max" }
@@ -423,7 +481,7 @@
       "title": "Rate Limiter Table Size",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 41 },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 49 },
       "targets": [
         { "expr": "rawrelay_rate_limiter_entries{instance=~\"$instance\", worker=~\"$worker\"}", "legendFormat": "worker {{worker}}" }
       ],
@@ -438,7 +496,7 @@
       "title": "Errors by Type",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 41 },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 49 },
       "targets": [
         { "expr": "sum(rate(rawrelay_errors_total{instance=~\"$instance\", worker=~\"$worker\", type=\"timeout\"}[1m]))", "legendFormat": "timeout" },
         { "expr": "sum(rate(rawrelay_errors_total{instance=~\"$instance\", worker=~\"$worker\", type=\"parse_error\"}[1m]))", "legendFormat": "parse error" },
@@ -460,7 +518,7 @@
     {
       "title": "Bitcoin RPC",
       "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 49 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 57 },
       "collapsed": false,
       "panels": []
     },
@@ -469,7 +527,7 @@
       "title": "Broadcast Rate",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 50 },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 58 },
       "targets": [
         { "expr": "sum(rate(rawrelay_rpc_broadcasts_success_total{instance=~\"$instance\", worker=~\"$worker\"}[5m]))", "legendFormat": "success" },
         { "expr": "sum(rate(rawrelay_rpc_broadcasts_failed_total{instance=~\"$instance\", worker=~\"$worker\"}[5m]))", "legendFormat": "failed" }
@@ -490,7 +548,7 @@
       "title": "RPC Requests by Chain",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 50 },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 58 },
       "targets": [
         { "expr": "sum by (chain) (rate(rawrelay_rpc_requests_total{instance=~\"$instance\", worker=~\"$worker\"}[5m]))", "legendFormat": "{{chain}}" }
       ],
@@ -506,7 +564,7 @@
       "title": "Node Availability",
       "type": "stat",
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 50 },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 58 },
       "targets": [
         { "expr": "rawrelay_rpc_node_up{instance=~\"$instance\", worker=~\"$worker\"}", "legendFormat": "{{chain}}" }
       ],
@@ -522,7 +580,7 @@
     {
       "title": "Security & Efficiency",
       "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 58 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 66 },
       "collapsed": false,
       "panels": []
     },
@@ -531,7 +589,7 @@
       "title": "Bandwidth",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 59 },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 67 },
       "targets": [
         { "expr": "sum(rate(rawrelay_response_bytes_total{instance=~\"$instance\", worker=~\"$worker\"}[1m]))", "legendFormat": "bytes/s" }
       ],
@@ -548,7 +606,7 @@
       "title": "Slowloris Kills",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 59 },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 67 },
       "targets": [
         { "expr": "sum(rate(rawrelay_slowloris_kills_total{instance=~\"$instance\", worker=~\"$worker\"}[5m]))", "legendFormat": "kills/s" }
       ],
@@ -565,7 +623,7 @@
       "title": "Keep-Alive Reuse & Slot Failures",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 59 },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 67 },
       "targets": [
         { "expr": "sum(rate(rawrelay_keepalive_reuses_total{instance=~\"$instance\", worker=~\"$worker\"}[1m]))", "legendFormat": "keepalive reuses" },
         { "expr": "sum(rate(rawrelay_slot_promotion_failures_total{instance=~\"$instance\", worker=~\"$worker\"}[1m]))", "legendFormat": "slot promotion failures" }

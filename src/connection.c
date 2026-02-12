@@ -860,6 +860,7 @@ static void process_request(Connection *conn)
 
     /* Route the request based on path */
     RouteType route = route_request(conn->path, conn->path_len);
+    update_endpoint_counter(worker, route);
 
     /* Handle observability endpoints */
     switch (route) {

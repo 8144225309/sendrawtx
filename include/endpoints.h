@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "router.h"
 
 /* Forward declarations */
 struct WorkerProcess;
@@ -63,6 +64,11 @@ void update_status_counters(struct WorkerProcess *worker, int status);
  * Update HTTP method counters.
  */
 void update_method_counters(struct WorkerProcess *worker, const char *method);
+
+/*
+ * Update per-endpoint request counters.
+ */
+void update_endpoint_counter(struct WorkerProcess *worker, RouteType route);
 
 /*
  * Log access entry for a completed request.
