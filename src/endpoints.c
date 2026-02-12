@@ -374,6 +374,114 @@ int generate_metrics_body(WorkerProcess *worker, char *buf, size_t bufsize)
         worker->worker_id, rate_limiter_get_entry_count(&worker->rate_limiter));
     METRICS_ADVANCE();
 
+    /* === Extended Metrics === */
+    n = snprintf(buf + offset, remaining,
+        "\n"
+        "# HELP rawrelay_response_bytes_total Total response bytes sent\n"
+        "# TYPE rawrelay_response_bytes_total counter\n"
+        "rawrelay_response_bytes_total{worker=\"%d\"} %lu\n"
+        "\n"
+        "# HELP rawrelay_slowloris_kills_total Connections killed by slowloris detection\n"
+        "# TYPE rawrelay_slowloris_kills_total counter\n"
+        "rawrelay_slowloris_kills_total{worker=\"%d\"} %lu\n"
+        "\n"
+        "# HELP rawrelay_slot_promotion_failures_total Tier promotion failures due to no slots\n"
+        "# TYPE rawrelay_slot_promotion_failures_total counter\n"
+        "rawrelay_slot_promotion_failures_total{worker=\"%d\"} %lu\n"
+        "\n"
+        "# HELP rawrelay_keepalive_reuses_total Requests served on reused keep-alive connections\n"
+        "# TYPE rawrelay_keepalive_reuses_total counter\n"
+        "rawrelay_keepalive_reuses_total{worker=\"%d\"} %lu\n",
+        worker->worker_id, (unsigned long)worker->response_bytes_total,
+        worker->worker_id, (unsigned long)worker->slowloris_kills,
+        worker->worker_id, (unsigned long)worker->slot_promotion_failures,
+        worker->worker_id, (unsigned long)worker->keepalive_reuses);
+    METRICS_ADVANCE();
+
+    /* === RPC / Bitcoin Node Metrics === */
+    {
+        RPCManager *rpc = &worker->rpc;
+        n = snprintf(buf + offset, remaining,
+            "\n"
+            "# HELP rawrelay_rpc_broadcasts_total Total transaction broadcast attempts\n"
+            "# TYPE rawrelay_rpc_broadcasts_total counter\n"
+            "rawrelay_rpc_broadcasts_total{worker=\"%d\"} %lu\n"
+            "\n"
+            "# HELP rawrelay_rpc_broadcasts_success_total Successful transaction broadcasts\n"
+            "# TYPE rawrelay_rpc_broadcasts_success_total counter\n"
+            "rawrelay_rpc_broadcasts_success_total{worker=\"%d\"} %lu\n"
+            "\n"
+            "# HELP rawrelay_rpc_broadcasts_failed_total Failed transaction broadcasts\n"
+            "# TYPE rawrelay_rpc_broadcasts_failed_total counter\n"
+            "rawrelay_rpc_broadcasts_failed_total{worker=\"%d\"} %lu\n",
+            worker->worker_id, (unsigned long)rpc->total_broadcasts,
+            worker->worker_id, (unsigned long)rpc->successful_broadcasts,
+            worker->worker_id, (unsigned long)rpc->failed_broadcasts);
+        METRICS_ADVANCE();
+
+        /* Per-chain RPC client stats */
+        struct { const char *name; RPCClient *client; } chains[] = {
+            { "mainnet", &rpc->mainnet },
+            { "testnet", &rpc->testnet },
+            { "signet",  &rpc->signet },
+            { "regtest", &rpc->regtest },
+        };
+
+        int first_client = 1;
+        for (int i = 0; i < 4; i++) {
+            if (chains[i].client->host[0] == '\0') continue;
+            if (first_client) {
+                n = snprintf(buf + offset, remaining,
+                    "\n"
+                    "# HELP rawrelay_rpc_requests_total Total RPC requests to Bitcoin node\n"
+                    "# TYPE rawrelay_rpc_requests_total counter\n");
+                METRICS_ADVANCE();
+                first_client = 0;
+            }
+            n = snprintf(buf + offset, remaining,
+                "rawrelay_rpc_requests_total{worker=\"%d\",chain=\"%s\"} %lu\n",
+                worker->worker_id, chains[i].name,
+                (unsigned long)chains[i].client->request_count);
+            METRICS_ADVANCE();
+        }
+
+        first_client = 1;
+        for (int i = 0; i < 4; i++) {
+            if (chains[i].client->host[0] == '\0') continue;
+            if (first_client) {
+                n = snprintf(buf + offset, remaining,
+                    "\n"
+                    "# HELP rawrelay_rpc_errors_total Total RPC errors by chain\n"
+                    "# TYPE rawrelay_rpc_errors_total counter\n");
+                METRICS_ADVANCE();
+                first_client = 0;
+            }
+            n = snprintf(buf + offset, remaining,
+                "rawrelay_rpc_errors_total{worker=\"%d\",chain=\"%s\"} %lu\n",
+                worker->worker_id, chains[i].name,
+                (unsigned long)chains[i].client->error_count);
+            METRICS_ADVANCE();
+        }
+
+        first_client = 1;
+        for (int i = 0; i < 4; i++) {
+            if (chains[i].client->host[0] == '\0') continue;
+            if (first_client) {
+                n = snprintf(buf + offset, remaining,
+                    "\n"
+                    "# HELP rawrelay_rpc_node_up Bitcoin node availability (1=up, 0=down)\n"
+                    "# TYPE rawrelay_rpc_node_up gauge\n");
+                METRICS_ADVANCE();
+                first_client = 0;
+            }
+            n = snprintf(buf + offset, remaining,
+                "rawrelay_rpc_node_up{worker=\"%d\",chain=\"%s\"} %d\n",
+                worker->worker_id, chains[i].name,
+                chains[i].client->available);
+            METRICS_ADVANCE();
+        }
+    }
+
     /* Ensure null termination */
     buf[offset] = '\0';
 

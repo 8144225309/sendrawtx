@@ -233,7 +233,7 @@ static void h2_process_stream_request(Connection *conn, H2Stream *stream)
                              (const unsigned char *)"", 0);
             break;
         case ROUTE_METRICS: {
-            char body[8192];
+            char body[16384];
             int len = generate_metrics_body(worker, body, sizeof(body));
             status_code = 200;
             content_type = "text/plain; version=0.0.4; charset=utf-8";

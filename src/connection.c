@@ -824,7 +824,7 @@ static void serve_metrics(Connection *conn)
 {
     WorkerProcess *worker = conn->worker;
     struct evbuffer *output = bufferevent_get_output(conn->bev);
-    char body[8192];
+    char body[16384];
 
     conn->state = CONN_STATE_WRITING_RESPONSE;
 
@@ -982,6 +982,7 @@ static void conn_read_cb(struct bufferevent *bev, void *ctx)
         log_warn("Slowloris: Connection exceeded max time (%.1fs) from %s [%s]",
                  total_elapsed, log_format_ip(conn->client_ip),
                  conn->protocol == PROTO_HTTP_2 ? "HTTP/2" : "HTTP/1.1");
+        worker->slowloris_kills++;
         connection_free(conn);
         return;
     }
@@ -996,6 +997,7 @@ static void conn_read_cb(struct bufferevent *bev, void *ctx)
             log_warn("Slowloris: Throughput too low (%zu bytes in %.1fs) from %s [%s]",
                      bytes_this_period, check_elapsed, log_format_ip(conn->client_ip),
                      conn->protocol == PROTO_HTTP_2 ? "HTTP/2" : "HTTP/1.1");
+            worker->slowloris_kills++;
             connection_free(conn);
             return;
         }
@@ -1036,6 +1038,7 @@ static void conn_read_cb(struct bufferevent *bev, void *ctx)
         /* Try to promote tier if needed BEFORE processing more data */
         if (try_promote_tier(conn, available) < 0) {
             /* No slots available in higher tier - reject request */
+            worker->slot_promotion_failures++;
             connection_send_error(conn, 503, "Service Unavailable");
             return;
         }
@@ -1215,6 +1218,10 @@ static void log_request_complete(Connection *conn)
     update_latency_histogram(worker, duration_sec);
     update_status_counters(worker, conn->response_status);
     update_method_counters(worker, conn->method);
+    worker->response_bytes_total += conn->response_bytes;
+    if (conn->requests_on_connection > 1) {
+        worker->keepalive_reuses++;
+    }
 
     /* Log access */
     log_access(conn->client_ip,

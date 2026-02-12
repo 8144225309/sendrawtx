@@ -455,6 +455,131 @@
           { "matcher": { "id": "byName", "options": "TLS error" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
         ]
       }
+    },
+
+    {
+      "title": "Bitcoin RPC",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 49 },
+      "collapsed": false,
+      "panels": []
+    },
+
+    {
+      "title": "Broadcast Rate",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 50 },
+      "targets": [
+        { "expr": "sum(rate(rawrelay_rpc_broadcasts_success_total{instance=~\"$instance\", worker=~\"$worker\"}[5m]))", "legendFormat": "success" },
+        { "expr": "sum(rate(rawrelay_rpc_broadcasts_failed_total{instance=~\"$instance\", worker=~\"$worker\"}[5m]))", "legendFormat": "failed" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "fillOpacity": 20 }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "success" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "failed" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      }
+    },
+
+    {
+      "title": "RPC Requests by Chain",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 50 },
+      "targets": [
+        { "expr": "sum by (chain) (rate(rawrelay_rpc_requests_total{instance=~\"$instance\", worker=~\"$worker\"}[5m]))", "legendFormat": "{{chain}}" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "fillOpacity": 20 }
+        }
+      }
+    },
+
+    {
+      "title": "Node Availability",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 50 },
+      "targets": [
+        { "expr": "rawrelay_rpc_node_up{instance=~\"$instance\", worker=~\"$worker\"}", "legendFormat": "{{chain}}" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }],
+          "thresholds": { "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "orientation": "horizontal" }
+    },
+
+    {
+      "title": "Security & Efficiency",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 58 },
+      "collapsed": false,
+      "panels": []
+    },
+
+    {
+      "title": "Bandwidth",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 59 },
+      "targets": [
+        { "expr": "sum(rate(rawrelay_response_bytes_total{instance=~\"$instance\", worker=~\"$worker\"}[1m]))", "legendFormat": "bytes/s" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "custom": { "fillOpacity": 20 },
+          "color": { "fixedColor": "blue", "mode": "fixed" }
+        }
+      }
+    },
+
+    {
+      "title": "Slowloris Kills",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 59 },
+      "targets": [
+        { "expr": "sum(rate(rawrelay_slowloris_kills_total{instance=~\"$instance\", worker=~\"$worker\"}[5m]))", "legendFormat": "kills/s" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "fillOpacity": 20 },
+          "color": { "fixedColor": "orange", "mode": "fixed" }
+        }
+      }
+    },
+
+    {
+      "title": "Keep-Alive Reuse & Slot Failures",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 59 },
+      "targets": [
+        { "expr": "sum(rate(rawrelay_keepalive_reuses_total{instance=~\"$instance\", worker=~\"$worker\"}[1m]))", "legendFormat": "keepalive reuses" },
+        { "expr": "sum(rate(rawrelay_slot_promotion_failures_total{instance=~\"$instance\", worker=~\"$worker\"}[1m]))", "legendFormat": "slot promotion failures" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "fillOpacity": 20 }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "keepalive reuses" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "slot promotion failures" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      }
     }
   ]
 }

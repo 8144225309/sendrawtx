@@ -111,3 +111,45 @@ groups:
         annotations:
           summary: "P99 latency at {{ $value | humanizeDuration }} on worker {{ $labels.worker }}"
           description: "99th percentile request latency is above 1 second. Check RPC connection and system load."
+
+      # Bitcoin node down
+      - alert: RawRelayRPCNodeDown
+        expr: rawrelay_rpc_node_up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Bitcoin {{ $labels.chain }} node down on worker {{ $labels.worker }}"
+          description: "RPC connection to {{ $labels.chain }} node is unavailable. Check that bitcoind is running."
+
+      # Broadcast failure rate above 10%
+      - alert: RawRelayBroadcastFailures
+        expr: >
+          rate(rawrelay_rpc_broadcasts_failed_total[5m])
+          / rate(rawrelay_rpc_broadcasts_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Broadcast failure rate at {{ $value | humanizePercentage }} on worker {{ $labels.worker }}"
+          description: "More than 10% of transaction broadcasts are failing. Check Bitcoin node logs and RPC connectivity."
+
+      # Slowloris attacks detected
+      - alert: RawRelaySlowlorisAttack
+        expr: rate(rawrelay_slowloris_kills_total[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $value | humanize }}/s slowloris kills on worker {{ $labels.worker }}"
+          description: "Sustained slowloris-style connections being killed. May indicate a slow-read attack."
+
+      # Slot promotion failures (large transactions can't get slots)
+      - alert: RawRelaySlotPromotionFailures
+        expr: rate(rawrelay_slot_promotion_failures_total[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $value | humanize }}/s slot promotion failures on worker {{ $labels.worker }}"
+          description: "Large/huge tier slots exhausted. Large transactions are being rejected with 503. Consider increasing large_max/huge_max."

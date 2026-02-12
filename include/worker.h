@@ -123,6 +123,12 @@ typedef struct WorkerProcess {
     uint64_t errors_parse;
     uint64_t errors_tls;
 
+    /* Extended metrics */
+    uint64_t response_bytes_total;       /* Total response bytes sent */
+    uint64_t slowloris_kills;            /* Slowloris detections */
+    uint64_t slot_promotion_failures;    /* Tier promotion failures (no slots) */
+    uint64_t keepalive_reuses;           /* Requests served on reused connections */
+
     /* Active connections list (intrusive linked list) */
     struct Connection *connections;
 
