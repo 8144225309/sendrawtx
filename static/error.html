@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Error - sendrawtx.com</title>
+    <title>Error</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -79,14 +79,14 @@
         </div>
 
         <div class="help">
-            <h2>How to use sendrawtx.com</h2>
+            <h2 id="helpTitle">How to use this site</h2>
             <p><strong>Broadcast a transaction:</strong></p>
             <p>Append your raw transaction hex to the URL:</p>
-            <p><code>https://sendrawtx.com/{raw_tx_hex}</code></p>
+            <p><code id="exBroadcast">/{raw_tx_hex}</code></p>
 
             <p style="margin-top: 1rem;"><strong>Check transaction status:</strong></p>
             <p>Use the txid (64 hex characters):</p>
-            <p><code>https://sendrawtx.com/tx/{txid}</code></p>
+            <p><code id="exStatus">/tx/{txid}</code></p>
 
             <p style="margin-top: 1rem;"><strong>Requirements:</strong></p>
             <p>- Raw transaction hex must be at least 164 characters (82 bytes)</p>
@@ -120,6 +120,14 @@ INVALID ROUTES:
 <script>
 (function() {
     'use strict';
+
+    // Self-referential site name from the current URL
+    var siteName = window.location.host.replace(/^www\./, '');
+    var origin = window.location.origin;
+    document.title = 'Error - ' + siteName;
+    document.getElementById('helpTitle').textContent = 'How to use ' + siteName;
+    document.getElementById('exBroadcast').textContent = origin + '/{raw_tx_hex}';
+    document.getElementById('exStatus').textContent = origin + '/tx/{txid}';
 
     // Provide helpful error message based on the attempted URL
     function analyzeUrl() {
