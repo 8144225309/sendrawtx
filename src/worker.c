@@ -28,7 +28,7 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
-/* Global worker pointer for signal handler */
+/* Global worker pointer (reserved for future signal handler use) */
 static WorkerProcess *g_worker = NULL;
 
 /* Forward declarations */
@@ -727,6 +727,6 @@ void worker_main(int worker_id, Config *config)
     /* Cleanup and exit */
     worker_cleanup(&worker);
 
-    log_info("Exiting with %lu connections processed", worker.requests_processed);
+    log_info("Exiting with %lu connections processed", (unsigned long)worker.requests_processed);
     exit(0);
 }

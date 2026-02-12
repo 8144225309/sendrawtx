@@ -532,6 +532,12 @@ int serve_acme_challenge_h2(Connection *conn, int32_t stream_id,
     WorkerProcess *worker = conn->worker;
     const char *acme_dir = worker->config->acme_challenge_dir;
 
+    /* Security: Reject if ACME challenge directory is not configured */
+    if (!acme_dir || acme_dir[0] == '\0') {
+        log_warn("ACME H2: Challenge directory not configured");
+        goto not_found;
+    }
+
     /* Extract token from path: /.well-known/acme-challenge/{token} */
     const size_t prefix_len = 27;  /* ".well-known/acme-challenge/" */
 

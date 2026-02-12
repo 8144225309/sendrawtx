@@ -3,6 +3,7 @@
 
 #include "config.h"
 #include <stdbool.h>
+#include <signal.h>
 #include <sys/types.h>
 
 /*
@@ -28,9 +29,9 @@ typedef struct MasterProcess {
     pid_t *draining_pids;
     int num_draining;
 
-    /* Signal flags (set by signal handlers) */
-    volatile bool shutdown_requested;
-    volatile bool reload_requested;
+    /* Signal flags (set by signal handlers, must be sig_atomic_t for async-signal safety) */
+    volatile sig_atomic_t shutdown_requested;
+    volatile sig_atomic_t reload_requested;
 } MasterProcess;
 
 /*
