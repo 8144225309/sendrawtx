@@ -214,14 +214,16 @@ code,pre,.mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',M
 ::-webkit-scrollbar-track{background:#0f0f0f}
 ::-webkit-scrollbar-thumb{background:#333;border-radius:4px}
 ::-webkit-scrollbar-thumb:hover{background:#666}
-.network-banner{padding:8px 16px;text-align:center;font-size:13px;font-weight:600;letter-spacing:0.5px}
-.network-banner-testnet{background:#7c3aed;color:#fff}
-.network-banner-signet{background:#2563eb;color:#fff}
-.network-banner-regtest{background:#059669;color:#fff}
+#network-banner{padding:8px 16px;text-align:center;font-size:13px;font-weight:600;letter-spacing:0.5px;display:none}
+#network-banner.testnet{background:#7c3aed;color:#fff}
+#network-banner.signet{background:#2563eb;color:#fff}
+#network-banner.regtest{background:#059669;color:#fff}
+.net-select{background:#1a1a1a;color:#a0a0a0;border:1px solid #333;border-radius:6px;padding:4px 8px;font-size:12px;font-family:inherit;cursor:pointer;outline:none}
+.net-select:focus{border-color:#f7931a}
 </style>
 </head>
 <body>
-<!-- NETWORK_BANNER -->
+<div id="network-banner"></div>
 
 <!-- HEADER -->
 <header id="site-header">
@@ -270,16 +272,24 @@ code,pre,.mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',M
       <!-- Broadcast Form Card -->
       <div class="card-bordered max-w-2xl mx-auto text-left">
         <div class="card-content">
-          <!-- Mode Toggle -->
-          <div class="mode-toggle">
-            <button class="mode-btn active-preview" id="btn-preview" onclick="setMode('preview')">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              Preview Only
-            </button>
-            <button class="mode-btn" id="btn-broadcast" onclick="setMode('broadcast')">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 010 8.49m-8.48-.01a6 6 0 010-8.49m11.31-2.82a10 10 0 010 14.14m-14.14 0a10 10 0 010-14.14"/></svg>
-              Broadcast
-            </button>
+          <!-- Mode Toggle + Network Selector -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0">
+            <div class="mode-toggle" style="margin-bottom:0">
+              <button class="mode-btn active-preview" id="btn-preview" onclick="setMode('preview')">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                Preview Only
+              </button>
+              <button class="mode-btn" id="btn-broadcast" onclick="setMode('broadcast')">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 010 8.49m-8.48-.01a6 6 0 010-8.49m11.31-2.82a10 10 0 010 14.14m-14.14 0a10 10 0 010-14.14"/></svg>
+                Broadcast
+              </button>
+            </div>
+            <select id="net-select" class="net-select" onchange="onNetworkChange()">
+              <option value="mainnet">Mainnet</option>
+              <option value="testnet">Testnet</option>
+              <option value="signet">Signet</option>
+              <option value="regtest">Regtest</option>
+            </select>
           </div>
 
           <textarea id="tx-input" class="tx-textarea" rows="6"
@@ -299,9 +309,6 @@ code,pre,.mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',M
           </div>
         </div>
       </div>
-
-      <!-- Dynamic Network Detection Banner -->
-      <div id="chain-detect-banner" class="max-w-2xl mx-auto" style="display:none;margin-top:16px;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;text-align:center"></div>
 
       <!-- Transaction Preview Container -->
       <div id="tx-preview-container" class="max-w-2xl mx-auto" style="margin-top:24px;display:none"></div>
@@ -756,8 +763,12 @@ function parseOpReturnData(data) {
   };
 }
 
+function getSelectedNetwork() {
+  return localStorage.getItem('sendrawtx-network') || 'mainnet';
+}
+
 async function scriptToAddress(scriptType, data, isMainnet) {
-  var net = window.__NETWORK__ || 'mainnet';
+  var net = getSelectedNetwork();
   if (isMainnet === undefined) isMainnet = (net === 'mainnet');
   var hrp = net === 'regtest' ? 'bcrt' : (isMainnet ? 'bc' : 'tb');
 
@@ -3012,7 +3023,7 @@ function handleTxInput() {
   if (!val.trim()) {
     document.getElementById('tx-preview-container').style.display = 'none';
     document.getElementById('tx-preview-container').innerHTML = '';
-    document.getElementById('chain-detect-banner').style.display = 'none';
+
     txValid = false;
     txCanBroadcast = false;
     updateStatusBar();
@@ -3077,45 +3088,43 @@ function handleBroadcast() {
 }
 
 /* ============================================================
-   NETWORK DETECTION
+   NETWORK SELECTOR + TOP BANNER
    ============================================================ */
-function detectChainFromAddress(addr) {
-  if (!addr) return null;
-  if (addr.startsWith('bcrt1')) return 'regtest';
-  if (addr.startsWith('tb1')) return 'testnet';
-  if (addr.startsWith('bc1')) return 'mainnet';
-  if ('mn2'.includes(addr[0])) return 'testnet';
-  if ('13'.includes(addr[0])) return 'mainnet';
-  return null;
-}
-
-var chainBannerColors = {
-  regtest: { bg: 'rgba(5,150,105,0.15)', border: 'rgba(5,150,105,0.4)', color: '#34d399' },
-  testnet: { bg: 'rgba(124,58,237,0.15)', border: 'rgba(124,58,237,0.4)', color: '#a78bfa' },
-  signet:  { bg: 'rgba(37,99,235,0.15)', border: 'rgba(37,99,235,0.4)', color: '#60a5fa' },
-  mainnet: { bg: 'rgba(247,147,26,0.15)', border: 'rgba(247,147,26,0.4)', color: '#f7931a' }
+var networkLabels = {
+  testnet: 'TESTNET \u2014 Coins have no value',
+  signet: 'SIGNET \u2014 Coins have no value',
+  regtest: 'REGTEST \u2014 Local test network'
 };
 
-function updateChainDetectBanner(outputs) {
-  var banner = document.getElementById('chain-detect-banner');
-  if (!banner || !outputs || outputs.length === 0) { if (banner) banner.style.display = 'none'; return; }
-  var detected = null;
-  var sample = '';
-  for (var i = 0; i < outputs.length; i++) {
-    var addr = outputs[i].address;
-    if (!addr) continue;
-    var chain = detectChainFromAddress(addr);
-    if (chain) { detected = chain; sample = addr.length > 12 ? addr.slice(0, 12) + '...' : addr; break; }
+function updateNetworkBanner() {
+  var net = getSelectedNetwork();
+  var banner = document.getElementById('network-banner');
+  banner.className = '';
+  if (net !== 'mainnet' && networkLabels[net]) {
+    banner.className = net;
+    banner.textContent = networkLabels[net];
+    banner.style.display = 'block';
+  } else {
+    banner.style.display = 'none';
   }
-  if (!detected || detected === 'mainnet') { banner.style.display = 'none'; return; }
-  var c = chainBannerColors[detected] || chainBannerColors.testnet;
-  var label = detected.toUpperCase();
-  banner.style.display = 'block';
-  banner.style.background = c.bg;
-  banner.style.border = '1px solid ' + c.border;
-  banner.style.color = c.color;
-  banner.textContent = 'This transaction targets ' + label + ' \u2014 outputs contain ' + sample + ' addresses';
 }
+
+function onNetworkChange() {
+  var sel = document.getElementById('net-select').value;
+  localStorage.setItem('sendrawtx-network', sel);
+  updateNetworkBanner();
+  /* Re-decode current TX with new network encoding */
+  var val = document.getElementById('tx-input').value.trim();
+  if (val) decodeTxPreview(val);
+}
+
+/* Initialize network selector from localStorage */
+(function() {
+  var saved = getSelectedNetwork();
+  var sel = document.getElementById('net-select');
+  if (sel) sel.value = saved;
+  updateNetworkBanner();
+})();
 
 /* ============================================================
    TRANSACTION PREVIEW
@@ -3125,7 +3134,7 @@ function decodeTxPreview(rawTx) {
   if (!rawTx.trim()) {
     container.style.display = 'none';
     container.innerHTML = '';
-    document.getElementById('chain-detect-banner').style.display = 'none';
+
     return;
   }
 
@@ -3158,12 +3167,12 @@ function decodeTxPreview(rawTx) {
     updateStatusBar();
     renderDecodeResult(container, result);
     var outputs = result.type === 'psbt' ? (result.data.unsignedTx && result.data.unsignedTx.outputs || []) : (result.data.outputs || []);
-    updateChainDetectBanner(outputs);
+    /* Network banner is controlled by selector, not per-TX detection */
   }).catch(function(err) {
     txValid = false;
     txCanBroadcast = false;
     updateStatusBar();
-    document.getElementById('chain-detect-banner').style.display = 'none';
+
     container.innerHTML = '<div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:16px"><div class="flex items-start gap-2">' + icon('AlertTriangle', 16, '#ef4444') + ' <span class="text-sm text-red">' + escapeHtml(err.message || 'Failed to decode transaction') + '</span></div></div>';
   });
 }
