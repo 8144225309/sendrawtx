@@ -164,6 +164,7 @@ See [TESTING.md](TESTING.md) for the full testing strategy (sanitizers, fuzzing,
 
 | Document | Contents |
 |----------|----------|
+| [DEPLOY.md](DEPLOY.md) | Full deployment walkthrough — build, configure, systemd, TLS, port forwarding |
 | [OPERATIONS.md](OPERATIONS.md) | Rate limiting, IP ACLs, connection slots, TLS, signals, metrics, RPC, seccomp |
 | [TESTING.md](TESTING.md) | Testing strategy, CI pipeline, how to add tests |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Build instructions, code style, PR process |
