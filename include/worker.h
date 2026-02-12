@@ -134,6 +134,7 @@ typedef struct WorkerProcess {
     uint64_t endpoint_result;
     uint64_t endpoint_docs;
     uint64_t endpoint_status;
+    uint64_t endpoint_logos;
     uint64_t endpoint_acme;
 
     /* Extended metrics */

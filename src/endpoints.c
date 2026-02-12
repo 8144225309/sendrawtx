@@ -414,6 +414,7 @@ int generate_metrics_body(WorkerProcess *worker, char *buf, size_t bufsize)
         "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/result\"} %lu\n"
         "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/docs\"} %lu\n"
         "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/status\"} %lu\n"
+        "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/logos\"} %lu\n"
         "rawrelay_endpoint_requests_total{worker=\"%d\",endpoint=\"/acme\"} %lu\n",
         worker->worker_id, (unsigned long)worker->endpoint_health,
         worker->worker_id, (unsigned long)worker->endpoint_ready,
@@ -425,6 +426,7 @@ int generate_metrics_body(WorkerProcess *worker, char *buf, size_t bufsize)
         worker->worker_id, (unsigned long)worker->endpoint_result,
         worker->worker_id, (unsigned long)worker->endpoint_docs,
         worker->worker_id, (unsigned long)worker->endpoint_status,
+        worker->worker_id, (unsigned long)worker->endpoint_logos,
         worker->worker_id, (unsigned long)worker->endpoint_acme);
     METRICS_ADVANCE();
 
@@ -727,7 +729,7 @@ void update_endpoint_counter(WorkerProcess *worker, RouteType route)
         case ROUTE_RESULT:    worker->endpoint_result++; break;
         case ROUTE_DOCS:      worker->endpoint_docs++; break;
         case ROUTE_STATUS:    worker->endpoint_status++; break;
-        case ROUTE_LOGOS:     worker->endpoint_status++; break;
+        case ROUTE_LOGOS:     worker->endpoint_logos++; break;
         case ROUTE_ACME_CHALLENGE: worker->endpoint_acme++; break;
         case ROUTE_ERROR:     break;  /* tracked via 404 status counter */
     }
