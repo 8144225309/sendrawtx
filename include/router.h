@@ -16,6 +16,9 @@ typedef enum {
     ROUTE_BROADCAST,       /* Raw tx hex → broadcast page */
     ROUTE_RESULT,          /* Txid lookup → result page */
     ROUTE_ERROR,           /* Invalid → error page */
+    ROUTE_DOCS,            /* /docs → documentation page */
+    ROUTE_STATUS,          /* /status → status page */
+    ROUTE_LOGOS,           /* /logos → logos page */
     ROUTE_HEALTH,          /* /health → JSON health status */
     ROUTE_READY,           /* /ready → readiness probe */
     ROUTE_ALIVE,           /* /alive → liveness probe */

@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Documentation - sendrawtx</title>
+<meta name="description" content="API documentation for sendrawtx Bitcoin transaction broadcast service.">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scrollbar-gutter:stable}
+::selection{background:#f7931a;color:#0f0f0f}
+:focus-visible{outline:2px solid #f7931a;outline-offset:2px}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:#0f0f0f;color:#fff;min-height:100vh;display:flex;flex-direction:column;
+  line-height:1.6;
+}
+a{color:#f7931a;text-decoration:none}
+a:hover{text-decoration:underline}
+code,.mono{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace}
+
+/* Header */
+.header{position:sticky;top:0;z-index:50;background:rgba(15,15,15,.95);backdrop-filter:blur(8px);border-bottom:1px solid #333}
+.header-inner{max-width:1152px;margin:0 auto;padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:64px}
+@media(min-width:640px){.header-inner{padding:0 24px}}
+.logo-link{display:flex;align-items:center;gap:8px}
+.logo-link:hover{text-decoration:none}
+.site-name{font-size:18px;font-weight:700;color:#fff;font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;transition:color .15s}
+.logo-link:hover .site-name{color:#f7931a}
+nav{display:flex;align-items:center;gap:4px}
+.nav-link{display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:8px;font-size:14px;font-weight:500;color:#a0a0a0;transition:all .15s}
+.nav-link:hover{color:#fff;background:#1a1a1a;text-decoration:none}
+.nav-link.active{color:#fff;background:#1a1a1a}
+.nav-label{display:none}
+@media(min-width:640px){.nav-label{display:inline}}
+
+/* Page content */
+.page-container{max-width:896px;margin:0 auto;padding:0 16px}
+@media(min-width:640px){.page-container{padding:0 24px}}
+
+/* Cards — matches React Card variant="bordered" */
+.card{background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:24px;margin-bottom:32px}
+.card-header{margin-bottom:16px}
+.card-title{font-size:18px;font-weight:600;color:#fff;display:flex;align-items:center;gap:8px}
+.card-content{color:#a0a0a0}
+
+/* Badges — matches React Badge */
+.badge{display:inline-flex;align-items:center;font-weight:500;border-radius:6px}
+.badge-sm{padding:2px 8px;font-size:12px}
+.badge-md{padding:4px 10px;font-size:14px}
+.badge-info{background:rgba(59,130,246,.12);color:#3b82f6}
+.badge-success{background:rgba(34,197,94,.12);color:#22c55e}
+
+/* Code blocks */
+.code-block{background:#0f0f0f;border-radius:8px;padding:16px;font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-size:14px;overflow-x:auto}
+.code-block pre{margin:0;color:#a0a0a0;white-space:pre;line-height:1.6}
+.code-green{color:#22c55e}
+.code-white{color:#fff}
+.code-orange{color:#f7931a}
+.code-yellow{color:#eab308}
+
+/* Endpoint cards */
+.endpoint-card{background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:24px}
+.endpoint-header{margin-bottom:16px}
+.endpoint-title{font-size:18px;font-weight:600;color:#fff;display:flex;align-items:center;gap:8px}
+.endpoint-path{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;color:#fff}
+.endpoint-desc{color:#a0a0a0;margin-bottom:16px}
+.endpoint-note{font-size:14px;color:#666;margin-bottom:16px}
+.endpoint-example-label{font-size:14px;color:#666;margin-bottom:8px}
+.endpoint-example{background:#0f0f0f;border-radius:8px;padding:12px;font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;font-size:14px;overflow-x:auto}
+.endpoint-example code{color:#a0a0a0}
+.endpoints-list{display:flex;flex-direction:column;gap:24px;margin-bottom:32px}
+
+/* Content negotiation */
+.nego-row{display:flex;align-items:flex-start;gap:12px}
+.nego-row+.nego-row{margin-top:12px}
+.nego-badge{margin-top:2px;flex-shrink:0}
+.nego-text{color:#a0a0a0}
+.nego-text code{color:#f7931a}
+
+/* Section heading */
+.section-heading{font-size:20px;font-weight:600;color:#fff;margin-bottom:24px}
+
+/* Footer */
+.footer{margin-top:auto;border-top:1px solid #333;background:#0f0f0f;padding:32px 0}
+.footer-container{max-width:1152px;margin:0 auto;padding:0 16px}
+@media(min-width:640px){.footer-container{padding:0 24px}}
+.footer-inner{display:flex;flex-direction:column;align-items:center;gap:16px}
+@media(min-width:640px){.footer-inner{flex-direction:row;justify-content:space-between}}
+.footer-links{display:flex;align-items:center;gap:16px}
+.footer-link{display:flex;align-items:center;gap:8px;font-size:14px;color:#a0a0a0;transition:color .15s}
+.footer-link:hover{color:#fff;text-decoration:none}
+.footer-credit{font-size:12px;color:#666;text-align:center;margin-top:24px;padding-top:24px;border-top:1px solid #333}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:#0f0f0f}
+::-webkit-scrollbar-thumb{background:#333;border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:#666}
+
+</style>
+</head>
+<body>
+<!-- Header -->
+<header class="header">
+<div class="header-inner">
+  <a href="/" class="logo-link">
+    <svg viewBox="0 0 100 100" style="width:56px;height:56px">
+      <polygon points="50,2 93,26 93,74 50,98 7,74 7,26" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.1"/>
+      <polygon points="50,8 87,29 87,71 50,92 13,71 13,29" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.2"/>
+      <polygon points="50,14 81,32 81,68 50,86 19,68 19,32" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.35"/>
+      <polygon points="50,20 75,35 75,65 50,80 25,65 25,35" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.55"/>
+      <polygon points="50,26 69,38 69,62 50,74 31,62 31,38" fill="none" stroke="#f7931a" stroke-width="2.5" opacity="0.8"/>
+      <text x="50" y="58" text-anchor="middle" font-size="20" font-weight="bold" fill="#f7931a" font-family="Georgia,serif">TX</text>
+    </svg>
+    <span class="site-name" id="siteName"></span>
+  </a>
+  <nav>
+    <a href="/" class="nav-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span class="nav-label">Broadcast</span></a>
+    <a href="/docs" class="nav-link active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg><span class="nav-label">API Docs</span></a>
+    <a href="/status" class="nav-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="nav-label">Status</span></a>
+  </nav>
+</div>
+</header>
+
+<!-- Main Content -->
+<main style="flex:1;padding:32px 0">
+<div class="page-container">
+
+  <div style="margin-bottom:32px">
+    <h1 style="font-size:30px;font-weight:700;color:#fff;margin-bottom:8px">API Documentation</h1>
+    <p style="color:#a0a0a0">REST API for broadcasting raw Bitcoin transactions via the C server</p>
+  </div>
+
+  <!-- Quick Start -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f7931a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Quick Start
+      </h3>
+    </div>
+    <div class="card-content">
+      <p style="margin-bottom:16px">Broadcast a transaction with a single curl command:</p>
+      <div class="code-block">
+        <code><span class="code-green">curl</span><span class="code-white"> </span><span class="code-orange" id="quickStartUrl1">https://sendrawtx.com/0100000001...</span></code>
+      </div>
+      <p style="color:#666;font-size:14px;margin-top:12px">For JSON response, add the Accept header:</p>
+      <div class="code-block" style="margin-top:8px">
+        <code><span class="code-green">curl</span><span class="code-white"> -H </span><span class="code-yellow">"Accept: application/json"</span><span class="code-white"> </span><span class="code-orange" id="quickStartUrl2">https://sendrawtx.com/0100000001...</span></code>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content Negotiation -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f7931a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        Content Negotiation
+      </h3>
+    </div>
+    <div class="card-content">
+      <p style="margin-bottom:16px">Broadcast and result endpoints support content negotiation:</p>
+      <div class="nego-row">
+        <span class="badge badge-md badge-info nego-badge">Browser</span>
+        <span class="nego-text">Returns HTML page with interactive UI</span>
+      </div>
+      <div class="nego-row">
+        <span class="badge badge-md badge-success nego-badge">JSON</span>
+        <span class="nego-text">Send <code>Accept: application/json</code> to get structured JSON response</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Endpoints -->
+  <h2 class="section-heading">Endpoints</h2>
+
+  <div class="endpoints-list">
+
+    <!-- GET /{raw_tx_hex} -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <div class="endpoint-title">
+          <span class="badge badge-sm badge-info">GET</span>
+          <code class="endpoint-path">/{raw_tx_hex}</code>
+        </div>
+      </div>
+      <div class="card-content">
+        <p class="endpoint-desc">Broadcast a raw transaction. The hex must be 164+ characters (a valid serialized Bitcoin transaction).</p>
+        <p class="endpoint-note">Returns broadcast.html for browsers, JSON with Accept: application/json header.</p>
+        <div>
+          <p class="endpoint-example-label">Example:</p>
+          <div class="endpoint-example"><code>curl https://sendrawtx.com/0100000001...</code></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GET /tx/{txid} -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <div class="endpoint-title">
+          <span class="badge badge-sm badge-info">GET</span>
+          <code class="endpoint-path">/tx/{txid}</code>
+        </div>
+      </div>
+      <div class="card-content">
+        <p class="endpoint-desc">Look up a cached broadcast result by transaction ID (64 hex characters).</p>
+        <p class="endpoint-note">Returns result.html for browsers, JSON with Accept: application/json header.</p>
+        <div>
+          <p class="endpoint-example-label">Example:</p>
+          <div class="endpoint-example"><code>curl -H "Accept: application/json" https://sendrawtx.com/tx/abc123...</code></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GET /{txid} -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <div class="endpoint-title">
+          <span class="badge badge-sm badge-info">GET</span>
+          <code class="endpoint-path">/{txid}</code>
+        </div>
+      </div>
+      <div class="card-content">
+        <p class="endpoint-desc">Shorthand for /tx/{txid}. Exactly 64 hex characters routes to result lookup.</p>
+        <p class="endpoint-note">The server distinguishes broadcasts (164+ hex) from lookups (64 hex) by length.</p>
+      </div>
+    </div>
+
+    <!-- GET /health -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <div class="endpoint-title">
+          <span class="badge badge-sm badge-info">GET</span>
+          <code class="endpoint-path">/health</code>
+        </div>
+      </div>
+      <div class="card-content">
+        <p class="endpoint-desc">Worker health check. Returns JSON with worker ID, uptime, slot usage, TLS status, and resource consumption.</p>
+        <div>
+          <p class="endpoint-example-label">Example:</p>
+          <div class="endpoint-example"><code>curl https://sendrawtx.com/health</code></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GET /metrics -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <div class="endpoint-title">
+          <span class="badge badge-sm badge-info">GET</span>
+          <code class="endpoint-path">/metrics</code>
+        </div>
+      </div>
+      <div class="card-content">
+        <p class="endpoint-desc">Prometheus-format metrics for monitoring. Includes connection counts, slot usage, request rates.</p>
+        <div>
+          <p class="endpoint-example-label">Example:</p>
+          <div class="endpoint-example"><code>curl https://sendrawtx.com/metrics</code></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GET /ready -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <div class="endpoint-title">
+          <span class="badge badge-sm badge-info">GET</span>
+          <code class="endpoint-path">/ready</code>
+        </div>
+      </div>
+      <div class="card-content">
+        <p class="endpoint-desc">Readiness probe. Returns 200 when the worker is ready to accept connections.</p>
+      </div>
+    </div>
+
+    <!-- GET /alive -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <div class="endpoint-title">
+          <span class="badge badge-sm badge-info">GET</span>
+          <code class="endpoint-path">/alive</code>
+        </div>
+      </div>
+      <div class="card-content">
+        <p class="endpoint-desc">Liveness probe. Returns 200 as long as the worker process is running.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Health Response Example -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f7931a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        Health Response Example
+      </h3>
+    </div>
+    <div class="card-content">
+      <div class="code-block">
+        <pre style="color:#a0a0a0">{
+  "status": "ok",
+  "worker_id": 1,
+  "uptime_seconds": 3600,
+  "active_connections": 5,
+  "slots": {
+    "normal": {"used": 3, "max": 1000},
+    "large": {"used": 1, "max": 50},
+    "huge": {"used": 0, "max": 10}
+  },
+  "rate_limiter_entries": 42,
+  "tls": {
+    "enabled": true,
+    "cert_expiry_days": 60
+  },
+  "resources": {
+    "open_fds": 128,
+    "max_fds": 65536,
+    "usage_pct": 0.2
+  }
+}</pre>
+      </div>
+    </div>
+  </div>
+
+</div>
+</main>
+
+<!-- Footer -->
+<footer class="footer">
+<div class="footer-container">
+  <div class="footer-inner">
+    <div style="text-align:center">
+      <p style="font-size:14px;color:#a0a0a0"><span style="color:#fff;font-weight:500" class="mono" id="footerSiteName"></span> - Bitcoin raw transaction broadcast service</p>
+      <p style="font-size:12px;color:#666;margin-top:4px">Specializing in non-standard transactions that other services reject</p>
+    </div>
+    <div class="footer-links">
+      <a href="https://github.com/8144225309/sendrawtx" target="_blank" rel="noopener noreferrer" class="footer-link">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        <span>GitHub</span>
+      </a>
+      <a href="https://mempool.space" target="_blank" rel="noopener noreferrer" class="footer-link">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        <span>mempool.space</span>
+      </a>
+    </div>
+  </div>
+  <div class="footer-credit">Built with Bitcoin Core, Knots, and Libre Relay</div>
+</div>
+</footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var siteName = window.location.host.replace(/^www\./, '');
+  document.getElementById('siteName').textContent = siteName;
+  document.getElementById('footerSiteName').textContent = siteName;
+  document.title = 'API Documentation - ' + siteName;
+  var baseUrl = window.location.protocol + '//' + window.location.host;
+  var qs1 = document.getElementById('quickStartUrl1');
+  var qs2 = document.getElementById('quickStartUrl2');
+  if (qs1) qs1.textContent = baseUrl + '/0100000001...';
+  if (qs2) qs2.textContent = baseUrl + '/0100000001...';
+});
+</script>
+</body>
+</html>

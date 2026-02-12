@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System Status - sendrawtx</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scrollbar-gutter:stable}
+::selection{background:#f7931a;color:#0f0f0f}
+:focus-visible{outline:2px solid #f7931a;outline-offset:2px}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:#0f0f0f;color:#fff;min-height:100vh;display:flex;flex-direction:column;
+  line-height:1.6;
+}
+a{color:#f7931a;text-decoration:none}
+a:hover{text-decoration:underline}
+code,.mono{font-family:ui-monospace,'Cascadia Code','Fira Code',monospace}
+
+/* Header */
+.header{position:sticky;top:0;z-index:50;background:rgba(15,15,15,.95);backdrop-filter:blur(8px);border-bottom:1px solid #333}
+.header-inner{max-width:1152px;margin:0 auto;padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:64px}
+@media(min-width:640px){.header-inner{padding:0 24px}}
+.logo-link{display:flex;align-items:center;gap:8px}
+.logo-link:hover{text-decoration:none}
+.site-name{font-size:18px;font-weight:700;color:#fff;font-family:ui-monospace,'Cascadia Code','Fira Code',monospace;transition:color .15s}
+.logo-link:hover .site-name{color:#f7931a}
+nav{display:flex;align-items:center;gap:4px}
+.nav-link{display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:8px;font-size:14px;font-weight:500;color:#a0a0a0;transition:all .15s}
+.nav-link:hover{color:#fff;background:#1a1a1a;text-decoration:none}
+.nav-link.active{color:#fff;background:#1a1a1a}
+.nav-label{display:none}
+@media(min-width:640px){.nav-label{display:inline}}
+
+/* Page content */
+.page-container{max-width:896px;margin:0 auto;padding:0 16px}
+@media(min-width:640px){.page-container{padding:0 24px}}
+
+/* Title row */
+.title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px}
+.title-row h1{font-size:30px;font-weight:700;color:#fff;margin-bottom:8px}
+.title-row p{color:#a0a0a0}
+
+/* Button — matches React Button variant="secondary" size="md" */
+.btn-secondary{display:inline-flex;align-items:center;justify-content:center;font-weight:500;padding:8px 16px;font-size:16px;border-radius:8px;background:#252525;color:#fff;border:1px solid #333;cursor:pointer;transition:all .15s}
+.btn-secondary:hover{background:#2d2d2d;border-color:#444}
+.btn-secondary:disabled{opacity:.5;cursor:not-allowed}
+.btn-secondary svg{margin-right:8px}
+
+/* Cards — matches React Card variant="bordered" */
+.card{background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:24px}
+.card-header{margin-bottom:16px}
+.card-title{font-size:18px;font-weight:600;color:#fff;display:flex;align-items:center;gap:8px}
+.card-content{color:#a0a0a0}
+.card-stack{display:flex;flex-direction:column;gap:24px}
+
+/* Badge */
+.badge{display:inline-flex;align-items:center;font-weight:500;border-radius:6px}
+.badge-sm{padding:2px 8px;font-size:12px}
+.badge-md{padding:4px 10px;font-size:14px}
+.badge-success{background:rgba(34,197,94,.12);color:#22c55e}
+.badge-warning{background:rgba(234,179,8,.12);color:#eab308}
+
+/* Stats grid */
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+@media(min-width:640px){.stats-grid{grid-template-columns:repeat(4,1fr)}}
+.stat-label{font-size:14px;color:#666;margin-bottom:4px}
+.stat-value{font-size:20px;font-weight:700;color:#fff}
+
+/* Status indicator */
+.status-row{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+.status-text h3{font-size:18px;font-weight:600;color:#fff}
+.status-text p{font-size:14px;color:#a0a0a0}
+
+/* Progress bars */
+.progress-track{width:100%;background:#252525;border-radius:9999px;overflow:hidden}
+.progress-track-sm{height:8px}
+.progress-track-md{height:12px}
+.progress-fill{height:100%;border-radius:9999px;transition:all .3s}
+.fill-green{background:#22c55e}
+.fill-yellow{background:#eab308}
+.fill-red{background:#ef4444}
+
+/* Slot rows */
+.slot-row{margin-bottom:16px}
+.slot-row:last-child{margin-bottom:0}
+.slot-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.slot-name{font-size:14px;font-weight:500;color:#fff;text-transform:capitalize}
+.slot-count{font-size:14px;color:#a0a0a0}
+
+/* TLS row */
+.tls-status{display:flex;align-items:center;gap:16px}
+.tls-enabled{display:flex;align-items:center;gap:8px}
+.tls-enabled span{color:#fff;font-weight:500}
+.tls-cert{display:flex;align-items:center;gap:8px;color:#a0a0a0}
+
+/* Resources grid */
+.resources-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px}
+
+/* Error card */
+.error-card{background:#1a1a1a;border:1px solid #ef4444;border-radius:12px;padding:24px}
+.error-content{display:flex;align-items:center;gap:12px;color:#ef4444}
+
+/* Spinner */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinning{animation:spin 1s linear infinite}
+
+/* Footer */
+.footer{margin-top:auto;border-top:1px solid #333;background:#0f0f0f;padding:32px 0}
+.footer-container{max-width:1152px;margin:0 auto;padding:0 16px}
+@media(min-width:640px){.footer-container{padding:0 24px}}
+.footer-inner{display:flex;flex-direction:column;align-items:center;gap:16px}
+@media(min-width:640px){.footer-inner{flex-direction:row;justify-content:space-between}}
+.footer-links{display:flex;align-items:center;gap:16px}
+.footer-link{display:flex;align-items:center;gap:8px;font-size:14px;color:#a0a0a0;transition:color .15s}
+.footer-link:hover{color:#fff;text-decoration:none}
+.footer-credit{font-size:12px;color:#666;text-align:center;margin-top:24px;padding-top:24px;border-top:1px solid #333}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:#0f0f0f}
+::-webkit-scrollbar-thumb{background:#333;border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:#666}
+
+</style>
+</head>
+<body>
+<!-- Header -->
+<header class="header">
+<div class="header-inner">
+  <a href="/" class="logo-link">
+    <svg viewBox="0 0 100 100" style="width:56px;height:56px">
+      <polygon points="50,2 93,26 93,74 50,98 7,74 7,26" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.1"/>
+      <polygon points="50,8 87,29 87,71 50,92 13,71 13,29" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.2"/>
+      <polygon points="50,14 81,32 81,68 50,86 19,68 19,32" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.35"/>
+      <polygon points="50,20 75,35 75,65 50,80 25,65 25,35" fill="none" stroke="#f7931a" stroke-width="2" opacity="0.55"/>
+      <polygon points="50,26 69,38 69,62 50,74 31,62 31,38" fill="none" stroke="#f7931a" stroke-width="2.5" opacity="0.8"/>
+      <text x="50" y="58" text-anchor="middle" font-size="20" font-weight="bold" fill="#f7931a" font-family="Georgia,serif">TX</text>
+    </svg>
+    <span class="site-name" id="siteName"></span>
+  </a>
+  <nav>
+    <a href="/" class="nav-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span class="nav-label">Broadcast</span></a>
+    <a href="/docs" class="nav-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg><span class="nav-label">API Docs</span></a>
+    <a href="/status" class="nav-link active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="nav-label">Status</span></a>
+  </nav>
+</div>
+</header>
+
+<!-- Main Content -->
+<main style="flex:1;padding:32px 0">
+<div class="page-container">
+
+  <!-- Title row: matches React flex layout -->
+  <div class="title-row">
+    <div>
+      <h1>System Status</h1>
+      <p>Monitor worker health and resource usage</p>
+    </div>
+    <button class="btn-secondary" id="refreshBtn" onclick="fetchHealth()">
+      <svg id="refreshIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Refresh
+    </button>
+  </div>
+
+  <!-- Error shown here when fetch fails -->
+  <div id="errorContainer"></div>
+
+  <!-- Dashboard cards rendered by JS -->
+  <div id="dashboardContent"></div>
+
+</div>
+</main>
+
+<!-- Footer -->
+<footer class="footer">
+<div class="footer-container">
+  <div class="footer-inner">
+    <div style="text-align:center">
+      <p style="font-size:14px;color:#a0a0a0"><span style="color:#fff;font-weight:500" class="mono" id="footerSiteName"></span> - Bitcoin raw transaction broadcast service</p>
+      <p style="font-size:12px;color:#666;margin-top:4px">Specializing in non-standard transactions that other services reject</p>
+    </div>
+    <div class="footer-links">
+      <a href="https://github.com/8144225309/sendrawtx" target="_blank" rel="noopener noreferrer" class="footer-link">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        <span>GitHub</span>
+      </a>
+      <a href="https://mempool.space" target="_blank" rel="noopener noreferrer" class="footer-link">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        <span>mempool.space</span>
+      </a>
+    </div>
+  </div>
+  <div class="footer-credit">Built with Bitcoin Core, Knots, and Libre Relay</div>
+</div>
+</footer>
+
+<script>
+(function() {
+'use strict';
+
+// ── SVG Icons ────────────────────────────────────────────────────────────────
+
+var ICONS = {
+  checkCircle: function(s) { return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'; },
+  xCircle: function(s) { return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'; },
+  alertTriangle: function(s) { return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'; },
+  server: function(s) { return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="#f7931a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>'; },
+  shield: function(s) { return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="#f7931a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>'; },
+  cpu: function(s) { return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="#f7931a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>'; }
+};
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatUptime(seconds) {
+  if (typeof seconds !== 'number' || seconds < 0) return '—';
+  var d = Math.floor(seconds / 86400);
+  var h = Math.floor((seconds % 86400) / 3600);
+  var m = Math.floor((seconds % 3600) / 60);
+  if (d > 0) return d + 'd ' + h + 'h ' + m + 'm';
+  if (h > 0) return h + 'h ' + m + 'm';
+  return m + 'm';
+}
+
+function fillColor(pct) {
+  if (pct >= 90) return 'fill-red';
+  if (pct >= 70) return 'fill-yellow';
+  return 'fill-green';
+}
+
+function esc(s) {
+  if (typeof s !== 'string') s = String(s == null ? '' : s);
+  var d = document.createElement('div');
+  d.appendChild(document.createTextNode(s));
+  return d.innerHTML;
+}
+
+// ── Site name ────────────────────────────────────────────────────────────────
+
+var host = window.location.host.replace(/^www\./, '');
+document.getElementById('siteName').textContent = host;
+document.getElementById('footerSiteName').textContent = host;
+
+// ── Refresh logic ────────────────────────────────────────────────────────────
+
+var refreshTimer = null;
+
+function startAutoRefresh() {
+  if (refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = setInterval(fetchHealth, 30000);
+}
+
+window.fetchHealth = function() {
+  var btn = document.getElementById('refreshBtn');
+  var ico = document.getElementById('refreshIcon');
+  btn.disabled = true;
+  ico.classList.add('spinning');
+
+  fetch('/health', { headers: { 'Accept': 'application/json' } })
+  .then(function(res) {
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  })
+  .then(function(data) {
+    document.getElementById('errorContainer').innerHTML = '';
+    renderDashboard(data);
+  })
+  .catch(function(err) {
+    renderError(err.message || 'Failed to fetch health');
+  })
+  .finally(function() {
+    btn.disabled = false;
+    ico.classList.remove('spinning');
+    startAutoRefresh();
+  });
+};
+
+// ── Render: dashboard ────────────────────────────────────────────────────────
+
+function renderDashboard(data) {
+  var isOk = data.status === 'ok' || data.status === 'healthy';
+  var html = '<div class="card-stack">';
+
+  // ── Worker Status card ──
+  html += '<div class="card">';
+  html += '<div class="card-header"><div class="card-title">' + ICONS.server(20) + ' Worker Status</div></div>';
+  html += '<div class="card-content">';
+
+  // Status indicator
+  html += '<div class="status-row">';
+  if (isOk) {
+    html += ICONS.checkCircle(32);
+    html += '<div class="status-text"><h3>Operational</h3><p>All systems running normally</p></div>';
+  } else {
+    html += ICONS.xCircle(32);
+    html += '<div class="status-text"><h3>Issues Detected</h3><p>Some systems may be degraded</p></div>';
+  }
+  html += '</div>';
+
+  // Stats grid
+  html += '<div class="stats-grid">';
+  html += '<div><div class="stat-label">Worker ID</div><div class="stat-value">' + esc(data.worker_id != null ? data.worker_id : '—') + '</div></div>';
+  html += '<div><div class="stat-label">Uptime</div><div class="stat-value">' + esc(formatUptime(data.uptime_seconds)) + '</div></div>';
+  html += '<div><div class="stat-label">Active Connections</div><div class="stat-value">' + esc(data.active_connections != null ? data.active_connections : '—') + '</div></div>';
+  html += '<div><div class="stat-label">Rate Limiter</div><div class="stat-value">' + esc(data.rate_limiter_entries != null ? data.rate_limiter_entries + ' entries' : '—') + '</div></div>';
+  html += '</div>';
+
+  html += '</div></div>';
+
+  // ── Slot Usage card ──
+  var slots = data.slots || {};
+  var slotKeys = Object.keys(slots);
+
+  html += '<div class="card">';
+  html += '<div class="card-header"><div class="card-title">Slot Usage</div></div>';
+  html += '<div class="card-content">';
+
+  if (slotKeys.length === 0) {
+    html += '<p style="color:#666">No slot data available</p>';
+  } else {
+    for (var i = 0; i < slotKeys.length; i++) {
+      var name = slotKeys[i];
+      var pool = slots[name];
+      var used = pool.used != null ? pool.used : 0;
+      var max = pool.max != null ? pool.max : 0;
+      var pct = max > 0 ? Math.round((used / max) * 100) : 0;
+      html += '<div class="slot-row">';
+      html += '<div class="slot-header"><span class="slot-name">' + esc(name) + '</span><span class="slot-count">' + esc(used) + '/' + esc(max) + ' (' + pct + '%)</span></div>';
+      html += '<div class="progress-track progress-track-sm"><div class="progress-fill ' + fillColor(pct) + '" style="width:' + pct + '%"></div></div>';
+      html += '</div>';
+    }
+  }
+
+  html += '</div></div>';
+
+  // ── TLS Status card ──
+  var tls = data.tls || {};
+  html += '<div class="card">';
+  html += '<div class="card-header"><div class="card-title">' + ICONS.shield(20) + ' TLS Status</div></div>';
+  html += '<div class="card-content">';
+  html += '<div class="tls-status">';
+  html += '<div class="tls-enabled">';
+  if (tls.enabled) {
+    html += ICONS.checkCircle(20);
+    html += '<span>Enabled</span>';
+  } else {
+    html += ICONS.xCircle(20);
+    html += '<span>Disabled</span>';
+  }
+  html += '</div>';
+
+  if (tls.enabled && tls.cert_expiry_days !== undefined) {
+    var certVariant = tls.cert_expiry_days < 14 ? 'warning' : 'success';
+    var certIcon = tls.cert_expiry_days < 14 ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+    html += '<div class="tls-cert">' + certIcon + ' Certificate expires in <span class="badge badge-md badge-' + certVariant + '">' + esc(tls.cert_expiry_days) + ' days</span></div>';
+  }
+
+  html += '</div>';
+  html += '</div></div>';
+
+  // ── Resources card ──
+  var res = data.resources || {};
+  html += '<div class="card">';
+  html += '<div class="card-header"><div class="card-title">' + ICONS.cpu(20) + ' Resources</div></div>';
+  html += '<div class="card-content">';
+
+  if (res.open_fds != null && res.max_fds != null) {
+    var usagePct = typeof res.usage_pct === 'number' ? res.usage_pct : (res.max_fds > 0 ? (res.open_fds / res.max_fds * 100) : 0);
+    html += '<div class="resources-grid">';
+    html += '<div><div class="stat-label">Open FDs</div><div class="stat-value">' + esc(res.open_fds) + '</div></div>';
+    html += '<div><div class="stat-label">Max FDs</div><div class="stat-value">' + esc(res.max_fds) + '</div></div>';
+    html += '<div><div class="stat-label">Usage</div><div class="stat-value">' + usagePct.toFixed(1) + '%</div></div>';
+    html += '</div>';
+    html += '<div class="progress-track progress-track-md"><div class="progress-fill ' + fillColor(usagePct) + '" style="width:' + Math.min(usagePct, 100) + '%"></div></div>';
+  } else {
+    html += '<p style="color:#666">No resource data available</p>';
+  }
+
+  html += '</div></div>';
+
+  html += '</div>'; // card-stack
+  document.getElementById('dashboardContent').innerHTML = html;
+}
+
+// ── Render: error ────────────────────────────────────────────────────────────
+
+function renderError(message) {
+  document.getElementById('dashboardContent').innerHTML = '';
+  var html = '<div class="error-card" style="margin-bottom:24px">';
+  html += '<div class="error-content">' + ICONS.xCircle(20) + '<span>' + esc(message) + '</span></div>';
+  html += '</div>';
+  document.getElementById('errorContainer').innerHTML = html;
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+
+fetchHealth();
+
+})();
+</script>
+</body>
+</html>

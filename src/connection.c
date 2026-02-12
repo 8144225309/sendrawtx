@@ -896,10 +896,20 @@ static void process_request(Connection *conn)
         case ROUTE_RESULT:
             file = &worker->static_files.result;
             break;
+        case ROUTE_DOCS:
+            file = &worker->static_files.docs;
+            break;
+        case ROUTE_STATUS:
+            file = &worker->static_files.status;
+            break;
+        case ROUTE_LOGOS:
+            file = &worker->static_files.logos;
+            break;
         case ROUTE_ERROR:
         default:
-            /* SPA fallback: serve index.html so React Router handles the path */
-            file = &worker->static_files.index;
+            file = &worker->static_files.error;
+            status_code = 404;
+            status_text = "Not Found";
             break;
     }
 
