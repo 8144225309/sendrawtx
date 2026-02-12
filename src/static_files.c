@@ -34,10 +34,7 @@ static const char *get_banner_html(BitcoinChain chain)
                    "SIGNET - Coins have no value"
                    "</div>";
         case CHAIN_REGTEST:
-            return "<script>window.__NETWORK__='regtest'</script>"
-                   "<div class=\"network-banner network-banner-regtest\">"
-                   "REGTEST - Local test network"
-                   "</div>";
+            return "<script>window.__NETWORK__='regtest'</script>";
         case CHAIN_MAINNET:
         default:
             return "<script>window.__NETWORK__='mainnet'</script>";
