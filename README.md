@@ -170,6 +170,8 @@ See [TESTING.md](TESTING.md) for the full testing strategy (sanitizers, fuzzing,
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Build instructions, code style, PR process |
 | [SECURITY.md](SECURITY.md) | Vulnerability reporting policy |
 | `config.ini.example` | All configuration options with inline docs |
+| `contrib/grafana/` | Grafana dashboard JSON (import to visualize all metrics) |
+| `contrib/prometheus/` | Prometheus alerting rules (cert expiry, error rate, slot pressure) |
 
 ## License
 

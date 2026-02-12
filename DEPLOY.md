@@ -372,11 +372,24 @@ scrape_configs:
       - targets: ['localhost:8080']
 ```
 
-Key metrics to alert on:
-- `rawrelay_tls_cert_expiry_timestamp_seconds` — alert when < 7 days
-- `rawrelay_connections_rejected_total{reason="slot_limit"}` — capacity pressure
-- `rawrelay_connections_rejected_total{reason="rate_limit"}` — abuse detection
-- `rawrelay_http_requests_by_class_total{class="5xx"}` — server errors
+Pre-built alerting rules are in [`contrib/prometheus/alerts.yml`](contrib/prometheus/alerts.yml) — covers cert expiry, slot pressure, error rate spikes, rate limit storms, FD exhaustion, and latency. Add to your Prometheus config:
+
+```yaml
+rule_files:
+  - /path/to/alerts.yml
+```
+
+### Grafana
+
+Import [`contrib/grafana/rawrelay-dashboard.json`](contrib/grafana/rawrelay-dashboard.json) into Grafana (Dashboards > Import > Upload JSON). Panels:
+
+- **Overview row**: request rate, active connections, error rate, TLS cert expiry, uptime, rejections
+- **Traffic row**: request rate by worker (stacked), HTTP status codes (color-coded), latency percentiles (p50/p90/p99), latency heatmap
+- **Connections row**: active connections by worker, rejections by reason (rate limit / slot limit / blocked), slot usage by tier (bar gauge with green/yellow/red)
+- **TLS & HTTP/2 row**: TLS handshakes by version (1.2 vs 1.3), TLS errors, HTTP/2 streams (active, new, RST_STREAM, GOAWAY)
+- **Resources row**: file descriptors (open vs max), rate limiter table size per worker, errors by type (timeout / parse / TLS)
+
+The dashboard has template variables for data source, instance, and worker — works with multi-instance and multi-worker setups out of the box.
 
 See [OPERATIONS.md](OPERATIONS.md) for the full metrics reference.
 

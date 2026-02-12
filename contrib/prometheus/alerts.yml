@@ -1,0 +1,113 @@
+# RawRelay Prometheus Alerting Rules
+# Add to your Prometheus config:
+#   rule_files:
+#     - /path/to/alerts.yml
+
+groups:
+  - name: rawrelay
+    rules:
+
+      # TLS certificate expires in less than 7 days
+      - alert: RawRelayTLSCertExpiringSoon
+        expr: (rawrelay_tls_cert_expiry_timestamp_seconds - time()) < 604800
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "TLS certificate expires in {{ $value | humanizeDuration }}"
+          description: "Certificate on worker {{ $labels.worker }} expires soon. Run certbot renew and send SIGUSR2."
+
+      # TLS certificate expires in less than 24 hours
+      - alert: RawRelayTLSCertCritical
+        expr: (rawrelay_tls_cert_expiry_timestamp_seconds - time()) < 86400
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "TLS certificate expires in {{ $value | humanizeDuration }}"
+          description: "Certificate on worker {{ $labels.worker }} is about to expire. Immediate renewal required."
+
+      # Slot usage above 90% on any tier
+      - alert: RawRelaySlotPressure
+        expr: (rawrelay_slots_used / rawrelay_slots_max) > 0.9
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.tier }} slots at {{ $value | humanizePercentage }} on worker {{ $labels.worker }}"
+          description: "Connection slot tier {{ $labels.tier }} is nearly exhausted. Clients may receive 503."
+
+      # 5xx error rate above 5% of traffic sustained for 5 minutes
+      - alert: RawRelayHighErrorRate
+        expr: >
+          rate(rawrelay_http_requests_by_class_total{class="5xx"}[5m])
+          / rate(rawrelay_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "5xx error rate at {{ $value | humanizePercentage }} on worker {{ $labels.worker }}"
+          description: "Sustained server error rate above 5%. Check logs with: journalctl -u rawrelay -f"
+
+      # Rate limit rejections sustained (possible attack or misconfigured limits)
+      - alert: RawRelayRateLimitStorm
+        expr: rate(rawrelay_connections_rejected_total{reason="rate_limit"}[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $value | humanize }}/s rate-limited on worker {{ $labels.worker }}"
+          description: "Sustained rate limit rejections. May indicate abuse or rate limits set too low."
+
+      # Blocklist rejections sustained (possible attack)
+      - alert: RawRelayBlocklistStorm
+        expr: rate(rawrelay_connections_rejected_total{reason="blocked"}[5m]) > 10
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "{{ $value | humanize }}/s blocked on worker {{ $labels.worker }}"
+          description: "Sustained blocked connection attempts from IPs on the blocklist."
+
+      # File descriptor usage above 80%
+      - alert: RawRelayFDPressure
+        expr: (rawrelay_open_fds / rawrelay_max_fds) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "FD usage at {{ $value | humanizePercentage }} on worker {{ $labels.worker }}"
+          description: "File descriptors running low. Consider raising LimitNOFILE in the systemd unit."
+
+      # Scrape target down
+      - alert: RawRelayDown
+        expr: up{job="rawrelay"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "RawRelay scrape target is down"
+          description: "Prometheus cannot reach the /metrics endpoint. Check: systemctl status rawrelay"
+
+      # TLS handshake errors sustained
+      - alert: RawRelayTLSErrors
+        expr: rate(rawrelay_tls_handshake_errors_total[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $value | humanize }}/s TLS handshake errors on worker {{ $labels.worker }}"
+          description: "Sustained TLS handshake failures. May indicate misconfigured clients or cert issues."
+
+      # P99 latency above 1 second
+      - alert: RawRelayHighLatency
+        expr: >
+          histogram_quantile(0.99,
+            rate(rawrelay_request_duration_seconds_bucket[5m])
+          ) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "P99 latency at {{ $value | humanizeDuration }} on worker {{ $labels.worker }}"
+          description: "99th percentile request latency is above 1 second. Check RPC connection and system load."
