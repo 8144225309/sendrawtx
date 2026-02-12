@@ -2,15 +2,23 @@
 
 This walks through deploying sendrawtx from source to a running production service with TLS. For tuning, signals, metrics, and security hardening, see [OPERATIONS.md](OPERATIONS.md).
 
-**Target OS:** Ubuntu 22.04 / 24.04 (CI-tested). Other Linux distributions work with minor package-name adjustments.
+**Tested on:** Ubuntu 22.04 / 24.04, macOS 14 / 15 (CI-tested). Other Linux distributions work with minor package-name adjustments.
 
 ---
 
 ## 1. Install Dependencies
 
+**Linux (Ubuntu/Debian):**
+
 ```bash
 sudo apt update
 sudo apt install -y build-essential libevent-dev libssl-dev libnghttp2-dev pkg-config
+```
+
+**macOS:**
+
+```bash
+brew install libevent openssl nghttp2 pkg-config
 ```
 
 ## 2. Build
@@ -93,7 +101,7 @@ cookie_file = /home/bitcoin/.bitcoin/signet/.cookie
 
 If RPC is configured, the output will show the connection details. Fix any errors before proceeding.
 
-## 4. Install as Service
+## 4. Install as Service (Linux)
 
 The install script creates a `rawrelay` system user, copies files to `/opt/rawrelay`, and installs the systemd unit:
 
@@ -129,6 +137,56 @@ sudo systemctl status rawrelay
 sudo journalctl -u rawrelay -f
 ```
 
+### macOS (launchd)
+
+macOS uses launchd instead of systemd. To run manually:
+
+```bash
+./rawrelay-server config.ini
+./rawrelay-server -w 4 config.ini   # explicit worker count
+```
+
+To run as a background service, create a launchd plist:
+
+```bash
+sudo tee /Library/LaunchDaemons/com.rawrelay.server.plist << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.rawrelay.server</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/rawrelay-server</string>
+        <string>/usr/local/etc/rawrelay/config.ini</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/var/log/rawrelay.log</string>
+    <key>StandardErrorPath</key>
+    <string>/var/log/rawrelay.log</string>
+</dict>
+</plist>
+EOF
+```
+
+```bash
+# Copy files into place
+sudo mkdir -p /usr/local/etc/rawrelay
+sudo cp rawrelay-server /usr/local/bin/
+sudo cp config.ini /usr/local/etc/rawrelay/
+
+# Load and start
+sudo launchctl load /Library/LaunchDaemons/com.rawrelay.server.plist
+sudo launchctl start com.rawrelay.server
+```
+
+**Note:** Seccomp is Linux-only and has no effect on macOS. The `SO_REUSEPORT` multi-process model works on both platforms.
+
 ## 5. TLS with Let's Encrypt
 
 sendrawtx has a built-in ACME HTTP-01 challenge endpoint. No reverse proxy needed — the server handles TLS termination directly.
@@ -146,6 +204,17 @@ sudo certbot certonly --webroot \
 ```
 
 Certbot writes challenge tokens to `/opt/rawrelay/.well-known/acme-challenge/`, which the server serves automatically at `http://yourdomain.com:8080/.well-known/acme-challenge/{token}`.
+
+**Multiple domains:** If you serve multiple domains from the same server (e.g. both `sendrawtx.com` and `sendrawtransaction.com` pointing to the same IP), request a single SAN certificate covering all of them:
+
+```bash
+sudo certbot certonly --webroot \
+  -w /opt/rawrelay \
+  -d sendrawtx.com \
+  -d sendrawtransaction.com
+```
+
+One cert file covers both domains. The server has no SNI support (it loads a single certificate), but a SAN cert means both domains validate. The ACME challenge endpoint is domain-agnostic — it serves tokens based on the URL path regardless of Host header, so validation succeeds for all domains in the cert.
 
 ### Enable TLS in config
 
@@ -200,7 +269,7 @@ sudo certbot renew --dry-run
 
 sendrawtx accepts raw transaction hex directly in the URL path — URLs can be up to 4 MB. Reverse proxies (nginx, HAProxy, Caddy) impose URL length limits well below this and will silently truncate or reject requests. **Do not put a reverse proxy in front of sendrawtx.**
 
-### iptables redirect
+### Linux (iptables)
 
 Use iptables to forward standard ports to the server's ports without any proxy layer:
 
@@ -212,7 +281,7 @@ sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080
 sudo iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port 8443
 ```
 
-### Make it persistent
+Make it persistent:
 
 ```bash
 sudo apt install -y iptables-persistent
@@ -221,7 +290,7 @@ sudo netfilter-persistent save
 
 This saves the rules to `/etc/iptables/rules.v4` and restores them on boot.
 
-### Verify
+Verify:
 
 ```bash
 sudo iptables -t nat -L PREROUTING -n --line-numbers
@@ -229,7 +298,23 @@ sudo iptables -t nat -L PREROUTING -n --line-numbers
 
 You should see the two REDIRECT rules. Traffic on ports 80 and 443 now reaches the server on 8080 and 8443 respectively.
 
-**Note:** The ACME HTTP-01 challenge must be reachable on port 80. With the iptables redirect in place, certbot's validation requests to `http://yourdomain.com/.well-known/acme-challenge/{token}` (port 80) will reach the server on port 8080 automatically.
+### macOS (pf)
+
+macOS uses `pf` (packet filter) instead of iptables:
+
+```bash
+# Add redirect rules
+echo "rdr pass on lo0 inet proto tcp from any to any port 80 -> 127.0.0.1 port 8080
+rdr pass on lo0 inet proto tcp from any to any port 443 -> 127.0.0.1 port 8443" | sudo tee -a /etc/pf.conf
+
+# Reload pf
+sudo pfctl -f /etc/pf.conf
+sudo pfctl -e
+```
+
+For external traffic, replace `lo0` with your network interface (e.g. `en0`).
+
+**Note:** The ACME HTTP-01 challenge must be reachable on port 80. With port forwarding in place, certbot's validation requests to `http://yourdomain.com/.well-known/acme-challenge/{token}` (port 80) will reach the server on port 8080 automatically.
 
 ## 7. Verify
 
