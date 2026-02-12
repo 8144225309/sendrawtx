@@ -385,6 +385,7 @@ static int h2_on_stream_close_callback(nghttp2_session *session,
                                  (now.tv_nsec - stream->start_time.tv_nsec) / 1e6;
             double duration_sec = duration_ms / 1000.0;
 
+            worker->requests_processed++;
             update_latency_histogram(worker, duration_sec);
             update_status_counters(worker, stream->response_status);
             update_method_counters(worker, stream->method);
@@ -470,8 +471,14 @@ static int h2_on_header_callback(nghttp2_session *session,
     /* Store headers */
     if (namelen == 7 && memcmp(name, ":method", 7) == 0) {
         stream->method = strndup((const char *)value, valuelen);
+        if (!stream->method) {
+            return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
+        }
     } else if (namelen == 5 && memcmp(name, ":path", 5) == 0) {
         stream->path = strndup((const char *)value, valuelen);
+        if (!stream->path) {
+            return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
+        }
         stream->path_len = valuelen;
 
         /* Hex path validation for long paths (same as HTTP/1.1 validate_path_early) */
@@ -511,8 +518,14 @@ static int h2_on_header_callback(nghttp2_session *session,
         }
     } else if (namelen == 10 && memcmp(name, ":authority", 10) == 0) {
         stream->authority = strndup((const char *)value, valuelen);
+        if (!stream->authority) {
+            return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
+        }
     } else if (namelen == 7 && memcmp(name, ":scheme", 7) == 0) {
         stream->scheme = strndup((const char *)value, valuelen);
+        if (!stream->scheme) {
+            return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
+        }
     } else if (namelen == 14 && memcmp(name, "content-length", 14) == 0) {
         stream->content_length = (size_t)strtoul((const char *)value, NULL, 10);
     }

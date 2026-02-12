@@ -148,7 +148,7 @@ static RateLimitEntry *get_entry(RateLimiter *rl, const RateLimitKey *key, doubl
     memcpy(&entry->key, key, sizeof(*key));
     entry->tokens = rl->burst;  /* Start with full bucket */
     entry->last_update = now;
-    entry->last_request = (time_t)now;  /* Integer seconds for TTL */
+    entry->last_request = time(NULL);  /* Wall clock for TTL comparison */
     entry->next = rl->buckets[bucket];
     rl->buckets[bucket] = entry;
     rl->num_entries++;
@@ -199,8 +199,8 @@ int rate_limiter_allow(RateLimiter *rl, const char *ip_str)
         return 0;
     }
 
-    /* Update last request time for TTL (integer seconds) */
-    entry->last_request = (time_t)now;
+    /* Update last request time for TTL (wall clock for cleanup comparison) */
+    entry->last_request = time(NULL);
 
     /* Replenish tokens */
     replenish_tokens(rl, entry, now);

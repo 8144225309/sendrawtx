@@ -88,7 +88,11 @@ int main(int argc, char **argv)
             benchmark_mode = 1;
             continue;
         }
-        if ((strcmp(argv[i], "-w") == 0 || strcmp(argv[i], "--workers") == 0) && i + 1 < argc) {
+        if (strcmp(argv[i], "-w") == 0 || strcmp(argv[i], "--workers") == 0) {
+            if (i + 1 >= argc) {
+                fprintf(stderr, "Error: %s requires a number argument\n", argv[i]);
+                return 1;
+            }
             /* Security: use strtol with proper error checking instead of atoi */
             char *endptr = NULL;
             const char *arg = argv[++i];

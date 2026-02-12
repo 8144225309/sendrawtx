@@ -368,7 +368,6 @@ void connection_free(Connection *conn)
 
     /* Update worker stats */
     worker->active_connections--;
-    worker->requests_processed++;
 
     /* Check if we should exit (draining mode) */
     worker_check_drain(worker);
@@ -705,6 +704,12 @@ static void serve_acme_challenge(Connection *conn)
 
     conn->state = CONN_STATE_WRITING_RESPONSE;
 
+    /* Security: Reject if ACME challenge directory is not configured */
+    if (!acme_dir || acme_dir[0] == '\0') {
+        log_warn("ACME: Challenge directory not configured");
+        goto not_found;
+    }
+
     /* Extract token from path: /.well-known/acme-challenge/{token} */
     const size_t prefix_len = 27;  /* ".well-known/acme-challenge/" */
 
@@ -1019,6 +1024,10 @@ static void conn_read_cb(struct bufferevent *bev, void *ctx)
                     return;
                 }
                 evbuffer_drain(input, available);
+                /* Reset throughput tracking after drain to prevent false slowloris kills.
+                 * Without this, bytes_at_last_check holds the pre-drain value,
+                 * causing available < bytes_at_last_check on the next read. */
+                conn->bytes_at_last_check = 0;
             }
         }
         return;
@@ -1227,6 +1236,7 @@ static void log_request_complete(Connection *conn)
     double duration_sec = duration_ms / 1000.0;
 
     /* Update metrics */
+    worker->requests_processed++;
     update_latency_histogram(worker, duration_sec);
     update_status_counters(worker, conn->response_status);
     update_method_counters(worker, conn->method);

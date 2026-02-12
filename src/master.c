@@ -80,7 +80,7 @@ static void sigterm_handler(int sig)
 {
     (void)sig;
     if (g_master) {
-        g_master->shutdown_requested = true;
+        g_master->shutdown_requested = 1;
     }
 }
 
@@ -88,7 +88,7 @@ static void sighup_handler(int sig)
 {
     (void)sig;
     if (g_master) {
-        g_master->reload_requested = true;
+        g_master->reload_requested = 1;
     }
 }
 
@@ -141,14 +141,8 @@ int master_init(MasterProcess *master, const char *config_path)
         return -1;
     }
 
-    /* Determine number of workers */
-    if (master->config->max_connections <= 0) {
-        /* Auto-detect: use number of CPUs */
-        master->num_workers = get_num_cpus();
-    } else {
-        /* Use configured value (repurposing max_connections for now) */
-        master->num_workers = master->config->max_connections;
-    }
+    /* Determine number of workers - always based on CPU count */
+    master->num_workers = get_num_cpus();
 
     /* Sanity limits */
     if (master->num_workers < 1) {
@@ -384,14 +378,16 @@ void master_reload(MasterProcess *master)
 
     /* Fork new workers (they'll use new config) */
     for (int i = 0; i < master->num_workers; i++) {
-        if (master->worker_pids[i] > 0) {
-            /* Old worker still running - will exit after drain */
-            pid_t old_pid = master->worker_pids[i];
+        pid_t old_pid = master->worker_pids[i];
 
-            /* Start new worker */
-            master->worker_pids[i] = fork_worker(i, new_config);
+        /* Start new worker (even if old worker was dead) */
+        master->worker_pids[i] = fork_worker(i, new_config);
+        if (old_pid > 0) {
             log_info("Started new worker %d (pid %d), old worker %d draining",
                      i, master->worker_pids[i], old_pid);
+        } else {
+            log_info("Started new worker %d (pid %d), replacing dead slot",
+                     i, master->worker_pids[i]);
         }
     }
 
@@ -421,7 +417,7 @@ int master_run(MasterProcess *master)
     while (!master->shutdown_requested) {
         /* Check for reload request */
         if (master->reload_requested) {
-            master->reload_requested = false;
+            master->reload_requested = 0;
             master_reload(master);
         }
 
